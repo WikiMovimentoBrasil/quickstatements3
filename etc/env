@@ -1,0 +1,4 @@
+
+DJANGO_SECRET_KEY=djr9w$h9vfwdczx14g3_+-o85i@&=jm@(a5c*^%9wg6ae4p=r+ob
+
+DJANGO_STATIC_ROOT=/home/wmb/www/static
