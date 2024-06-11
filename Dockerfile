@@ -16,32 +16,28 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 # NGINX configuration
 COPY etc/nginx.conf /etc/nginx/sites-enabled/default
 
-# Where all the magic happens
+# changing to our local user
+USER wmb
 RUN mkdir /home/wmb/logs && chmod 777 /home/wmb/logs && chown wmb:nginx /home/wmb/logs
 RUN mkdir /home/wmb/logs/nginx && chmod 777 /home/wmb/logs/nginx && chown wmb:nginx /home/wmb/logs/nginx
 RUN mkdir /home/wmb/www
 RUN mkdir /home/wmb/www/static
 RUN mkdir /home/wmb/www/src
-RUN chown -R wmb:wmb /home/wmb/www 
 
 # Needed for nginx
 RUN chmod o+x /home/wmb &&chmod o+x /home/wmb/www
 
-# Our main command, that runs everything
 COPY bin/cmd_run.sh /home/wmb/www 
-RUN chown wmb:wmb /home/wmb/www/cmd_run.sh && chmod 777 /home/wmb/www/cmd_run.sh
+RUN sudo chown wmb:wmb /home/wmb/www/cmd_run.sh && sudo chmod 777 /home/wmb/www/cmd_run.sh
+
+COPY requirements.txt /home/wmb/www
+RUN sudo chown wmb:wmb /home/wmb/www/requirements.txt
 
 WORKDIR /home/wmb/www/
-
-COPY src /home/wmb/www/src
-COPY requirements.txt /home/wmb/www
 
 RUN pip install -r requirements.txt
 
 ENV PATH="${PATH}:/home/wmb/.local/bin"
-
-# changin to our local user
-USER wmb
 
 EXPOSE 8000 80
 
