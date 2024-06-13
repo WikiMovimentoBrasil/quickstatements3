@@ -17,8 +17,26 @@ def login_dev(request):
         # obtain dev token
         token = request.POST["access_token"]
 
-        # save access token in the user's session
+        # TODO: move this logic into the api app
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        response = requests.get(
+            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
+            headers=headers,
+        ).json()
+
+        # Verify submitted token by checking `username` in the response
+        try:
+            username = response["username"]
+        except KeyError:
+            data = {"error": response}
+            return render(request, "login_dev.html", data)
+
+        # save access token and Wikimedia username in the user's session
         request.session["access_token"] = token
+        request.session["username"] = username
 
         return redirect("/auth/profile/")
     else:
@@ -26,22 +44,7 @@ def login_dev(request):
 
 
 def profile(request):
-    # TODO: move this logic into the api app
-    access_token = request.session.get("access_token")
-    if access_token is not None:
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-        }
-        response = requests.get(
-            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
-            headers=headers,
-        )
-        username = response.json()["username"]
-    else:
-        username = None
-
     data = {
-        "username": username,
+        "username": request.session.get("username"),
     }
     return render(request, "profile.html", data)
