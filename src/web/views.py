@@ -4,7 +4,10 @@ from django.shortcuts import render, redirect
 
 
 def login(request):
-    return render(request, "login.html", {})
+    if request.session.get("username") is not None:
+        return redirect("/auth/profile/")
+    else:
+        return render(request, "login.html", {})
 
 
 def logout(request):

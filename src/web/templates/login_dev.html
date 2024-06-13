@@ -8,7 +8,7 @@
   {% csrf_token %}
   <fieldset>
     <label for="access_token">Access Token</label>
-    <input name="access_token" placeholder="Access Token">
+    <input type="password" name="access_token" placeholder="Access Token">
     <button>Log in</button>
     {% if error %}
     <p style="color: red;"><small>Your access token is not valid: {{ error }}</small></p>
