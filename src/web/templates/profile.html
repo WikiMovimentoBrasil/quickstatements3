@@ -2,8 +2,17 @@
 
 {% block content %}
 
-<p>Your user information should go here.</p>
-<!-- TODO: obviously let's not show this when in production... -->
-<p>This is your access token: {{ access_token }}</p>
+{% if username %}
+
+<h1> {{ username }} </h1>
+<p> You're successfully logged in! </p>
+<p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
+
+{% else %}
+
+<h1> You're not logged in. </h1>
+<p><a href="{% url 'login' %}"> Click here to log in.</a></p>
+
+{% endif %}
 
 {% endblock content %}
