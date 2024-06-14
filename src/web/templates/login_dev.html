@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<p> Submit your access token below. </p>
+
+<form method="POST">
+  {% csrf_token %}
+  <fieldset>
+    <label for="access_token">Access Token</label>
+    <input type="password" name="access_token" placeholder="Access Token">
+    <button>Log in</button>
+    {% if error %}
+    <p style="color: red;"><small>Your access token is not valid: {{ error }}</small></p>
+    {% endif %}
+  </fieldset>
+</form>
+
+{% endblock content %}
