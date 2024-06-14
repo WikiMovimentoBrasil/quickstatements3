@@ -23,6 +23,12 @@ To run a shell inside the container
 
 Make sure that you have an env file inside the local etc/ dir. This file contains all the **ENVIRONMENT VARIABLES** used by the system and must never be added to your git repo.
 
+To generate a good secret key you can run with python 3.6+
+
+```
+python -c "import secrets; print(secrets.token_urlsafe())"
+```
+
 If you are running this container for the first time, you have to initialize the database and create a superuser for the Django ADMIN
 
 ```bash
@@ -60,3 +66,4 @@ The grants we probably need are
   * Edit existing pages
   * Edit protected pages (risk rating: vandalism)
   * Create, edit, and move pages
+
