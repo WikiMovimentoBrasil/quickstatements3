@@ -1,14 +1,21 @@
+{% load static %}
+
 <!DOCTYPE HTML>
 <html>
 
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="{% static 'pico.jade.min.css' %}">
   <title>Quick Statements 3.0</title>
 </head>
 
 <body>
-  {% block content %}
-  {% endblock content %}
+  <main class="container">
+    {% block content %}
+    {% endblock content %}
+  </main>
 </body>
 
 </html>
