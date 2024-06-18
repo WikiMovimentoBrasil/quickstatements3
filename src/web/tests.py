@@ -1,3 +1,5 @@
+import requests_mock
+
 from django.test import TestCase as DjangoTestCase
 from django.urls import reverse
 
@@ -8,7 +10,10 @@ class TestCase(DjangoTestCase):
     URL_NAME = "/"
 
     def assert200(self, response):
-        self.assertEqual(response.status_code, 200)
+        self.assertStatus(response, 200)
+
+    def assertStatus(self, response, status):
+        self.assertEqual(response.status_code, status)
 
     def assertRedirect(self, response):
         self.assertEqual(response.status_code, 302)
@@ -30,6 +35,9 @@ class TestCase(DjangoTestCase):
 
     def get(self):
         return self.client.get(reverse(self.URL_NAME))
+
+    def post(self, data=None):
+        return self.client.post(reverse(self.URL_NAME), data=data)
 
     def save_john_username(self):
         # We need to save it into a variable before saving it
@@ -76,6 +84,33 @@ class LoginDev(TestCase):
         res = self.get()
         self.assert200(res)
         self.assertInRes("form", res)
+
+    @requests_mock.Mocker()
+    def test_login_fail(self, mocker):
+        mocker.get(
+            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
+            json={"error": "access denied"},
+            status_code=401,
+        )
+        res = self.post(data={"access_token": "my_invalid_token"})
+        self.assertStatus(res, 400)
+        self.assertInRes("Your access token is not valid", res)
+
+    @requests_mock.Mocker()
+    def test_login_success(self, mocker):
+        mocker.get(
+            # TODO: refactor this repeated URL
+            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
+            json={"username": "Maria"},
+            status_code=200,
+        )
+
+        res = self.post(data={"access_token": "valid_token"})
+        self.assertRedirectToUrlName(res, "profile")
+
+        session = self.client.session
+        self.assertEqual(session.get("access_token"), "valid_token")
+        self.assertEqual(session.get("username"), "Maria")
 
     # TODO: create tests for the POST
     # but for that we need to mock the request
