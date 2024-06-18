@@ -35,7 +35,7 @@ def login_dev(request):
             username = response["username"]
         except KeyError:
             data = {"error": response}
-            return render(request, "login_dev.html", data)
+            return render(request, "login_dev.html", data, status=400)
 
         # save access token and Wikimedia username in the user's session
         request.session["access_token"] = token
