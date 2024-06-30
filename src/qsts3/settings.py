@@ -127,3 +127,5 @@ STATIC_ROOT = os.getenv('DJANGO_STATIC_ROOT')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+APPEND_SLASH = True
+

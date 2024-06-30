@@ -1,15 +1,22 @@
 from django.urls import path
 
-import views
+from .views import home
+from .views import login
+from .views import logout
+from .views import login_dev
+from .views import profile
+from .views import last_batches
+from .views import last_batches_by_user
+from .views import batch
+
 
 urlpatterns = [
-    path("", views.home),    
-    path("auth/login/", views.login, name="login"),
-    path("auth/logout/", view.logout, name="logout"),
-    path("auth/login/dev/", views.login_dev, name="login_dev"),
-    path("auth/profile/", views.profile, name="profile"),
-
-    path("batches", views.last_batches),
-    path("batches/<str:user>", views.last_batches_by_user),
-    path("batch/<int:pk>", views.batch),
+    path("", home),    
+    path("auth/login/", login, name="login"),
+    path("auth/logout/", logout, name="logout"),
+    path("auth/login/dev/", login_dev, name="login_dev"),
+    path("auth/profile/", profile, name="profile"),
+    path("batches/", last_batches),
+    path("batches/<str:user>/", last_batches_by_user),
+    path("batch/<int:pk>/", batch),
 ]
