@@ -17,6 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from web import views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("", views.home),
+    path("batches", views.last_batches),
+    path("batches/<str:user>", views.last_batches_by_user),
+    path("batch/<int:pk>", views.batch),
 ]
