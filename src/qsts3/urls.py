@@ -14,15 +14,17 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path
 
-from web import views
+from django.contrib import admin
+from django.shortcuts import redirect
+from django.urls import include, path
+
+
+def redirect_to_login(request):
+    return redirect("/auth/login/")
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("", views.home),
-    path("batches", views.last_batches),
-    path("batches/<str:user>", views.last_batches_by_user),
-    path("batch/<int:pk>", views.batch),
+    path("admin/", admin.site.urls),
+    path("", include("web.urls")),
 ]

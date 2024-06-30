@@ -54,4 +54,3 @@ class BatchCommand(models.Model):
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
 
-

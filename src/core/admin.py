@@ -1,6 +1,4 @@
 from django.contrib import admin
-
-from django.contrib import admin
 from django.utils.translation import gettext as _
 
 from core.models import Batch
@@ -21,5 +19,3 @@ class BatchCommandAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created', 'modified']
     search_field = ['batch__name', 'batch__user']
     raw_id_field = ['batch']
-
-

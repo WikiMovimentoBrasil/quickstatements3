@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2> Developer access </h2>
+
+<p> Submit your access token below. </p>
+
+<form method="POST">
+  <fieldset class="grid">
+    {% csrf_token %}
+    <input type="password" name="access_token" aria-label="Access Token" placeholder="Access Token">
+    <input
+      type="submit"
+      value="Log in"
+    />
+  </fieldset>
+</form>
+
+{% if error %}
+<small>
+  <p style="color: red;">Your access token is not valid: {{ error }}</p>
+</small>
+{% endif %}
+
+{% endblock content %}
