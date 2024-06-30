@@ -18,13 +18,13 @@ def home(request):
 @require_http_methods(["GET",])
 def last_batches(request):
     last_batches = Batch.objects.all().order_by("-modified")[:20]
-    return render(request, "batches.html", {"last_batches": last_batches})
+    return render(request, "batches.html", {"last_batches": list(last_batches)})
 
 
 @require_http_methods(["GET",])
 def last_batches_by_user(request, user):
     last_batches = Batch.objects.filter(user=user).order_by("-modified")[:20]
-    return render(request, "batches.html", {"last_batches": last_batches})
+    return render(request, "batches.html", {"last_batches": list(last_batches), "user": user})
 
 
 @require_http_methods(["GET",])
