@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% if username %}
+
+<h1> {{ username }} </h1>
+<p> You're successfully logged in! </p>
+<p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
+
+{% else %}
+
+<h1> You're not logged in. </h1>
+<p><a href="{% url 'login' %}"> Click here to log in.</a></p>
+
+{% endif %}
+
+{% endblock content %}
