@@ -13,6 +13,15 @@
 
 <body>
   <main class="container">
+    <nav>
+      <ul>
+        <li><a href="{% url 'home' %}"><strong>QuickStatemens 3.0</strong></a></li>
+        <li><a href="{% url 'last_batches' %}">Last batches</a></li>
+      </ul>
+      <ul>
+        <li><a href="{% url 'profile' %}">Profile</a></li>
+      </ul>
+    </nav>
     {% block content %}
     {% endblock content %}
   </main>
