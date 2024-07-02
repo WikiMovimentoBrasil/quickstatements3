@@ -11,12 +11,12 @@ from .views import batch
 
 
 urlpatterns = [
-    path("", home),    
+    path("", home, name="home"),
     path("auth/login/", login, name="login"),
     path("auth/logout/", logout, name="logout"),
     path("auth/login/dev/", login_dev, name="login_dev"),
     path("auth/profile/", profile, name="profile"),
-    path("batches/", last_batches),
-    path("batches/<str:user>/", last_batches_by_user),
-    path("batch/<int:pk>/", batch),
+    path("batches/", last_batches, name="last_batches"),
+    path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
+    path("batch/<int:pk>/", batch, name="batch"),
 ]
