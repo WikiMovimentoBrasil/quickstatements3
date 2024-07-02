@@ -1,7 +1,41 @@
-<html>
-<head>
-</head>
-<body>
-BATCHES
-</body
-</html>
+{% extends "layout.html" %}
+
+{% block content %}
+
+<hgroup>
+  <h2> Last batches </h2>
+  {% if username is not None %}
+  <p> {{ username }} </p>
+  {% endif %}
+</hgroup>
+
+<div class="overflow-auto">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col"> id </th>
+        {% if username is None %}<th scope="col"> User </th>{% endif %}
+        <th scope="col"> Name </th>
+        <th scope="col"> Status </th>
+        <th scope="col"> Modified </th>
+        <th scope="col"> Actions </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for batch in last_batches %}
+      <tr>
+        <th scope="row">{{ batch.pk }}</th>
+        {% if username is None %}<td>{{ batch.user }}</td>{% endif %}
+        <td>{{ batch.name }}</td>
+        <td>{{ batch.status }}</td>
+        <td>{{ batch.modified }}</td>
+        <td>
+          <a href="{% url 'batch' pk=batch.pk %}">See</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -21,7 +21,8 @@ def last_batches(request):
 @require_http_methods(["GET",])
 def last_batches_by_user(request, user):
     last_batches = Batch.objects.filter(user=user).order_by("-modified")[:20]
-    return render(request, "batches.html", {"last_batches": list(last_batches), "user": user})
+    # we need to use `username` since `user` is always supplied by django templates
+    return render(request, "batches.html", {"last_batches": list(last_batches), "username": user})
 
 
 @require_http_methods(["GET",])
