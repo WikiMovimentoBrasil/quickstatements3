@@ -25,7 +25,13 @@
       {% for batch in last_batches %}
       <tr>
         <th scope="row">{{ batch.pk }}</th>
-        {% if username is None %}<td>{{ batch.user }}</td>{% endif %}
+        {% if username is None %}
+        <td>
+          <a href="{% url 'last_batches_by_user' user=batch.user %}">
+            {{ batch.user }}
+          </a>
+        </td>
+        {% endif %}
         <td>{{ batch.name }}</td>
         <td>{{ batch.status }}</td>
         <td>{{ batch.modified }}</td>

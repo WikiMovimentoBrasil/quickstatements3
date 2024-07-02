@@ -28,6 +28,9 @@ class Batch(models.Model):
         verbose_name = _("Batch")
         verbose_name_plural = _("Batches")
 
+    def commands(self):
+        return BatchCommand.objects.filter(batch=self).all().order_by("index")
+
 
 class BatchCommand(models.Model):
     """

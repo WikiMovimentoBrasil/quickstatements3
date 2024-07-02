@@ -31,7 +31,7 @@ def batch(request, pk):
         batch = Batch.objects.get(pk=pk)
         return render(request, "batch.html", {"batch": batch})
     except Batch.DoesNotExist:
-        return render(request, "batch_not_found.html", status=404)
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
 
 def login(request):

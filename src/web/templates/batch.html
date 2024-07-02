@@ -1,7 +1,33 @@
-<html>
-<head>
-</head>
-<body>
-BATCH
-</body
-</html>
+{% extends "layout.html" %}
+
+{% block content %}
+
+<hgroup>
+  <h2> Batch {{ batch.pk }} </h2>
+  <p> {{ batch.user }} </p>
+</hgroup>
+
+<h3> Commands </h3>
+
+<div class="overflow-auto">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col"> </th>
+        <th scope="col"> Status </th>
+        <th scope="col"> Message </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for command in batch.commands %}
+      <tr>
+        <th scope="row">{{ command.index }}</th>
+        <td>{{ batch.status }}</td>
+        <td>{{ batch.message }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

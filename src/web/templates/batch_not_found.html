@@ -1,7 +1,9 @@
-<html>
-<head>
-</head>
-<body>
-BATCH NOT FOUND
-</body
-</html>
+{% extends "layout.html" %}
+
+{% block content %}
+
+<p>
+  A batch with an id of <code>{{ pk }}</code> was not found.
+</p>
+
+{% endblock %}
