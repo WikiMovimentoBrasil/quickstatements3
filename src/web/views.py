@@ -34,6 +34,13 @@ def batch(request, pk):
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
 
+def new_batch(request):
+    if request.method == "POST":
+        raise ValueError("not implemented")
+    else:
+        return render(request, "new_batch.html", {})
+
+
 def login(request):
     if request.session.get("username") is not None:
         return redirect("/auth/profile/")

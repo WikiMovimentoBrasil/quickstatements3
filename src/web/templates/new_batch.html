@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2> New batch </h2>
+
+<form method="POST">
+  {% csrf_token %}
+  <fieldset>
+    <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
+      style="height: 400px"></textarea>
+  </fieldset>
+  <input type="submit" value="Execute" />
+</form>
+
+{% endblock %}

@@ -8,6 +8,7 @@ from .views import profile
 from .views import last_batches
 from .views import last_batches_by_user
 from .views import batch
+from .views import new_batch
 
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
     path("batches/", last_batches, name="last_batches"),
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),
+    path("batch/new/", new_batch, name="new_batch"),
 ]
