@@ -16,8 +16,8 @@ class Batch(models.Model):
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
-    status = models.IntegerField(default=STATUS.INITIAL, choices=[s.value for s in STATUS], null=False)
-    message = models.TextField()
+    status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
+    message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -27,6 +27,9 @@ class Batch(models.Model):
     class Meta:
         verbose_name = _("Batch")
         verbose_name_plural = _("Batches")
+
+    def commands(self):
+        return BatchCommand.objects.filter(batch=self).all().order_by("index")
 
 
 class BatchCommand(models.Model):
@@ -53,5 +56,3 @@ class BatchCommand(models.Model):
     class Meta:
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
-
-

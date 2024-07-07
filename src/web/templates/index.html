@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1> Welcome to QuickStatements 3.0 </h1>
+
+<article>
+  <a role="button" href="{% url 'new_batch' %}"> New batch </a>
+</article>
+
+
+<form id="batchForm">
+  <fieldset role="group">
+    <input id="batchInput" type="text" placeholder="Batch ID..." oninput="updateBatchForm()" />
+    <input type="submit" value="See batch details" />
+  </fieldset>
+</form>
+
+<form id="userForm">
+  <fieldset role="group">
+    <input id="userInput" type="text" placeholder="Username..." oninput="updateUserForm()" />
+    <input type="submit" value="See batches by user" />
+  </fieldset>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function updateUserForm() {
+    document.getElementById("userForm").action = "/batches/" + document.getElementById("userInput").value;
+  }
+
+  function updateBatchForm() {
+    document.getElementById("batchForm").action = "/batch/" + document.getElementById("batchInput").value;
+  }
+
+</script>
+{% endblock %}

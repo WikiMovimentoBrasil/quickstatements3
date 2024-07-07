@@ -16,16 +16,10 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.shortcuts import redirect
 from django.urls import include, path
-
-
-def redirect_to_login(request):
-    return redirect("/auth/login/")
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", redirect_to_login),
     path("", include("web.urls")),
 ]
