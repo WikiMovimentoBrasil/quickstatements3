@@ -17,7 +17,7 @@ class Batch(models.Model):
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
     status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
-    message = models.TextField()
+    message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
