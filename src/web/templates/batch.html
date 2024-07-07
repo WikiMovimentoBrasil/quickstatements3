@@ -3,8 +3,12 @@
 {% block content %}
 
 <hgroup>
-  <h2> Batch {{ batch.pk }} </h2>
-  <p> {{ batch.user }} </p>
+  <h2> Batch #{{ batch.pk }} <i>"{{batch.name}}"</i></h2>
+  <p>
+    By {{ batch.user }}
+    [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]</a>
+    [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">View wikidata</a>]
+  </p>
 </hgroup>
 
 <h3> Commands </h3>
@@ -31,3 +35,4 @@
 </div>
 
 {% endblock %}
+
