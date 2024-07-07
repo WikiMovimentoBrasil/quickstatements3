@@ -21,7 +21,12 @@
         <li><a href="https://github.com/WikiMovimentoBrasil/quickstatements3">Git</a></li>
       </ul>
       <ul>
-        <li><a href="{% url 'profile' %}">Profile {{user}}</a></li>
+        {% if user.is_anonymous %}
+        <li><a href="{% url 'login' %}">Login</a></li>
+        {% else %}
+        <li><a href="{% url 'profile' %}">User:{{user}}</a></li>
+        <li><a href="{% url 'last_batches_by_user' user=user %}">Your last batches</a></li>
+        {% endif %}
       </ul>
     </nav>
     {% block content %}
