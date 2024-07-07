@@ -3,17 +3,14 @@
 {% block content %}
 
 <hgroup>
-  <h2> Last batches </h2>
-  {% if username is not None %}
-  <p> {{ username }} </p>
-  {% endif %}
+  <h2> Last batches {% if username is not None %} from {{username}}{% endif %}</h2>
 </hgroup>
 
 <div class="overflow-auto">
   <table>
     <thead>
       <tr>
-        <th scope="col"> id </th>
+        <th scope="col"> # </th>
         {% if username is None %}<th scope="col"> User </th>{% endif %}
         <th scope="col"> Name </th>
         <th scope="col"> Status </th>
@@ -24,16 +21,19 @@
     <tbody>
       {% for batch in last_batches %}
       <tr>
-        <th scope="row">{{ batch.pk }}</th>
+        <th scope="row"><a href="{% url 'batch' pk=batch.pk %}">#{{ batch.pk }}</a></th>
         {% if username is None %}
         <td>
-          <a href="{% url 'last_batches_by_user' user=batch.user %}">
+          <a href="https://www.wikidata.org/wiki/User:{{batch.user}}">
             {{ batch.user }}
+          </a>
+          <br>
+          [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]
           </a>
         </td>
         {% endif %}
         <td>{{ batch.name }}</td>
-        <td>{{ batch.status }}</td>
+        <td>{{ batch.get_status_display | upper }}</td>
         <td>{{ batch.modified }}</td>
         <td>
           <a href="{% url 'batch' pk=batch.pk %}">See</a>
