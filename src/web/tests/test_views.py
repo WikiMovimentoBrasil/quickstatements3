@@ -37,7 +37,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(response.context["last_batches"], [])
-        self.assertEqual(response.context["user"], "mgalves80")
+        self.assertEqual(response.context["username"], "mgalves80")
 
     def test_non_existing_batch(self):
         c = Client()
@@ -73,13 +73,13 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(response.context["last_batches"], [b2, b1])
-        self.assertEqual(response.context["user"], "mgalves80")
+        self.assertEqual(response.context["username"], "mgalves80")
 
         response = c.get("/batches/wikilover/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(response.context["last_batches"], [b3])
-        self.assertEqual(response.context["user"], "wikilover")
+        self.assertEqual(response.context["username"], "wikilover")
 
         response = c.get("/batches/")
         self.assertEqual(response.status_code, 200)
