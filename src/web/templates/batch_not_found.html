@@ -3,7 +3,23 @@
 {% block content %}
 
 <p>
-  A batch with an id of <code>{{ pk }}</code> was not found.
+  Batch <code>#{{ pk }}</code> not found.
 </p>
 
+<form id="batchForm">
+  <fieldset role="group">
+    <input id="batchInput" type="text" placeholder="Batch ID" oninput="updateBatchForm()" />
+    <input type="submit" value="See batch details" />
+  </fieldset>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function updateBatchForm() {
+    document.getElementById("batchForm").action = "/batch/" + document.getElementById("batchInput").value;
+  }
+
+</script>
 {% endblock %}
