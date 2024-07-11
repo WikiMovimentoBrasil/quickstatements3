@@ -19,7 +19,7 @@
         <th scope="col"> Actions </th>
       </tr>
     </thead>
-    <tbody id="lastBatchesTBody" hx-get="/batches{% if username is not None %}/{{ username }}{% endif %}"
+    <tbody id="lastBatchesTBody" hx-get="/batches/{% if username is not None %}{{ username }}/{% endif %}"
       hx-trigger="load delay:5s" hx-select="#lastBatchesTBody" hx-swap="outerHTML"
       hx-indicator="previous .htmx-indicator">
       {% for batch in last_batches %}
