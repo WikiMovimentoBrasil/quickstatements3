@@ -2,9 +2,10 @@
 
 {% block content %}
 
-<hgroup>
+<div style="display: flex; align-items: center; gap: 10px;">
   <h2> Last batches {% if username is not None %} from {{username}}{% endif %}</h2>
-</hgroup>
+  <img class="htmx-indicator" style="margin-bottom: 1em;">
+</div>
 
 <div class="overflow-auto">
   <table>
@@ -18,7 +19,9 @@
         <th scope="col"> Actions </th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="lastBatchesTBody" hx-get="/batches{% if username is not None %}/{{ username }}{% endif %}"
+      hx-trigger="load delay:5s" hx-select="#lastBatchesTBody" hx-swap="outerHTML"
+      hx-indicator="previous .htmx-indicator">
       {% for batch in last_batches %}
       <tr>
         <th scope="row"><a href="{% url 'batch' pk=batch.pk %}">#{{ batch.pk }}</a></th>
