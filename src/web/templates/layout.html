@@ -10,6 +10,14 @@
   <link rel="stylesheet" href="{% static 'pico.jade.min.css' %}">
   <script src="{% static 'htmx.v2.0.0.min.js' %}"></script>
   <title>QuickStatements 3.0</title>
+  <style>
+    /* automatically add the spinner */
+    img.htmx-indicator {
+      content: url("{% static 'spinner.svg' %}");
+      width: 32px;
+      height: 32px;
+    }
+  </style>
 </head>
 
 <body>
