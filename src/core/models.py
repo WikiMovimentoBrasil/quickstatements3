@@ -3,6 +3,9 @@ from enum import Enum
 from django.db import models
 from django.utils.translation import gettext as _
 
+from core.parsers.v1 import V1CommandParser
+from core.parsers.exceptions import ParserException
+
 
 class Batch(models.Model):
     """
@@ -34,47 +37,17 @@ class Batch(models.Model):
 
 
 class BatchCommandManager(models.Manager):
+
     def create_command_from_v1(self, batch, index, raw_command):
-        status = BatchCommand.STATUS_INITIAL
-        message = None
-        command = {}
-
-        # comment = ''
-        # if ( re.find ( '/^(.*?) *\/\* *(.*?) *\*\/ *$/' , $row , $m ) ) { // Extract comment as summary
-        #     comment = $m[2] ;
-        #     raw_command = $m[1] ;
-        # }
-        elements = raw_command.split("\t")
-        if len(elements) == 0:
-            return None
-
-        llen = len(elements)
-        first_command = elements[0].upper().strip()
-
-        if first_command == "CREATE":
-            if llen != 1:
-                message = "CREATE command can have only 1 column"
-                status = BatchCommand.STATUS_ERROR
-            else:
-                command.update({"action": "create", "type": "item"})
-
-        elif first_command == "MERGE":
-            if llen != 3:
-                message = "MERGE command must have 3 columns"
-                status = BatchCommand.STATUS_ERROR
-            else:
-                item1 = elements[1].strip()
-                item2 = elements[2].strip()
-                try:
-                    item1_id = int(item1[1:])
-                    item2_id = int(item2[1:])
-                    if item1_id > item2_id:
-                        # Always merge into older item
-                        item1, item2 = item2, item1
-                    command.update({"action": "merge", "type": "item", "item1": item1, "item2": item2})
-                except ValueError:
-                    message = f"MERGE items wrong format item1=[{item1}] item2=[{item2}]"
-                    status = BatchCommand.STATUS_ERROR
+        parser = V1CommandParser()
+        try:
+            status = BatchCommand.STATUS_INITIAL
+            command = parser.parse(raw_command)
+            message = None
+        except ParserException as e:
+            status = BatchCommand.STATUS_ERROR
+            command = {}
+            message = e.message
 
         return self.create(batch=batch, index=index, json=command, raw=raw_command, status=status, message=message)
 
