@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from core.parsers.v1 import V1CommandParser
-from core.parsers.exceptions import ParserException
+from core.parsers.base import ParserException
 
 
 class Batch(models.Model):
