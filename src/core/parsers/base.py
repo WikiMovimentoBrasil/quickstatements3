@@ -19,6 +19,13 @@ class BaseParser(object):
         """
         return value is not None and re.match("^P\\d+$", value) is not None
 
+    def is_valid_source_id(self, value):
+        """
+        Returns True if value is a valid SOURCE ID
+        SXXXX
+        """
+        return value is not None and re.match("^S\\d+$", value) is not None
+
     def is_valid_lexeme_id(self, value):
         """
         Returns True if value is a valid LEXEME ID

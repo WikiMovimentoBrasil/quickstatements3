@@ -7,11 +7,16 @@ from .base import ParserException
 class V1CommandParser(BaseParser):
 
     def parse(self, raw_command):
-        # comment = ''
-        # if ( re.find ( '/^(.*?) *\/\* *(.*?) *\*\/ *$/' , $row , $m ) ) { // Extract comment as summary
-        #     comment = $m[2] ;
-        #     raw_command = $m[1] ;
-        # }
+        comment = ''
+        m = re.match(r'^(.*?)\s*\\/\\*\s*(.*?)\s*\\*\\/\s*$', raw_command)
+
+        print(m)
+        if m: # Extract comment as summary
+            comment = m.group(2)
+            raw_command = m.group(1)
+            print("COMMENT", comment)
+            print("RAW COMMAND", raw_command)
+
         elements = raw_command.split("\t")
         if len(elements) == 0:
             raise ParserException("Empty command statement")
@@ -58,14 +63,43 @@ class V1CommandParser(BaseParser):
             raise ParserException(f"Invalid entity {entity}")
 
         pproperty = elements[1]
-        if not self.is_property_id(pproperty):
+        if not self.is_valid_property_id(pproperty):
             raise ParserException(f"Invalid property {pproperty}")
 
         vvalue = self.parse_value(elements[2])
 
-        return {
+        data = {
             "action": action,
             "entity": {"type": entity_type, "id": entity},
             "property": pproperty,
             "value": vvalue,
         }
+
+        sources = []
+        qualifiers = []
+
+        # ITERATE OVER qualifiers or sources (key, value) pairs
+        index = 3
+        while index+1 < llen:
+            key = elements[index].strip()
+            value = self.parse_value(elements[index+1].strip())
+            if key[0] == "P":
+                if not self.is_valid_property_id(key):
+                    raise ParserException(f"Invalid qualifier property {key}")
+                qualifiers.append({"property": key, "value": value})
+            else:
+                new_source_block = False
+                if key.startswith("!S"):
+                    new_source_block = False
+                    key = key[1:]
+                if not self.is_valid_source_id(key):
+                    raise ParserException(f"Invalid source {key}")
+                sources.append({"source": key, "value": value})
+            index += 2
+
+        if sources:
+            data["sources"] = sources
+        if qualifiers:
+            data["qualifiers"] = qualifiers
+
+        return data
