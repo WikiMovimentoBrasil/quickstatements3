@@ -2,10 +2,10 @@
 
 {% block content %}
 
-{% if username %}
+{% if user.is_authenticated %}
 
-<h1> {{ username }} </h1>
-<p><a href="{% url 'last_batches_by_user' user=username %}">Your last batches</a></p>
+<h1> {{ user.username }} </h1>
+<p><a href="{% url 'last_batches_by_user' user=user.username %}">Your last batches</a></p>
 <p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
 
 {% else %}

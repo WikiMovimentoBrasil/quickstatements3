@@ -1,10 +1,10 @@
-import requests
-
 from django.shortcuts import render
 from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import login as django_login, logout as django_logout
 
 from core.models import Batch
+from .utils import user_from_token, clear_tokens
 
 
 @require_http_methods(["GET",])
@@ -41,17 +41,16 @@ def new_batch(request):
         return render(request, "new_batch.html", {})
 
 
-from api.client import Client
-
 def login(request):
-    if request.session.get("username") is not None:
+    if request.user.is_authenticated:
         return redirect("/auth/profile/")
     else:
         return render(request, "login.html", {})
 
 
 def logout(request):
-    request.session.flush()
+    clear_tokens(request.user)
+    django_logout(request)
     return redirect("/")
 
 
@@ -60,18 +59,12 @@ def login_dev(request):
         # obtain dev token
         token = request.POST["access_token"]
 
-        client = Client.from_token(token)
-
-        # Verify submitted token by checking `username` in the response
         try:
-            username = client.get_username()
+            user = user_from_token(token)
+            django_login(request, user)
         except ValueError as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
-
-        # save access token and Wikimedia username in the user's session
-        request.session["access_token"] = token
-        request.session["username"] = username
 
         return redirect("/auth/profile/")
     else:
@@ -79,7 +72,4 @@ def login_dev(request):
 
 
 def profile(request):
-    data = {
-        "username": request.session.get("username"),
-    }
-    return render(request, "profile.html", data)
+    return render(request, "profile.html")
