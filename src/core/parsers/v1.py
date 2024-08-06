@@ -8,14 +8,13 @@ class V1CommandParser(BaseParser):
 
     def parse(self, raw_command):
         comment = ''
-        m = re.match(r'^(.*?)\s*\\/\\*\s*(.*?)\s*\\*\\/\s*$', raw_command)
+        # m = re.match(r'^(.*?)\s*\\/\\*\s*(.*?)\s*\\*\\/\s*$', raw_command)
 
-        print(m)
-        if m: # Extract comment as summary
-            comment = m.group(2)
-            raw_command = m.group(1)
-            print("COMMENT", comment)
-            print("RAW COMMAND", raw_command)
+        # if m: # Extract comment as summary
+        #     comment = m.group(2)
+        #     raw_command = m.group(1)
+        #     print("COMMENT", comment)
+        #     print("RAW COMMAND", raw_command)
 
         elements = raw_command.split("\t")
         if len(elements) == 0:
