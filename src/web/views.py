@@ -1,5 +1,7 @@
 import requests
 
+from datetime import datetime
+
 from django.shortcuts import render
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -40,10 +42,11 @@ def batch(request, pk):
 def new_batch(request):
     if request.user and request.user.is_authenticated:
         if request.method == "POST":
+            batch_owner = request.user.username
             batch_commands = request.POST.get("commands")
-            batch_name = request.POST.get("name")
-            batch_type = request.POST.get("type")
-            batch = Batch.objects.create_batch(batch_name, batch_commands, batch_type, request.user.username)
+            batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
+            batch_type = request.POST.get("type", "v1")
+            batch = Batch.objects.create_batch(batch_name, batch_commands, batch_type, batch_owner)
             return redirect(reverse("batch", args=[batch.pk]))
         else:
             return render(request, "new_batch.html", {})
