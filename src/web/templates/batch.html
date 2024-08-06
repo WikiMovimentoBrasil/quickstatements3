@@ -6,7 +6,7 @@
   <h2> Batch #{{ batch.pk }}</h2>
   <p>
     {{batch.name}}<br>
-    By {{ batch.user }}
+    Owner:{{ batch.user }}
     [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]</a>
     [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">View wikidata</a>]
   </p>
