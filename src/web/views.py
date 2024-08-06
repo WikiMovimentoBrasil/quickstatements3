@@ -41,6 +41,8 @@ def new_batch(request):
         return render(request, "new_batch.html", {})
 
 
+from api.client import Client
+
 def login(request):
     if request.session.get("username") is not None:
         return redirect("/auth/profile/")
@@ -58,21 +60,13 @@ def login_dev(request):
         # obtain dev token
         token = request.POST["access_token"]
 
-        # TODO: move this logic into the api app
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-        response = requests.get(
-            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
-            headers=headers,
-        ).json()
+        client = Client.from_token(token)
 
         # Verify submitted token by checking `username` in the response
         try:
-            username = response["username"]
-        except KeyError:
-            data = {"error": response}
+            username = client.get_username()
+        except ValueError as e:
+            data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
         # save access token and Wikimedia username in the user's session

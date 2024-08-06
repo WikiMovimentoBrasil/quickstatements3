@@ -37,7 +37,6 @@ class Batch(models.Model):
 
 
 class BatchCommandManager(models.Manager):
-
     def create_command_from_v1(self, batch, index, raw_command):
         parser = V1CommandParser()
         try:
