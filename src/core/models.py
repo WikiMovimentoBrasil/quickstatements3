@@ -1,7 +1,5 @@
 from enum import Enum
 
-from datetime import datetime
-
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -10,12 +8,21 @@ from core.parsers.base import ParserException
 
 
 class BatchManager(models.Manager):
+
     def create_batch(self, batch_name: str, batch_commands: str, batch_type: str, batch_owner: str):
-        if not batch_name:
-            batch_name = f"Batch  user:{batch_owner} {datetime.now().isoformat()}"
+        BATCH_COMMAND_CREATOR = {
+            "v1": BatchCommand.objects.create_command_from_v1,
+            "csv": BatchCommand.objects.create_command_from_csv
+        }
+
+        fn = BATCH_COMMAND_CREATOR.get(batch_type)
+        if not fn:
+            raise ParserException("Commands format must be v1 or csv")
+
         batch = self.create(name=batch_name, user=batch_owner)
-        #batch_commands = batch_commands.replace("||", "\n").replace("|", "\t")
-        #for command in batch_commands.split("\n"):
+        batch_commands = batch_commands.replace("||", "\n").replace("|", "\t")
+        for index, command in enumerate(batch_commands.split("\n")):
+            fn(batch, index, command)
         return batch
         
 
