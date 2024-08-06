@@ -1,5 +1,7 @@
 from enum import Enum
 
+from datetime import datetime
+
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -7,16 +9,27 @@ from core.parsers.v1 import V1CommandParser
 from core.parsers.base import ParserException
 
 
+class BatchManager(models.Manager):
+    def create_batch(self, batch_name: str, batch_commands: str, batch_type: str, batch_owner: str):
+        if not batch_name:
+            batch_name = f"Batch  user:{batch_owner} {datetime.now().isoformat()}"
+        batch = self.create(name=batch_name, user=batch_owner)
+        #batch_commands = batch_commands.replace("||", "\n").replace("|", "\t")
+        #for command in batch_commands.split("\n"):
+        return batch
+        
+
 class Batch(models.Model):
     """
     Represents a BATCH, containing multiple commands
     """
-
     class STATUS(Enum):
         BLOCKED = (-1, _("Blocked"))
         INITIAL = (0, _("Initial"))
         RUNNING = (1, _("Running"))
         DONE = (2, _("Done"))
+
+    objects = BatchManager()
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)

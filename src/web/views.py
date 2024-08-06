@@ -2,8 +2,11 @@ import requests
 
 from django.shortcuts import render
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+
+from api.client import Client
 from core.models import Batch
 
 
@@ -35,13 +38,18 @@ def batch(request, pk):
 
 
 def new_batch(request):
-    if request.method == "POST":
-        raise ValueError("not implemented")
+    if request.user and request.user.is_authenticated:
+        if request.method == "POST":
+            batch_commands = request.POST.get("commands")
+            batch_name = request.POST.get("name")
+            batch_type = request.POST.get("type")
+            batch = Batch.objects.create_batch(batch_name, batch_commands, batch_type, request.user.username)
+            return redirect(reverse("batch", args=[batch.pk]))
+        else:
+            return render(request, "new_batch.html", {})
     else:
-        return render(request, "new_batch.html", {})
+        return render(request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user})
 
-
-from api.client import Client
 
 def login(request):
     if request.session.get("username") is not None:
