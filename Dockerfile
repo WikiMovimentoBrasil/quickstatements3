@@ -1,5 +1,5 @@
 FROM python:3.12
-MAINTAINER Miguel Galves <mgalves@gmail.com>
+LABEL maintainer="Miguel Galves <mgalves@gmail.com>"
 
 # We need sudo and nginx to run
 RUN apt-get update && apt-get -y install sudo nginx emacs
