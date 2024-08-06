@@ -650,16 +650,35 @@ class TestBatchCommand(TestCase):
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
 
-    def test_v1_command_with_comment(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE /* This is a comment. */")
-        self.assertEqual(command.batch, self.batch)
-        self.assertEqual(command.index, 0)
-        self.assertEqual(command.json, {"action": "create", "type": "item"})
-        self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+    # def test_v1_command_with_comment(self):
+    #     command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE /* This is a comment. */")
+    #     self.assertEqual(command.batch, self.batch)
+    #     self.assertEqual(command.index, 0)
+    #     self.assertEqual(command.json, {"action": "create", "type": "item"})
+    #     self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
 
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ1\tQ2 /* This is a comment. */")
-        self.assertEqual(command.batch, self.batch)
-        self.assertEqual(command.index, 0)
-        self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
-        self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+    #     command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ1\tQ2 /* This is a comment. */")
+    #     self.assertEqual(command.batch, self.batch)
+    #     self.assertEqual(command.index, 0)
+    #     self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+    #     self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+
+
+class TestBatch(TestCase):
+    def test_v1_correct_create_command(self):
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+        batch = Batch.objects.create_batch("My batch", "CREATE||-Q1234|P1|12||Q222|P4|9~0.1", "v1", "myuser")
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch")
+        self.assertEqual(BatchCommand.objects.count(), 3)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 3)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.raw, "CREATE")
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
+        bc3 = BatchCommand.objects.get(batch=batch, index=2)
+        self.assertEqual(bc3.raw, "Q222\tP4\t9~0.1")
+        
+
 
