@@ -1,10 +1,11 @@
-
 import requests_mock
 
 from django.test import TestCase as DjangoTestCase
 from django.urls import reverse
+from django.contrib import auth
+from django.contrib.auth.models import User
 
-# Create your tests here.
+from ..models import Token
 
 
 class TestCase(DjangoTestCase):
@@ -45,18 +46,11 @@ class TestCase(DjangoTestCase):
         """Checks if a substring is contained in response content"""
         self.assertIn(substring.lower(), str(response.content).lower().strip())
 
-    def assertSessionEqual(self, key, value):
-        """Asserts a given session key has the given value."""
-        session = self.client.session
-        self.assertEqual(session.get(key), value)
+    def assertIsAuthenticated(self):
+        self.assertTrue(self.get_user().is_authenticated)
 
-    def assertSessionEmpty(self, key):
-        """Asserts a given session key has no value"""
-        self.assertIsNone(self.client.session.get(key))
-
-    def assertSessionNotEmpty(self, key):
-        """Asserts a given session key has a defined value"""
-        self.assertIsNotNone(self.client.session.get(key))
+    def assertIsNotAuthenticated(self):
+        self.assertFalse(self.get_user().is_authenticated)
 
     # ---------------
     # Utility methods
@@ -70,12 +64,14 @@ class TestCase(DjangoTestCase):
         """Make a test POST request with the test client"""
         return self.client.post(reverse(self.URL_NAME), data=data)
 
-    def save_john_username(self):
-        """Save username 'John' in the test client session"""
-        # We need to save it into a variable before saving it
-        session = self.client.session
-        session["username"] = "John"
-        session.save()
+    def login_john(self):
+        """Login with a user with 'john' username"""
+        user = User.objects.create_user(username="john")
+        client = self.client
+        client.force_login(user)
+
+    def get_user(self):
+        return auth.get_user(self.client)
 
 
 class Profile(TestCase):
@@ -88,7 +84,7 @@ class Profile(TestCase):
         self.assertUrlInRes("login", res)
 
     def test_logged_in_when_username_in_session(self):
-        self.save_john_username()
+        self.login_john()
         res = self.get()
         self.assert200(res)
         self.assertInRes("John", res)
@@ -103,10 +99,11 @@ class Login(TestCase):
         self.assert200(res)
         self.assertUrlInRes("login_dev", res)
 
-    def test_redirects_to_profile_if_username_in_session(self):
-        self.save_john_username()
+    def test_redirects_to_profile_if_logged_in(self):
+        self.login_john()
         res = self.get()
         self.assertRedirectToUrlName(res, "profile")
+        self.assertIsAuthenticated()
 
 
 class LoginDev(TestCase):
@@ -140,18 +137,22 @@ class LoginDev(TestCase):
         res = self.post(data={"access_token": "valid_token"})
         self.assertRedirectToUrlName(res, "profile")
 
-        self.assertSessionEqual("access_token", "valid_token")
-        self.assertSessionEqual("username", "Maria")
+        user = self.get_user()
+        token = Token.objects.get(user=user)
+        self.assertEqual(user.username, "Maria")
+        self.assertEqual(token.value, "valid_token")
 
 
 class Logout(TestCase):
     URL_NAME = "logout"
 
-    def test_clears_session(self):
-        self.save_john_username()
-        self.assertSessionNotEmpty("username")
+    def test_clear_tokens(self):
+        self.login_john()
+        user_id = self.get_user().id
         self.get()
-        self.assertSessionEmpty("username")
+
+        tokens = Token.objects.filter(user__id=user_id)
+        self.assertFalse(tokens.exists())
 
     def test_redirects_to_root(self):
         res = self.get()
