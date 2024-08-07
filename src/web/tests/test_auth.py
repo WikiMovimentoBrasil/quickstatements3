@@ -1,3 +1,4 @@
+import os
 import requests_mock
 
 from django.test import TestCase as DjangoTestCase
@@ -157,3 +158,16 @@ class Logout(TestCase):
     def test_redirects_to_root(self):
         res = self.get()
         self.assertRedirectToPath(res, "/")
+
+
+class OAuthRedirect(TestCase):
+    URL_NAME = "oauth_redirect"
+
+    def test_redirect(self):
+        res = self.get()
+
+        self.assertRedirect(res)
+        location = res.headers["Location"]
+
+        self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
+        self.assertIn("mediawiki.org/w/rest.php/oauth2/authorize", location)
