@@ -15,7 +15,7 @@ def user_from_token(token):
     )
 
     if not was_created:
-        Token.objects.filter(user=user).delete()
+        Token.objects.filter(user__id=user.id).delete()
 
     Token.objects.create(user=user, value=token)
 
@@ -23,4 +23,4 @@ def user_from_token(token):
 
 
 def clear_tokens(user):
-    Token.objects.filter(user=user).delete()
+    Token.objects.filter(user__id=user.id).delete()
