@@ -517,11 +517,11 @@ class TestV1BatchCommand(TestCase):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE /* This is a comment. */")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
-        self.assertEqual(command.json, {"action": "create", "type": "item"})
+        self.assertEqual(command.json, {"action": "create", "type": "item", 'summary': 'This is a comment.', })
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
 
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ1\tQ2 /* This is a comment. */")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
-        self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2", 'summary': 'This is a comment.'})
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)

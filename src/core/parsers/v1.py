@@ -6,7 +6,7 @@ from .base import ParserException
 
 class V1CommandParser(BaseParser):
 
-    WHAT = {'L': 'label', 'D':'description', 'A': 'alias', 'S': 'sitelink'}
+    WHAT = {"L": "label", "D": "description", "A": "alias", "S": "sitelink"}
 
     def parse_create(self, elements):
         llen = len(elements)
@@ -51,15 +51,15 @@ class V1CommandParser(BaseParser):
 
         vvalue = self.parse_value(elements[2])
 
-        if llen == 3 and elements[1][0] in ['L', 'A', 'D', 'S']:
-            # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property  
+        if llen == 3 and elements[1][0] in ["L", "A", "D", "S"]:
+            # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property
             what = self.WHAT[elements[1][0]]
-            if not vvalue or vvalue['type'] != 'string':
+            if not vvalue or vvalue["type"] != "string":
                 raise ParserException(f"{what} must be a string instance")
 
             lang = elements[1][1:]
-            data = {'action': action , 'what': what , 'item': entity, 'value': vvalue['value']}
-            if what == 'sitelink':
+            data = {"action": action, "what": what, "item": entity, "value": vvalue["value"]}
+            if what == "sitelink":
                 data["site"] = lang
             else:
                 data["language"] = lang
@@ -82,9 +82,9 @@ class V1CommandParser(BaseParser):
 
             # ITERATE OVER qualifiers or sources (key, value) pairs
             index = 3
-            while index+1 < llen:
+            while index + 1 < llen:
                 key = elements[index].strip()
-                value = self.parse_value(elements[index+1].strip())
+                value = self.parse_value(elements[index + 1].strip())
                 if key[0] == "P":
                     if not self.is_valid_property_id(key):
                         raise ParserException(f"Invalid qualifier property {key}")
@@ -106,13 +106,16 @@ class V1CommandParser(BaseParser):
 
         return data
 
-    def parse(self, raw_command):
-        comment = ''
-        m = re.search(r'^(.*?)\s*\/\*\s*(.*?)\s*\*\/\s*$', raw_command)
-
-        if m: # Extract comment as summary
+    def parse_comment(self, raw_command):
+        comment = None
+        m = re.search(r"^(.*?)\s*\/\*\s*(.*?)\s*\*\/\s*$", raw_command)
+        if m:  # Extract comment as summary
             comment = m.group(2)
             raw_command = m.group(1)
+        return raw_command, comment
+
+    def parse(self, raw_command):
+        raw_command, comment = self.parse_comment(raw_command)        
 
         elements = raw_command.split("\t")
         if len(elements) == 0:
@@ -121,9 +124,13 @@ class V1CommandParser(BaseParser):
         first_command = elements[0].upper().strip()
 
         if first_command == "CREATE":
-            return self.parse_create(elements)
+            data = self.parse_create(elements)
+        elif first_command == "MERGE":
+            data = self.parse_merge(elements)
+        else:
+            data = self.parse_statement(elements, first_command)
 
-        if first_command == "MERGE":
-            return self.parse_merge(elements)
+        if comment:
+            data["summary"] = comment
 
-        return self.parse_statement(elements, first_command)
+        return data
