@@ -9,6 +9,8 @@ from .views import last_batches
 from .views import last_batches_by_user
 from .views import batch
 from .views import new_batch
+from .views import oauth_redirect
+from .views import oauth_callback
 
 
 urlpatterns = [
@@ -17,6 +19,8 @@ urlpatterns = [
     path("auth/logout/", logout, name="logout"),
     path("auth/login/dev/", login_dev, name="login_dev"),
     path("auth/profile/", profile, name="profile"),
+    path("auth/redirect/", oauth_redirect, name="oauth_redirect"),
+    path("auth/callback/", oauth_callback, name="oauth_callback"),
     path("batches/", last_batches, name="last_batches"),
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),

@@ -1,11 +1,24 @@
+import os
+
 from django.shortcuts import render
 from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth import login as django_login, logout as django_logout
+from django.urls import reverse
 
 from core.models import Batch
 from .utils import user_from_token, clear_tokens
 
+from authlib.integrations.django_client import OAuth
+
+oauth = OAuth()
+oauth.register(
+    name="mediawiki",
+    client_id=os.getenv("OAUTH_CLIENT_ID"),
+    client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
+    access_token_url="https://www.mediawiki.org/w/rest.php/oauth2/access_token",
+    authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
+)
 
 @require_http_methods(["GET",])
 def home(request):
@@ -52,6 +65,17 @@ def logout(request):
     clear_tokens(request.user)
     django_logout(request)
     return redirect("/")
+
+
+def oauth_redirect(request):
+    return oauth.mediawiki.authorize_redirect(request)
+
+
+def oauth_callback(request):
+    token = oauth.mediawiki.authorize_access_token(request)["access_token"]
+    user = user_from_token(token)
+    django_login(request, user)
+    return redirect(reverse("profile"))
 
 
 def login_dev(request):
