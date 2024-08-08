@@ -1,6 +1,9 @@
 # Environment variables
 /etc/env
 
+# Static files
+/src/static/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
