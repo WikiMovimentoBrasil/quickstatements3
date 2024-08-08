@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('index', models.IntegerField()),
                 ('json', models.JSONField()),
-                ('status', models.IntegerField(choices=[(-1, 'Error'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], db_index=True, default=core.models.BatchCommand.STATUS['INITIAL'])),
+                ('status', models.IntegerField(choices=[(-1, 'Error'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], db_index=True, default=0)),
                 ('message', models.TextField()),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('modified', models.DateTimeField(auto_now=True)),
