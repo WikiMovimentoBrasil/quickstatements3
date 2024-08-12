@@ -21,7 +21,6 @@ USER wmb
 RUN mkdir /home/wmb/logs && chmod 777 /home/wmb/logs && chown wmb:nginx /home/wmb/logs
 RUN mkdir /home/wmb/logs/nginx && chmod 777 /home/wmb/logs/nginx && chown wmb:nginx /home/wmb/logs/nginx
 RUN mkdir /home/wmb/www
-RUN mkdir /home/wmb/www/static
 RUN mkdir /home/wmb/www/src
 
 # Needed for nginx
