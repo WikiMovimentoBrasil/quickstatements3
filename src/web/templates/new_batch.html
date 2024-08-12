@@ -7,6 +7,12 @@
 <form method="POST">
   {% csrf_token %}
   <fieldset>
+    <label for="batch_type">Command format</label>
+    <select name="type" id="batch_type">
+      <option value="v1">V1</option>
+      <option value="csv">CSV</option>
+    </select>
+    <input type="text" name="name" aria-label="batch name" placeholder="Custom batch name...">
     <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
       style="height: 400px"></textarea>
   </fieldset>

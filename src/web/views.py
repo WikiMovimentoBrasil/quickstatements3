@@ -1,11 +1,29 @@
-import requests
+import os
+
+from datetime import datetime
 
 from django.shortcuts import render
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import login as django_login, logout as django_logout
+from django.urls import reverse
 
+
+from api.client import Client
 from core.models import Batch
+from .utils import user_from_token, clear_tokens
 
+from authlib.integrations.django_client import OAuth
+
+oauth = OAuth()
+oauth.register(
+    name="mediawiki",
+    client_id=os.getenv("OAUTH_CLIENT_ID"),
+    client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
+    access_token_url="https://www.mediawiki.org/w/rest.php/oauth2/access_token",
+    authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
+)
 
 @require_http_methods(["GET",])
 def home(request):
@@ -35,24 +53,42 @@ def batch(request, pk):
 
 
 def new_batch(request):
-    if request.method == "POST":
-        raise ValueError("not implemented")
+    if request.user and request.user.is_authenticated:
+        if request.method == "POST":
+            batch_owner = request.user.username
+            batch_commands = request.POST.get("commands")
+            batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
+            batch_type = request.POST.get("type", "v1")
+            batch = Batch.objects.create_batch(batch_name, batch_commands, batch_type, batch_owner)
+            return redirect(reverse("batch", args=[batch.pk]))
+        else:
+            return render(request, "new_batch.html", {})
     else:
-        return render(request, "new_batch.html", {})
+        return render(request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user})
 
-
-from api.client import Client
 
 def login(request):
-    if request.session.get("username") is not None:
+    if request.user.is_authenticated:
         return redirect("/auth/profile/")
     else:
         return render(request, "login.html", {})
 
 
 def logout(request):
-    request.session.flush()
+    clear_tokens(request.user)
+    django_logout(request)
     return redirect("/")
+
+
+def oauth_redirect(request):
+    return oauth.mediawiki.authorize_redirect(request)
+
+
+def oauth_callback(request):
+    token = oauth.mediawiki.authorize_access_token(request)["access_token"]
+    user = user_from_token(token)
+    django_login(request, user)
+    return redirect(reverse("profile"))
 
 
 def login_dev(request):
@@ -60,18 +96,12 @@ def login_dev(request):
         # obtain dev token
         token = request.POST["access_token"]
 
-        client = Client.from_token(token)
-
-        # Verify submitted token by checking `username` in the response
         try:
-            username = client.get_username()
+            user = user_from_token(token)
+            django_login(request, user)
         except ValueError as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
-
-        # save access token and Wikimedia username in the user's session
-        request.session["access_token"] = token
-        request.session["username"] = username
 
         return redirect("/auth/profile/")
     else:
@@ -79,7 +109,4 @@ def login_dev(request):
 
 
 def profile(request):
-    data = {
-        "username": request.session.get("username"),
-    }
-    return render(request, "profile.html", data)
+    return render(request, "profile.html")
