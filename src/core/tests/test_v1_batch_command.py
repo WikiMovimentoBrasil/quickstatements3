@@ -15,15 +15,18 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "create", "type": "item"})
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_CREATE)
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE ")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "create", "type": "item"})
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_CREATE)
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, " CREATE ")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "create", "type": "item"})
+        self.assertEqual(command.action, BatchCommand.ACTION_CREATE)
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
 
     def test_v1_bad_create_command(self):
@@ -39,16 +42,19 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(command.action, BatchCommand.ACTION_MERGE)
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ2\tQ1")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(command.action, BatchCommand.ACTION_MERGE)
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE \tQ1 \tQ2 ")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(command.json, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(command.action, BatchCommand.ACTION_MERGE)
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
 
     def test_v1_bad_merge_command(self):
@@ -88,9 +94,11 @@ class TestV1BatchCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
 
     def test_v1_remove_time(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP1\t12")
@@ -103,9 +111,11 @@ class TestV1BatchCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"type": "quantity", "value": {"amount": "12"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
 
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP3\t12U11573")
         self.assertEqual(command.batch, self.batch)
@@ -117,6 +127,7 @@ class TestV1BatchCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
                 "value": {"type": "quantity", "value": {"amount": "12"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
@@ -138,39 +149,45 @@ class TestV1BatchCommand(TestCase):
                         "lowerBound": 8.9,
                     },
                 },
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
 
-    def test_v1_create_item(self):
+    def test_v1_add_item(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP2\tQ1")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_quantity(self):
+    def test_v1_add_quantity(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP1\t12")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"type": "quantity", "value": {"amount": "12"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP3\t12U11573")
         self.assertEqual(command.batch, self.batch)
@@ -178,13 +195,15 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
                 "value": {"type": "quantity", "value": {"amount": "12"}},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP4\t9~0.1")
         self.assertEqual(command.batch, self.batch)
@@ -192,7 +211,7 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P4",
                 "value": {
@@ -203,21 +222,30 @@ class TestV1BatchCommand(TestCase):
                         "lowerBound": 8.9,
                     },
                 },
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_alias(self):
+    def test_v1_add_alias(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tApt\t\"Texto brasileiro\"")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
-            {'action': "create" , 'what': "alias" , 'item': 'Q1234', 'language': 'pt', 'value': 'Texto brasileiro'}
+            {
+                'action': "add" , 
+                'what': "alias" , 
+                'item': 'Q1234', 
+                'language': 'pt', 
+                'value': {'type': 'string', 'value': 'Texto brasileiro'}
+            }
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_wrong_alias(self):
+    def test_v1_add_wrong_alias(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tApt\tsomevalue")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
@@ -225,17 +253,24 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.message, "alias must be a string instance")
         self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
 
-    def test_v1_create_description(self):
+    def test_v1_add_description(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tDen\t\"Item description\"")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
-            {'action': "create" , 'what': "description" , 'item': 'Q1234', 'language': 'en', 'value': 'Item description'}
+            {
+                'action': "add" , 
+                'what': "description" , 
+                'item': 'Q1234', 
+                'language': 'en', 
+                'value': {'type': 'string', 'value': 'Item description'}
+            }
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_wrong_description(self):
+    def test_v1_add_wrong_description(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tDpt\tsomevalue")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
@@ -243,17 +278,24 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.message, "description must be a string instance")
         self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
 
-    def test_v1_create_label(self):
+    def test_v1_add_label(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tLfr\t\"Note en français\"")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
-            {'action': "create" , 'what': "label" , 'item': 'Q1234', 'language': 'fr', 'value': 'Note en français'}
+            {
+                'action': "add" , 
+                'what': "label" , 
+                'item': 'Q1234', 
+                'language': 'fr', 
+                'value': {'type': 'string', 'value': 'Note en français'}
+            }
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_wrong_label(self):
+    def test_v1_add_wrong_label(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tLpt\tbla")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
@@ -261,17 +303,24 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.message, "label must be a string instance")
         self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
 
-    def test_v1_create_site(self):
+    def test_v1_add_site(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tSmysite\t\"Site mysite\"")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
-            {'action': "create" , 'what': "sitelink" , 'item': 'Q1234', 'site': 'mysite', 'value': 'Site mysite'}
+            {
+                'action': "add" , 
+                'what': "sitelink" , 
+                'item': 'Q1234', 
+                'site': 'mysite', 
+                'value': {'type': 'string', 'value': 'Site mysite'}
+            }
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_wrong_site(self):
+    def test_v1_add_wrong_site(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tSpt\tsomevalue")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
@@ -279,20 +328,22 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(command.message, "sitelink must be a string instance")
         self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
 
-    def test_v1_create_somevalue_novalue(self):
+    def test_v1_add_somevalue_novalue(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP1\tsomevalue")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"value": "somevalue", "type": "somevalue"},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP1\tnovalue")
         self.assertEqual(command.batch, self.batch)
@@ -300,30 +351,34 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"value": "novalue", "type": "novalue"},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_string(self):
+    def test_v1_add_string(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, 'Q1234\tP1\t"this is a string"')
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"type": "string", "value": "this is a string"},
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_monolingualstring(self):
+    def test_v1_add_monolingualstring(self):
         command = BatchCommand.objects.create_command_from_v1(
             self.batch, 0, 'Q1234\tP10\ten:"this is a string in english"'
         )
@@ -332,7 +387,7 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P10",
                 "value": {
@@ -342,18 +397,20 @@ class TestV1BatchCommand(TestCase):
                         "text": "this is a string in english",
                     },
                 },
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_location(self):
+    def test_v1_add_location(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP10\t@43.26193/10.92708")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P10",
                 "value": {
@@ -365,18 +422,20 @@ class TestV1BatchCommand(TestCase):
                         "globe": "http://www.wikidata.org/entity/Q2",
                     },
                 },
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_time(self):
+    def test_v1_add_time(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP10\t+1967-01-17T00:00:00Z/11")
         self.assertEqual(command.batch, self.batch)
         self.assertEqual(command.index, 0)
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P10",
                 "value": {
@@ -390,11 +449,13 @@ class TestV1BatchCommand(TestCase):
                         "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                     },
                 },
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_item_with_sources(self):
+    def test_v1_add_item_with_sources(self):
         command = BatchCommand.objects.create_command_from_v1(
             self.batch, 0, 'Q1234\tP2\tQ1\tS1\t"source text"\tS2\t+1967-01-17T00:00:00Z/11'
         )
@@ -403,7 +464,7 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
@@ -424,11 +485,13 @@ class TestV1BatchCommand(TestCase):
                         },
                     },
                 ],
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_item_with_qualifiers(self):
+    def test_v1_add_item_with_qualifiers(self):
         command = BatchCommand.objects.create_command_from_v1(
             self.batch, 0, 'Q1234\tP2\tQ1\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11'
         )
@@ -437,7 +500,7 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
@@ -458,11 +521,13 @@ class TestV1BatchCommand(TestCase):
                         },
                     },
                 ],
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
-    def test_v1_create_item_with_qualifiers_and_sources(self):
+    def test_v1_add_item_with_qualifiers_and_sources(self):
         command = BatchCommand.objects.create_command_from_v1(
             self.batch, 0, 'Q1234\tP2\tQ1\tS1\t"source text"\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11\tS2\t+1967-01-17T00:00:00Z/11'
         )
@@ -471,7 +536,7 @@ class TestV1BatchCommand(TestCase):
         self.assertEqual(
             command.json,
             {
-                "action": "create",
+                "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
@@ -509,9 +574,11 @@ class TestV1BatchCommand(TestCase):
                         },
                     },
                 ],
+                "what": "statement"
             },
         )
         self.assertEqual(command.status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
 
     def test_v1_command_with_comment(self):
         command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE /* This is a comment. */")

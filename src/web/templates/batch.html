@@ -1,5 +1,77 @@
 {% extends "layout.html" %}
 
+{% block css %}
+
+.commands {
+  font-size: 13px;  
+}
+
+.status_initial {
+  background-color: var(--pico-color-slate-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.status_running {
+  background-color: var(--pico-color-blue-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.status_done {
+  background-color: var(--pico-color-green-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.status_error {
+  background-color: var(--pico-color-red-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+} 
+
+.action_add {
+  background-color: var(--pico-color-blue-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.action_remove {
+  background-color: var(--pico-color-red-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.action_create {
+  background-color: var(--pico-color-green-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.action_merge {
+  background-color: var(--pico-color-yellow-600);
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+} 
+
+{% endblock %}
+
 {% block content %}
 
 <hgroup>
@@ -14,20 +86,62 @@
 <h3> Commands </h3>
 
 <div class="overflow-auto">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col"> </th>
-        <th scope="col"> Status </th>
-        <th scope="col"> Message </th>
-      </tr>
-    </thead>
+  <table class="commands">
     <tbody>
       {% for command in batch.commands %}
       <tr>
-        <th scope="row">{{ command.index }}</th>
-        <td>{{ batch.status }}</td>
-        <td>{{ batch.message }}</td>
+        <th scope="row">#{{ command.index }}</th>
+        
+        <td>
+          <span class="status_{{ command.status_info.lower }}">
+            {{ command.status_info }}
+          </span>
+        </td>
+
+        {% if command.is_error_status %}
+
+          <td colspan="2">
+            {{command.message}}
+          </td>
+          <td colspan="2">
+            {{command.raw}}
+          </td>
+
+        {% else %}
+
+          <td >
+              {{ command.entity_info }}
+          </td>
+          
+          <td >
+            <span class="action_{{ command.get_action_display.lower }}">
+              {{ command.get_action_display }}
+            </span>
+          </td>
+
+          <td>
+            {% if command.is_merge_command %}
+            STATEMENT
+            {% else %}
+            {{command.what}}
+            {% endif %}
+          </td>
+
+          <td>
+            {% if command.is_label_alias_description_command %}
+              <i>{{ command.language }}</i>:
+            {% elif command.is_merge_command %}
+              {{ command.json.item1 }} - {{ command.json.item2 }} 
+            {% elif command.is_sitelink_command %}
+              <i>{{ command.sitelink }}</i>:
+            {% else %}
+              {{ command.prop }}:
+            {% endif %}
+            {{ command.value }}
+          </td>
+
+        {% endif %}
+
       </tr>
       {% endfor %}
     </tbody>
