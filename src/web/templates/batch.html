@@ -95,26 +95,17 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
 }
 
 .pagination {
-  padding: 4px 8px;
-  margin: 2px;
-  font-size: 13px;
-  color: var(--pico-color-grey-800);
-  border-radius: 5px;
-  background-color: var(--pico-color-grey-100);
-}
-
-.pagination a {
-  color: var(--pico-color-grey-800);
+  font-size: 14px;
+  font-weight: bold;
   text-decoration: none;
-  cursor: pointer;
+  padding: 0 10px;
 }
-
 {% endblock %}
 
 {% block content %}
 
 <hgroup>
-  <h2> Batch #{{ batch.pk }}</h2>
+  <h2> Batch #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
   <p><b>{{batch.name}}</b></p>
   <p>
     Created by {{ batch.user }}
@@ -127,6 +118,7 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
       hx-get="/batch/{{batch.pk}}/summary/"
       hx-trigger="load, every 10s" 
       hx-swap="innerHTML" 
+      hx-indicator="#spinner"
       style="margin: 20px 0; font-size: 14px;">
       Loading summary...
 </div>
@@ -137,6 +129,7 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
     id="batchCommandsDiv" 
     hx-get="/batch/{{batch.pk}}/commands/"
     hx-trigger="load, reload" 
+    hx-indicator="#spinner"
     hx-swap="innerHTML">
 Loading commands...
 </div>

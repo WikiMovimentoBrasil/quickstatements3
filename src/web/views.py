@@ -44,8 +44,12 @@ def last_batches(request):
     """
     List last PAGE_SIZE batches modified
     """
-    last_batches = Batch.objects.all().order_by("-modified")[:PAGE_SIZE]
-    return render(request, "batches.html", {"last_batches": list(last_batches)})
+    try:
+        page = int(request.GET.get("page", 1))
+    except:
+        page = 1
+    paginator = Paginator(Batch.objects.all().order_by("-modified"), PAGE_SIZE)
+    return render(request, "batches.html", {"page": paginator.page(page)})
 
 
 @require_http_methods(["GET",])
@@ -57,28 +61,9 @@ def last_batches_by_user(request, user):
         page = int(request.GET.get("page", 1))
     except:
         page = 1
-
-    offset = (page - 1) * PAGE_SIZE
-    limit = offset + PAGE_SIZE
-    
-    last_batches = list(Batch.objects.filter(user=user).order_by("-modified")[offset:limit])
-    
-    pagination = {"current_page": page}
-    if page > 1:
-        pagination["prev_page"] = page - 1
-    if len(last_batches) == PAGE_SIZE:
-        pagination["next_page"] = page + 1
-
+    paginator = Paginator(Batch.objects.filter(user=user).order_by("-modified"), PAGE_SIZE)
     # we need to use `username` since `user` is always supplied by django templates
-    return render(
-            request, 
-            "batches.html", 
-            {
-                "last_batches": list(last_batches), 
-                "username": user,
-                "pagination": pagination
-            }
-        )
+    return render(request, "batches.html", {"username": user, "page": paginator.page(page)})
 
 
 @require_http_methods(["GET",])
@@ -106,12 +91,9 @@ def batch_commands(request, pk):
         page = int(request.GET.get("page", 1))
     except:
         page = 1
-
     paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)
-    commands = BatchCommand.objects.filter(batch__pk=pk).order_by("index")
-    print(dir(paginator.page(page)))
     return render(request, 
-        "batch_commands.html", {"commands": paginator.page(page), "batch_pk": pk}
+        "batch_commands.html", {"page": paginator.page(page), "batch_pk": pk}
     )
 
 

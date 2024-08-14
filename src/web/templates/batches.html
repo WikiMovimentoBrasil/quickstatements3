@@ -55,7 +55,7 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
 
 <div style="display: flex; align-items: center; gap: 10px;">
   <h2> Last batches {% if username is not None %} from {{username}}{% endif %}</h2>
-  <img class="htmx-indicator" style="margin-bottom: 1em;">
+  <img id="spinner" class="htmx-indicator" style="margin-bottom: 1em;">
 </div>
 
 <div class="overflow-auto list">
@@ -72,8 +72,8 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
     </thead>
     <tbody id="lastBatchesTBody" hx-get="/batches/{% if username is not None %}{{ username }}/{% endif %}"
       hx-trigger="load delay:5s" hx-select="#lastBatchesTBody" hx-swap="outerHTML"
-      hx-indicator="previous .htmx-indicator">
-      {% for batch in last_batches %}
+      hx-indicator="#spinner">
+      {% for batch in page.object_list %}
       <tr>
         <th scope="row"><a href="{% url 'batch' pk=batch.pk %}">#{{ batch.pk }}</a></th>
         {% if username is None %}
@@ -98,25 +98,53 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
     </tbody>
   </table>
 
-  <div>
-    {% if pagination %}
-        {% if pagination.prev_page %}
+
+  {% if page.has_other_pages %}
+  <div style="display: inline-block; width: 100%;">
+      
+    <div style="display: inline-block; width: 35%;">
+      
+        {% if page.has_previous %}
         <span class="pagination prev-page">
-          <a href="{% url 'last_batches_by_user' user=user %}?page={{pagination.prev_page}}">
-            << PREV
+          <a href="{% url 'last_batches_by_user' user=user %}?page=1">
+            << FIRST
+          </a>
+        </span> 
+        
+        <span class="pagination prev-page">
+          <a href="{% url 'last_batches_by_user' user=user %}?page={{page.previous_page_number}}">
+            < PREVIOUS
           </a>
         </span> 
         {% endif%}
-        <span class="pagination current-page">PAGE {{pagination.current_page}}</span> 
-        {% if pagination.next_page %}
-        <span class="pagination next-page">
-          <a href="{% url 'last_batches_by_user' user=user %}?page={{pagination.next_page}}">
-            NEXT >>  
-          </a>
+    
+    </div>
+
+    <div style="display: inline-block; text-align: center; width: 30%;">
+        <span class="pagination current-page">
+          Pg. {{page.number}} of {{page.paginator.num_pages}}
         </span> 
-        {% endif %}
-    {% endif %}
+    </div>
+
+    <div  style="display: inline-block; text-align: right;  width: 33%;">
+    
+      {% if page.has_next %}
+      <span class="pagination next-page">
+        <a href="{% url 'last_batches_by_user' user=user %}?page={{page.next_page_number}}">
+            NEXT >
+        </a>
+      </span> 
+        
+      <span class="pagination next-page">
+        <a href="{% url 'last_batches_by_user' user=user %}?page={{page.paginator.num_pages}}">
+            LAST>>
+        </a>
+      </span> 
+      {% endif%}
+  
+    </div>
+  
   </div>
-</div>
+  {% endif %}
 
 {% endblock %}
