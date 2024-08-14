@@ -6,68 +6,54 @@
   font-size: 13px;  
 }
 
-.status_initial {
-  background-color: var(--pico-color-slate-600);
+.status {
   font-size: 12px;
   padding: 5px;
   color: #fff;
   border-radius: 5px;
+}
+
+.status_initial {
+  background-color: var(--pico-color-slate-600);
 }
 
 .status_running {
   background-color: var(--pico-color-blue-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 }
 
 .status_done {
   background-color: var(--pico-color-green-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 }
 
 .status_error {
   background-color: var(--pico-color-red-600);
+} 
+
+.status_total {
+  background-color: var(--pico-color-yellow-600);
+} 
+
+.action {
   font-size: 12px;
   padding: 5px;
   color: #fff;
-  border-radius: 5px;
-} 
+  border-radius: 5px;  
+}
 
 .action_add {
   background-color: var(--pico-color-blue-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 }
 
 .action_remove {
   background-color: var(--pico-color-red-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 }
 
 .action_create {
   background-color: var(--pico-color-green-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 }
 
 .action_merge {
   background-color: var(--pico-color-yellow-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
 } 
 
 tr:nth-child(even) td {background-color: #f2f2f2;}
@@ -108,12 +94,28 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
   background-color: var(--pico-color-green-600);
 }
 
+.pagination {
+  padding: 4px 8px;
+  margin: 2px;
+  font-size: 13px;
+  color: var(--pico-color-grey-800);
+  border-radius: 5px;
+  background-color: var(--pico-color-grey-100);
+}
+
+.pagination a {
+  color: var(--pico-color-grey-800);
+  text-decoration: none;
+  cursor: pointer;
+}
+
 {% endblock %}
 
 {% block content %}
 
 <hgroup>
-  <h2> Batch #{{ batch.pk }} - {{batch.name}}</h2>
+  <h2> Batch #{{ batch.pk }}</h2>
+  <p><b>{{batch.name}}</b></p>
   <p>
     Created by {{ batch.user }}
     [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]</a>
@@ -121,74 +123,22 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
   </p>
 </hgroup>
 
-<div id="batchprogressDiv" hx-get="/batch/{{batch.pk}}/summary"
-      hx-trigger="load, every 10s" hx-swap="innerHTML" style="margin: 20px 0; font-size: 14px;">
-      Loading batch summary....
+<div id="batchProgressDiv" 
+      hx-get="/batch/{{batch.pk}}/summary/"
+      hx-trigger="load, every 10s" 
+      hx-swap="innerHTML" 
+      style="margin: 20px 0; font-size: 14px;">
+      Loading summary...
 </div>
 
-<h3> Commands </h3>
+<h4>Commands</h4>
 
-<div class="overflow-auto">
-  <table class="commands">
-    <tbody>
-      {% for command in batch.commands %}
-      <tr>
-        <th scope="row">#{{ command.index }}</th>
-        
-        <td>
-          <span class="status_{{ command.status_info.lower }}">
-            {{ command.status_info }}
-          </span>
-        </td>
-
-        {% if command.is_error_status %}
-
-          <td colspan="2">
-            {{command.message}}
-          </td>
-          <td colspan="2">
-            {{command.raw}}
-          </td>
-
-        {% else %}
-
-          <td >
-              {{ command.entity_info }}
-          </td>
-          
-          <td >
-            <span class="action_{{ command.get_action_display.lower }}">
-              {{ command.get_action_display }}
-            </span>
-          </td>
-
-          <td>
-            {% if command.is_merge_command %}
-            STATEMENT
-            {% else %}
-            {{command.what}}
-            {% endif %}
-          </td>
-
-          <td>
-            {% if command.is_label_alias_description_command %}
-              <i>{{ command.language }}</i>:
-            {% elif command.is_merge_command %}
-              {{ command.json.item1 }} - {{ command.json.item2 }} 
-            {% elif command.is_sitelink_command %}
-              <i>{{ command.sitelink }}</i>:
-            {% else %}
-              {{ command.prop }}:
-            {% endif %}
-            {{ command.value }}
-          </td>
-
-        {% endif %}
-
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="overflow-auto" 
+    id="batchCommandsDiv" 
+    hx-get="/batch/{{batch.pk}}/commands/"
+    hx-trigger="load, reload" 
+    hx-swap="innerHTML">
+Loading commands...
 </div>
 
 {% endblock %}

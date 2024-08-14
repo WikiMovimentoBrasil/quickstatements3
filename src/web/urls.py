@@ -1,17 +1,18 @@
 from django.urls import path
 
+from .views import batch
+from .views import batch_commands
+from .views import batch_summary
 from .views import home
+from .views import last_batches
+from .views import last_batches_by_user
 from .views import login
 from .views import logout
 from .views import login_dev
-from .views import profile
-from .views import last_batches
-from .views import last_batches_by_user
-from .views import batch
-from .views import batch_summary
 from .views import new_batch
 from .views import oauth_redirect
 from .views import oauth_callback
+from .views import profile
 
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path("batches/", last_batches, name="last_batches"),
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),
-    path("batch/<int:pk>/summary", batch_summary, name="batch_summary"),
+    path("batch/<int:pk>/summary/", batch_summary, name="batch_summary"),
+    path("batch/<int:pk>/commands/", batch_commands, name="batch_commands"),
     path("batch/new/", new_batch, name="new_batch"),
 ]

@@ -43,7 +43,7 @@ class Batch(models.Model):
     status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
+    modified = models.DateTimeField(auto_now=True, db_index=True)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -181,3 +181,6 @@ class BatchCommand(models.Model):
     class Meta:
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
+        index_together = (
+            ('batch', 'index')
+        )
