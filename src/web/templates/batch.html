@@ -121,7 +121,10 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
   </p>
 </hgroup>
 
-{% include 'batch_summary.html' %}
+<div id="batchprogressDiv" hx-get="/batch/{{batch.pk}}/summary"
+      hx-trigger="load, every 10s" hx-swap="innerHTML" style="margin: 20px 0; font-size: 14px;">
+      Loading batch summary....
+</div>
 
 <h3> Commands </h3>
 

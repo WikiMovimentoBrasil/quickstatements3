@@ -1,0 +1,7 @@
+<div class="progress" id="batchprogress">
+  <div class="progress-status">STATUS <b>{{status | upper}}</b></div>
+  <div class="progress-meter">
+    <div class="progress-done-meter" style="width: {{done_percentage}}%;"></div>
+  </div>
+  <div class="progress-summary">{{done_percentage}}% DONE ({{done_count}} of {{total_count}})</div>
+</div>

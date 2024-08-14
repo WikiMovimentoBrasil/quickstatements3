@@ -74,32 +74,9 @@ def last_batches_by_user(request, user):
 @require_http_methods(["GET",])
 def batch(request, pk):
     try:
-        from django.db.models import Q, Count
-        error_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR))
-        initial_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL))
-        running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
-        done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
-        batch = Batch.objects\
-                    .annotate(error_commands=error_commands)\
-                    .annotate(initial_commands=initial_commands)\
-                    .annotate(running_commands=running_commands)\
-                    .annotate(done_commands=done_commands)\
-                    .annotate(total_commands=Count("batchcommand"))\
-                    .get(pk=pk)
-                    
+        batch = Batch.objects.get(pk=pk)
         return render(request, 
-            "batch.html", 
-            {
-                "batch": batch, 
-                "pk": batch.pk,
-                "status": batch.get_status_display(),
-                "error_count": batch.error_commands,
-                "initial_count": batch.initial_commands,
-                "running_count": batch.running_commands,
-                "done_count": batch.done_commands,
-                "total_count": batch.total_commands,
-                "done_percentage": float(100 * batch.done_commands) / batch.total_commands
-            }
+            "batch.html", {"batch": batch}
         )
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
