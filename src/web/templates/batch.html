@@ -73,6 +73,41 @@
 tr:nth-child(even) td {background-color: #f2f2f2;}
 tr:nth-child(even) th {background-color: #f2f2f2;}
 
+.progress {
+  padding: 10px 0;
+  width: 100%;
+  display: flex;
+}
+
+.progress-status{
+  float: left;
+  display: inline;
+  padding-right: 15px;
+  font-size: 14px;
+}
+
+.progress-summary{
+  float: right;  
+  display: inline;
+  padding-left: 15px;
+  font-size: 14px;
+}
+
+.progress-meter{
+  flex-grow: 1;
+  border-radius: 5px;
+  border-color: var(--pico-color-slate-800);
+  background-color: var(--pico-color-slate-350);
+  display: inline-block !important;
+}
+
+.progress-done-meter{
+  border-radius: 5px;
+  width: 0%;
+  height: 100%;
+  background-color: var(--pico-color-green-600);
+}
+
 {% endblock %}
 
 {% block content %}
@@ -85,6 +120,14 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
     [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">View wikidata</a>]
   </p>
 </hgroup>
+
+<div class="progress">
+  <div class="progress-status">STATUS <b>{{batch.get_status_display | upper}}</b></div>
+  <div class="progress-meter">
+    <div class="progress-done-meter" style="width: {{batch.done_percentage}}%;"></div>
+  </div>
+  <div class="progress-summary">{{batch.done_percentage}}% DONE ({{batch.done_count}} of {{batch.total_count}})</div>
+</div>
 
 <h3> Commands </h3>
 
