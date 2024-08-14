@@ -19,7 +19,7 @@ from core.models import BatchCommand
 from .utils import user_from_token, clear_tokens
 
 
-PAGE_SIZE = 1
+PAGE_SIZE = 30
 
 
 oauth = OAuth()
