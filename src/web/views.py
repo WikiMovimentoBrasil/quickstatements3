@@ -16,6 +16,10 @@ from .utils import user_from_token, clear_tokens
 
 from authlib.integrations.django_client import OAuth
 
+
+PAGE_SIZE = 30
+
+
 oauth = OAuth()
 oauth.register(
     name="mediawiki",
@@ -38,9 +42,32 @@ def last_batches(request):
 
 @require_http_methods(["GET",])
 def last_batches_by_user(request, user):
-    last_batches = Batch.objects.filter(user=user).order_by("-modified")[:20]
+    try:
+        page = int(request.GET.get("page", 1))
+    except:
+        page = 1
+
+    offset = (page - 1) * PAGE_SIZE
+    limit = offset + PAGE_SIZE
+    
+    last_batches = list(Batch.objects.filter(user=user).order_by("-modified")[offset:limit])
+    
+    pagination = {"current_page": page}
+    if page > 1:
+        pagination["prev_page"] = page - 1
+    if len(last_batches) == PAGE_SIZE:
+        pagination["next_page"] = page + 1
+
     # we need to use `username` since `user` is always supplied by django templates
-    return render(request, "batches.html", {"last_batches": list(last_batches), "username": user})
+    return render(
+            request, 
+            "batches.html", 
+            {
+                "last_batches": list(last_batches), 
+                "username": user,
+                "pagination": pagination
+            }
+        )
 
 
 @require_http_methods(["GET",])

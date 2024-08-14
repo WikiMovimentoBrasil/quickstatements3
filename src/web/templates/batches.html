@@ -42,6 +42,13 @@
 tr:nth-child(even) td {background-color: #f2f2f2;}
 tr:nth-child(even) th {background-color: #f2f2f2;}
 
+.pagination {
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 0 10px;
+}
+
 {% endblock %}
 
 {% block content %}
@@ -90,6 +97,26 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
       {% endfor %}
     </tbody>
   </table>
+
+  <div>
+    {% if pagination %}
+        {% if pagination.prev_page %}
+        <span class="pagination prev-page">
+          <a href="{% url 'last_batches_by_user' user=user %}?page={{pagination.prev_page}}">
+            << PREV
+          </a>
+        </span> 
+        {% endif%}
+        <span class="pagination current-page">PAGE {{pagination.current_page}}</span> 
+        {% if pagination.next_page %}
+        <span class="pagination next-page">
+          <a href="{% url 'last_batches_by_user' user=user %}?page={{pagination.next_page}}">
+            NEXT >>  
+          </a>
+        </span> 
+        {% endif %}
+    {% endif %}
+  </div>
 </div>
 
 {% endblock %}
