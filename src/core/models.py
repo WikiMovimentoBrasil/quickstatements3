@@ -45,18 +45,6 @@ class Batch(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
-    @property
-    def done_percentage(self):
-        return 33;
-
-    @property
-    def done_count(self):
-        return 33;
-
-    @property
-    def total_count(self):
-        return 100;
-    
     def __str__(self):
         return f"Batch #{self.pk}"
 

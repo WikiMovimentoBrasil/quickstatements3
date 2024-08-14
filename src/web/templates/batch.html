@@ -121,13 +121,7 @@ tr:nth-child(even) th {background-color: #f2f2f2;}
   </p>
 </hgroup>
 
-<div class="progress">
-  <div class="progress-status">STATUS <b>{{batch.get_status_display | upper}}</b></div>
-  <div class="progress-meter">
-    <div class="progress-done-meter" style="width: {{batch.done_percentage}}%;"></div>
-  </div>
-  <div class="progress-summary">{{batch.done_percentage}}% DONE ({{batch.done_count}} of {{batch.total_count}})</div>
-</div>
+{% include 'batch_summary.html' %}
 
 <h3> Commands </h3>
 

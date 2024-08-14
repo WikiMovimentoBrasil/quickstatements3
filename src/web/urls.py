@@ -8,6 +8,7 @@ from .views import profile
 from .views import last_batches
 from .views import last_batches_by_user
 from .views import batch
+from .views import batch_summary
 from .views import new_batch
 from .views import oauth_redirect
 from .views import oauth_callback
@@ -24,5 +25,6 @@ urlpatterns = [
     path("batches/", last_batches, name="last_batches"),
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),
+    path("batch/<int:pk>/summary", batch_summary, name="batch_summary"),
     path("batch/new/", new_batch, name="new_batch"),
 ]
