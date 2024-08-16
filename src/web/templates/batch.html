@@ -1,9 +1,112 @@
 {% extends "layout.html" %}
 
+{% block css %}
+
+.commands {
+  font-size: 13px;  
+}
+
+.status {
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.status_initial {
+  background-color: var(--pico-color-slate-600);
+}
+
+.status_running {
+  background-color: var(--pico-color-blue-600);
+}
+
+.status_done {
+  background-color: var(--pico-color-green-600);
+}
+
+.status_error {
+  background-color: var(--pico-color-red-600);
+} 
+
+.status_total {
+  background-color: var(--pico-color-yellow-600);
+} 
+
+.action {
+  font-size: 12px;
+  padding: 5px;
+  color: #fff;
+  border-radius: 5px;  
+}
+
+.action_add {
+  background-color: var(--pico-color-blue-600);
+}
+
+.action_remove {
+  background-color: var(--pico-color-red-600);
+}
+
+.action_create {
+  background-color: var(--pico-color-green-600);
+}
+
+.action_merge {
+  background-color: var(--pico-color-yellow-600);
+} 
+
+tr:nth-child(even) td {background-color: #f2f2f2;}
+tr:nth-child(even) th {background-color: #f2f2f2;}
+
+.progress {
+  padding: 10px 0;
+  width: 100%;
+  display: flex;
+}
+
+.progress-status{
+  float: left;
+  display: inline;
+  padding-right: 15px;
+  font-size: 14px;
+}
+
+.progress-summary{
+  float: right;  
+  display: inline;
+  padding-left: 15px;
+  font-size: 14px;
+}
+
+.progress-meter{
+  flex-grow: 1;
+  border-radius: 5px;
+  border-color: var(--pico-color-slate-800);
+  background-color: var(--pico-color-slate-350);
+  display: inline-block !important;
+}
+
+.progress-done-meter{
+  border-radius: 5px;
+  width: 0%;
+  height: 100%;
+  background-color: var(--pico-color-green-600);
+}
+
+.pagination {
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 0 10px;
+}
+{% endblock %}
+
 {% block content %}
 
 <hgroup>
-  <h2> Batch #{{ batch.pk }} - {{batch.name}}</h2>
+  <h2> Batch #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
+  <p><b>{{batch.name}}</b></p>
   <p>
     Created by {{ batch.user }}
     [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]</a>
@@ -11,27 +114,24 @@
   </p>
 </hgroup>
 
-<h3> Commands </h3>
+<div id="batchProgressDiv" 
+      hx-get="/batch/{{batch.pk}}/summary/"
+      hx-trigger="load, every 10s" 
+      hx-swap="innerHTML" 
+      hx-indicator="#spinner"
+      style="margin: 20px 0; font-size: 14px;">
+      Loading summary...
+</div>
 
-<div class="overflow-auto">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col"> </th>
-        <th scope="col"> Status </th>
-        <th scope="col"> Message </th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for command in batch.commands %}
-      <tr>
-        <th scope="row">{{ command.index }}</th>
-        <td>{{ batch.status }}</td>
-        <td>{{ batch.message }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<h4>Commands</h4>
+
+<div class="overflow-auto" 
+    id="batchCommandsDiv" 
+    hx-get="/batch/{{batch.pk}}/commands/"
+    hx-trigger="load, reload" 
+    hx-indicator="#spinner"
+    hx-swap="innerHTML">
+Loading commands...
 </div>
 
 {% endblock %}

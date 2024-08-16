@@ -43,7 +43,7 @@ class Batch(models.Model):
     status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
+    modified = models.DateTimeField(auto_now=True, db_index=True)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -62,13 +62,22 @@ class BatchCommandManager(models.Manager):
         try:
             status = BatchCommand.STATUS_INITIAL
             command = parser.parse(raw_command)
+            if command["action"] == "add":
+                action = BatchCommand.ACTION_ADD
+            elif command["action"] == "remove":
+                action = BatchCommand.ACTION_REMOVE 
+            elif command["action"] == "create":
+                action = BatchCommand.ACTION_CREATE
+            else:
+                action = BatchCommand.ACTION_MERGE
             message = None
         except ParserException as e:
             status = BatchCommand.STATUS_ERROR
             command = {}
             message = e.message
+            action = BatchCommand.ACTION_CREATE
 
-        return self.create(batch=batch, index=index, json=command, raw=raw_command, status=status, message=message)
+        return self.create(batch=batch, index=index, action=action, json=command, raw=raw_command, status=status, message=message)
 
     def create_command_from_csv(self, batch, index, raw_command):
         return self.create(batch=batch, index=index, json=command, raw=raw_command)
@@ -84,11 +93,29 @@ class BatchCommand(models.Model):
     STATUS_RUNNING = 1
     STATUS_DONE = 2
 
-    STATUS_CHOICES = ((-1, _("Error")), (0, _("Initial")), (1, _("Running")), (2, _("Done")))
+    STATUS_CHOICES = (
+        (STATUS_ERROR, _("Error")), 
+        (STATUS_INITIAL, _("Initial")), 
+        (STATUS_RUNNING, _("Running")), 
+        (STATUS_DONE, _("Done"))
+    )
+
+    ACTION_CREATE = 0
+    ACTION_ADD = 1
+    ACTION_REMOVE = 2
+    ACTION_MERGE = 3
+
+    ACTION_CHOICES = (
+        (ACTION_CREATE, "CREATE"),
+        (ACTION_ADD, "ADD"),
+        (ACTION_REMOVE, "REMOVE"),
+        (ACTION_MERGE, "MERGE")
+    )
 
     objects = BatchCommandManager()
 
     batch = models.ForeignKey(Batch, null=False, on_delete=models.CASCADE)
+    action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
     index = models.IntegerField()
     json = models.JSONField()
     status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
@@ -100,6 +127,60 @@ class BatchCommand(models.Model):
     def __str__(self):
         return f"Batch #{self.batch.pk} Command #{self.pk}"
 
+    @property
+    def entity_info(self):
+        item = self.json.get("item", None)
+        if item:
+            return f"[{item}]"
+        else:
+            eid = self.json.get('entity', {}).get('id', None)
+            return f"[{eid}]" if eid else ""
+
+    @property
+    def status_info(self):
+        return self.get_status_display().upper()
+
+    @property
+    def language(self):
+        return self.json.get("language", "")
+
+    @property
+    def sitelink(self):
+        return self.json.get("site", "")
+
+    @property
+    def what(self):
+        if not hasattr(self, "_what"):
+            self._what = self.json.get("what", "").upper()
+        return self._what
+
+    @property
+    def prop(self):
+        return self.json.get("property", "") 
+
+    @property
+    def value(self):
+        return self.json.get("value", {}).get("value", "")
+
+    def is_add_or_remove_command(self):
+        return self.action in [BatchCommand.ACTION_ADD, BatchCommand.ACTION_REMOVE]
+
+    def is_merge_command(self):
+        return self.action == BatchCommand.ACTION_MERGE
+
+    def is_label_alias_description_command(self):
+        return self.what in ["DESCRIPTION", "LABEL", "ALIAS"]
+
+    def is_sitelink_command(self):
+        return self.what == "SITELINK"
+
+    def is_error_status(self):
+        return self.status == BatchCommand.STATUS_ERROR
+        
+
     class Meta:
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
+        index_together = (
+            ('batch', 'index')
+        )

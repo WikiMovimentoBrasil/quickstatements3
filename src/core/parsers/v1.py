@@ -41,7 +41,7 @@ class V1CommandParser(BaseParser):
             action = "remove"
             entity = first_command[1:]
         else:
-            action = "create"
+            action = "add"
             entity = first_command
 
         entity_type = self.get_entity_type(entity)
@@ -58,7 +58,7 @@ class V1CommandParser(BaseParser):
                 raise ParserException(f"{what} must be a string instance")
 
             lang = elements[1][1:]
-            data = {"action": action, "what": what, "item": entity, "value": vvalue["value"]}
+            data = {"action": action, "what": what, "item": entity, "value": vvalue}
             if what == "sitelink":
                 data["site"] = lang
             else:
@@ -72,6 +72,7 @@ class V1CommandParser(BaseParser):
 
             data = {
                 "action": action,
+                "what": "statement",
                 "entity": {"type": entity_type, "id": entity},
                 "property": pproperty,
                 "value": vvalue,
