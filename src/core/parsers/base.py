@@ -57,6 +57,37 @@ class BaseParser(object):
             re.match("^Q\\d+$", value) is not None or re.match("^M\\d+$", value) is not None
         )
 
+    def is_valid_label(self, value):
+        """
+        Returns True if value is a valid label
+        Len
+        Lpt
+        """
+        return value is not None and re.match("^L[a-z]{2}$", value) is not None
+
+    def is_valid_alias(self, value):
+        """
+        Returns True if value is a valid alias
+        Aen
+        Apt
+        """
+        return value is not None and re.match("^A[a-z]{2}$", value) is not None
+
+    def is_valid_description(self, value):
+        """
+        Returns True if value is a valid description
+        Den
+        Dpt
+        """
+        return value is not None and re.match("^D[a-z]{2}$", value) is not None
+
+    def is_valid_sitelink(self, value):
+        """
+        Returns True if value is a valid sitelink
+        Swiki
+        """
+        return value is not None and re.match("^S[a-z]+$", value) is not None
+
     def get_entity_type(self, entity):
         """
         Detects the entity type based on the pattern. 
@@ -74,6 +105,14 @@ class BaseParser(object):
                 return "form"
             if self.is_valid_sense_id(entity):
                 return "sense"
+            if self.is_valid_alias(entity):
+                return "alias"
+            if self.is_valid_description(entity):
+                return "description"
+            if self.is_valid_label(entity):
+                return "label"
+            if self.is_valid_sitelink(entity):
+                return "sitelink"
         return None
 
     def convert_to_utf8(self, s):
