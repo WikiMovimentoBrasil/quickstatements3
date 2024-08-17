@@ -31,6 +31,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "qs-dev.toolforge.org",
+    "localhost"
 ]
 
 

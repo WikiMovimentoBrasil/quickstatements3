@@ -1,0 +1,168 @@
+from django.test import TestCase
+
+from core.models import Batch
+from core.models import BatchCommand
+
+
+class TestV1BatchCommand(TestCase):
+    def setUp(self):
+        self.batch = Batch.objects.create(name="Batch", user="wikiuser")
+
+    def test_error_status(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE")
+        command.status = BatchCommand.STATUS_ERROR
+        command.save()
+        self.assertTrue(command.is_error_status())
+        command.status = BatchCommand.STATUS_INITIAL
+        command.save()
+        self.assertFalse(command.is_error_status())
+        command.status = BatchCommand.STATUS_RUNNING
+        command.save()
+        self.assertFalse(command.is_error_status())
+        command.status = BatchCommand.STATUS_DONE
+        command.save()
+        self.assertFalse(command.is_error_status())
+
+    def test_create_command(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "")
+        self.assertEqual(command.action, BatchCommand.ACTION_CREATE)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "")
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "")
+        self.assertFalse(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_merge_command(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ1\tQ2")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "")
+        self.assertEqual(command.action, BatchCommand.ACTION_MERGE)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "")
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "")
+        self.assertFalse(command.is_add_or_remove_command())
+        self.assertTrue(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_remove_item(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP2\tQ1")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
+        self.assertEqual(command.prop, "P2")
+        self.assertEqual(command.value, {'entity-type': 'item', 'id': 'Q1'})
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "STATEMENT")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_remove_time(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP1\t12")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
+        self.assertEqual(command.prop, "P1")
+        self.assertEqual(command.value, {'amount': '12'})
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "STATEMENT")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+       
+    def test_add_item(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP2\tQ1")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
+        self.assertEqual(command.prop, "P2")
+        self.assertEqual(command.value, {'entity-type': 'item', 'id': 'Q1'})
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "STATEMENT")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_add_alias(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tApt\t\"Texto brasileiro\"")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "Texto brasileiro")
+        self.assertEqual(command.language, "pt")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "ALIAS")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertTrue(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_add_description(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tDen\t\"Item description\"")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "Item description")
+        self.assertEqual(command.language, "en")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "DESCRIPTION")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertTrue(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_add_label(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tLfr\t\"Note en français\"")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "Note en français")
+        self.assertEqual(command.language, "fr")
+        self.assertEqual(command.sitelink, "")
+        self.assertEqual(command.what, "LABEL")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertTrue(command.is_label_alias_description_command())
+        self.assertFalse(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
+
+    def test_add_site(self):
+        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tSmysite\t\"Site mysite\"")
+        self.assertEqual(command.status_info, "INITIAL")
+        self.assertEqual(command.entity_info, "[Q1234]")
+        self.assertEqual(command.action, BatchCommand.ACTION_ADD)
+        self.assertEqual(command.prop, "")
+        self.assertEqual(command.value, "Site mysite")
+        self.assertEqual(command.language, "")
+        self.assertEqual(command.sitelink, "mysite")
+        self.assertEqual(command.what, "SITELINK")
+        self.assertTrue(command.is_add_or_remove_command())
+        self.assertFalse(command.is_merge_command())
+        self.assertFalse(command.is_label_alias_description_command())
+        self.assertTrue(command.is_sitelink_command())
+        self.assertFalse(command.is_error_status())
