@@ -133,7 +133,7 @@ def batch_summary(request, pk):
                 "running_count": batch.running_commands,
                 "done_count": batch.done_commands,
                 "total_count": batch.total_commands,
-                "done_percentage": float(100 * batch.done_commands) / batch.total_commands
+                "done_percentage": float(100 * batch.done_commands) / batch.total_commands if batch.total_commands else 0
             }
         )
     except Batch.DoesNotExist:
