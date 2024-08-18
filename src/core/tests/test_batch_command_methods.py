@@ -5,7 +5,7 @@ from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
 
 
-class TestV1BatchCommand(TestCase):
+class TestBatchCommand(TestCase):
     def test_error_status(self):
         parser = V1CommandParser()
         batch = parser.parse("Batch", "wikiuser", "CREATE")
