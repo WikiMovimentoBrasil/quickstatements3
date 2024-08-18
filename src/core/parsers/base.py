@@ -179,6 +179,57 @@ class BaseParser(object):
             }
         return None
 
+    def parse_value_url(self, v):
+        """
+        Returns quantity data if v matches a monolingual text value:
+
+        en:"Some text"
+        pt:"Algum texto"
+
+        Returns None otherwise
+        """
+        url_match = re.match(r'^"""(http(s)?:.*)"""$', v)
+        if url_match:
+            return {
+                "type": "url",
+                "value": url_match.group(1)
+            }
+        return None
+
+    def parse_value_commons_media_file(self, v):
+        """
+        Returns quantity data if v matches a monolingual text value:
+
+        en:"Some text"
+        pt:"Algum texto"
+
+        Returns None otherwise
+        """
+        url_match = re.match(r'^"""(.*\.(?:jpg|JPG|jpeg|JPEG|png|PNG))"""$', v)
+        if url_match:
+            return {
+                "type": "commonsMedia",
+                "value": url_match.group(1)
+            }
+        return None
+
+    def parse_value_external_id(self, v):
+        """
+        Returns quantity data if v matches a monolingual text value:
+
+        en:"Some text"
+        pt:"Algum texto"
+
+        Returns None otherwise
+        """
+        id_match = re.match(r'^"""(.*)"""$', v)
+        if id_match:
+            return {
+                "type": "external-id",
+                "value": id_match.group(1)
+            }
+        return None
+
     def parse_value_time(self, v):
         """
         Returns quantity data if v matches a time value
@@ -273,7 +324,10 @@ class BaseParser(object):
         v = v.strip()
         for fn in [
             self.parse_value_somevalue_novalue, 
-            self.parse_value_item, 
+            self.parse_value_item,
+            self.parse_value_url,
+            self.parse_value_commons_media_file,
+            self.parse_value_external_id,
             self.parse_value_string,
             self.parse_value_monolingualtext,
             self.parse_value_time,
