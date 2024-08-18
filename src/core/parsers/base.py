@@ -222,8 +222,10 @@ class BaseParser(object):
 
         Returns None otherwise
         """
+        print(v)
         id_match = re.match(r'^"""(.*)"""$', v)
         if id_match:
+            print(id_match.group(1))
             return {
                 "type": "external-id",
                 "value": id_match.group(1)

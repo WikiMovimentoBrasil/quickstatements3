@@ -10,22 +10,7 @@ from core.models import BatchCommand
 
 
 class CSVCommandParser(BaseParser):
-    # def parse_statement(self, elements, first_command):
-    #     llen = len(elements)
-    #     if llen < 3:
-    #         raise ParserException(f"STATEMENT must contain at least entity, property and value")
 
-    #     if first_command[0] == "-":
-    #         action = "remove"
-    #         entity = first_command[1:]
-    #     else:
-    #         action = "add"
-    #         entity = first_command
-
-    #     entity_type = self.get_entity_type(entity)
-
-    #     if entity_type is None:
-    #         raise ParserException(f"Invalid entity {entity}")
 
     #     vvalue = self.parse_value(elements[2])
 
@@ -43,10 +28,6 @@ class CSVCommandParser(BaseParser):
     #             data["language"] = lang
 
     #     else:
-    #         # We are adding / removing values
-    #         pproperty = elements[1]
-    #         if not self.is_valid_property_id(pproperty):
-    #             raise ParserException(f"Invalid property {pproperty}")
 
     #         data = {
     #             "action": action,
@@ -85,43 +66,99 @@ class CSVCommandParser(BaseParser):
 
     #     return data
 
-    def parse_header(self, header):
-        parsed_header = []
-        for index, entity in enumerate(header):
-            if index == 0:
-                if entity != "qid":
-                    raise ParserException(f"CSV header first element must be qid")
-                parsed_header.append(entity)
-            elif entity == "#":
-                parsed_header.append(entity) # Adds comment (source) to previous command
+    def parse_line(self, row, header):
+        commands = []
+        current_property = None
+        current_action = None
+        current_what = None
+        qid = None
+        entity_type = None
+
+        for index, cell in enumerate(row):
+            cell = cell.strip()
+            if index == 0: # That is the QID, alway in the firs column
+                if not cell:
+                    # Our qid is empty, so it means we are creating a new item
+                    commands.append({"action": "create", "type": "item"})
+                    qid = "LAST"
+                    entity_type = self.get_entity_type(qid)
+                else:
+                    # Just modifying and existing one
+                    qid = cell
+                    entity_type = self.get_entity_type(qid)
+
+            elif not cell:
+                continue # Empty, does nothing
+
+            elif header[index] == "#":
+                # Our header indicates that this column represents comments
+                # We add the cell value to the last command created
+                commands[-1]["summary"] = cell
+                continue
+
             else:
-                what = "statement"
-                if entity[0] == "-":
+                _header = header[index]
+
+                # Checking action
+                if _header[0] == "-":
                     action = "remove"
-                    entity = entity[1:]
+                    _header = _header[1:]
                 else:
                     action = "add"
+                    _header = _header
 
-                entity_type = self.get_entity_type(entity)
+                current_value = self.parse_value(cell)
+                if current_value is None:
+                    current_value = {"type": "string", "value": cell}
 
-                if entity_type in ["alias", "description", "label", "sitelink"]:
-                    what = entity_type
-                    lang = entity[1:]
-                    data = {"action": action, "what": what, "item": entity}
-                    if what == "sitelink":
-                        data["site"] = lang
-                    else:
-                        data["language"] = lang
-                else:
+                # Is it a new property
+                if self.is_valid_property_id(_header):
+                    current_property = _header
+                    current_action = action
+                    current_what = "statement"
+
                     data = {
-                        "action": action,
-                        "what": what,
-                        "entity": {"type": entity_type, "id": entity},
+                        "action": current_action,
+                        "what": current_what,
+                        "entity": {"type": entity_type, "id": qid},
+                        "property": current_property,
+                        "value": current_value,
                     }
-                parsed_header.append(data)
+                else:
+                    _type = self.get_entity_type(_header)
+                    if _type in ["alias", "description", "label", "sitelink"]:
+                        current_action = action
+                        current_what = _type
+                        lang = _header[1:]
+                        data = {"action": action, "what": current_what, "item": qid, "value": current_value}
+                        if current_what == "sitelink":
+                            data["site"] = lang
+                        else:
+                            data["language"] = lang
+            
+                commands.append(data)
+        return commands
 
+    def parse_header(self, header):
+        """
+        Validates header
+        """
+        has_property_alias_description_label_sitelink = False
+        parsed_header = []
+        for index, cell in enumerate(header):
+            if index == 0:
+                if cell != "qid":
+                    raise ParserException(f"CSV header first element must be qid")
+            elif cell == "#":
+                if not has_property_alias_description_label_sitelink:
+                    raise ParserException(f"A valid property must precede a comment")
+            else:
+                clean_cell = cell[1:] if cell[0] == "-" else cell
+                _type = self.get_entity_type(clean_cell)
+                if not has_property_alias_description_label_sitelink:
+                    has_property_alias_description_label_sitelink = _type in ["alias", "description", "label", "sitelink", "property"]
+            parsed_header.append(cell)
         return parsed_header
-
 
     def parse(self, batch_name, batch_owner, raw_csv):
         batch = Batch.objects.create(name=batch_name, user=batch_owner)
@@ -135,29 +172,6 @@ class CSVCommandParser(BaseParser):
                 header = self.parse_header(row)
                 first_line = False
             else:
-                pass
-
+                commands = self.parse_line(row, header)
+                
         return batch
-
-
-
-    # for row in spamreader:
-    #     print(', '.join(row))
-
-    #     elements = raw_command.split("\t")
-    #     if len(elements) == 0:
-    #         raise ParserException("Empty command statement")
-
-    #     first_command = elements[0].upper().strip()
-
-    #     if first_command == "CREATE":
-    #         data = self.parse_create(elements)
-    #     elif first_command == "MERGE":
-    #         data = self.parse_merge(elements)
-    #     else:
-    #         data = self.parse_statement(elements, first_command)
-
-    #     if comment:
-    #         data["summary"] = comment
-
-    #     return data
