@@ -154,7 +154,7 @@ def new_batch(request):
                 parser = V1CommandParser()
             else:
                 parser = CSVCommandParser()
-            batch = v1.parse(batch_name, batch_owner, batch_commands)
+            batch = parser.parse(batch_name, batch_owner, batch_commands)
             return redirect(reverse("batch", args=[batch.pk]))
         else:
             return render(request, "new_batch.html", {})
