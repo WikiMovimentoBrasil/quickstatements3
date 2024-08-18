@@ -16,6 +16,8 @@ from django.views.decorators.http import require_http_methods
 from api.client import Client
 from core.models import Batch
 from core.models import BatchCommand
+from core.parsers.v1 import V1CommandParser
+from core.parsers.csv import CSVCommandParser
 from .utils import user_from_token, clear_tokens
 
 
@@ -148,7 +150,11 @@ def new_batch(request):
             batch_commands = request.POST.get("commands")
             batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
             batch_type = request.POST.get("type", "v1")
-            batch = Batch.objects.create_batch(batch_name, batch_commands, batch_type, batch_owner)
+            if batch_type == "v1":
+                parser = V1CommandParser()
+            else:
+                parser = CSVCommandParser()
+            batch = v1.parse(batch_name, batch_owner, batch_commands)
             return redirect(reverse("batch", args=[batch.pk]))
         else:
             return render(request, "new_batch.html", {})
