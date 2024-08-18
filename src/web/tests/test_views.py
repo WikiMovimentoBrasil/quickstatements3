@@ -169,13 +169,13 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
 
-     def test_create_batch_anonymous_user(self):
+    def test_create_batch_anonymous_user(self):
         c = Client()
        
         response = c.get("/batch/new/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed("new_batch_error.html")
 
         response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
-        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed("new_batch_error.html")
