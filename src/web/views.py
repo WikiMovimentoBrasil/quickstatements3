@@ -159,7 +159,10 @@ def new_batch(request):
         else:
             return render(request, "new_batch.html", {})
     else:
-        return render(request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user})
+        return render(request, 
+            "new_batch_error.html", 
+            {"message": "User must be logged in", "user": request.user},
+            status=403)
 
 
 def login(request):
