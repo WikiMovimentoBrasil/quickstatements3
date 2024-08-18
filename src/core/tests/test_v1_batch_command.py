@@ -317,9 +317,9 @@ class TestV1BatchCommand(TestCase):
                 "value": {
                     "type": "globecoordinate",
                     "value": {
-                        "latitude": 43.26193,
-                        "longitude": 10.92708,
-                        "precision": 0.000001,
+                        "latitude": "43.26193",
+                        "longitude": "10.92708",
+                        "precision": "0.000001",
                         "globe": "http://www.wikidata.org/entity/Q2",
                     },
                 },

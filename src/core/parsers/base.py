@@ -223,9 +223,9 @@ class BaseParser(object):
             return {
                 "type": "globecoordinate",
                 "value": {
-                    "latitude": float(gps_match.group(1)),
-                    "longitude": float(gps_match.group(2)),
-                    "precision": 0.000001,
+                    "latitude": gps_match.group(1),
+                    "longitude": gps_match.group(2),
+                    "precision": "0.000001",
                     "globe": "http://www.wikidata.org/entity/Q2",
                 },
             }
