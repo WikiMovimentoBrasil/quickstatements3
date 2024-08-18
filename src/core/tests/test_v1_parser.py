@@ -116,8 +116,8 @@ class TestV1Parser(TestCase):
             "type": "quantity",
             "value": {
                 "amount": "9",
-                "upperBound": 9.1,
-                "lowerBound": 8.9,
+                "upperBound": '9.1',
+                "lowerBound": '8.9',
             },
         }
         self.assertEqual(parser.parse_value("9~0.1"), ret)
@@ -129,8 +129,8 @@ class TestV1Parser(TestCase):
             "type": "quantity",
             "value": {
                 "amount": "9.6",
-                "upperBound": 9.7,
-                "lowerBound": 9.5,
+                "upperBound": '9.7',
+                "lowerBound": '9.5',
             },
         }
         self.assertEqual(parser.parse_value("9.6~0.1"), ret)

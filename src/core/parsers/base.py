@@ -1,6 +1,7 @@
 
 import re
 
+from decimal import Decimal
 
 class ParserException(Exception):
     def __init__(self, message):
@@ -240,10 +241,11 @@ class BaseParser(object):
         """
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
+            value = Decimal(quantity_match.group(1))
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": quantity_match.group(1),
+                    "amount": str(value),
                 },
             }
 
@@ -251,14 +253,14 @@ class BaseParser(object):
             r"^([\+\-]{0,1}\d+(\.\d+){0,1})\s*~\s*([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v
         )
         if quantity_error_match:
-            value = float(quantity_error_match.group(1))
-            error = float(quantity_error_match.group(3))
+            value = Decimal(quantity_error_match.group(1))
+            error = Decimal(quantity_error_match.group(3))
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": quantity_error_match.group(1),
-                    "upperBound": value + error,
-                    "lowerBound": value - error,
+                    "amount": str(value),
+                    "upperBound": str(value + error),
+                    "lowerBound": str(value - error),
                 },
             }
         return None

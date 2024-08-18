@@ -98,8 +98,8 @@ class TestV1BatchCommand(TestCase):
                     "type": "quantity",
                     "value": {
                         "amount": "9",
-                        "upperBound": 9.1,
-                        "lowerBound": 8.9,
+                        "upperBound": '9.1',
+                        "lowerBound": '8.9',
                     },
                 },
                 "what": "statement"
@@ -157,8 +157,8 @@ class TestV1BatchCommand(TestCase):
                     "type": "quantity",
                     "value": {
                         "amount": "9",
-                        "upperBound": 9.1,
-                        "lowerBound": 8.9,
+                        "upperBound": '9.1',
+                        "lowerBound": '8.9',
                     },
                 },
                 "what": "statement"
