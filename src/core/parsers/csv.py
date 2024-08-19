@@ -11,32 +11,6 @@ from core.models import BatchCommand
 
 class CSVCommandParser(BaseParser):
 
-
-    #     vvalue = self.parse_value(elements[2])
-
-    #     if llen == 3 and elements[1][0] in ["L", "A", "D", "S"]:
-    #         # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property
-    #         what = self.WHAT[elements[1][0]]
-    #         if not vvalue or vvalue["type"] != "string":
-    #             raise ParserException(f"{what} must be a string instance")
-
-    #         lang = elements[1][1:]
-    #         data = {"action": action, "what": what, "item": entity, "value": vvalue}
-    #         if what == "sitelink":
-    #             data["site"] = lang
-    #         else:
-    #             data["language"] = lang
-
-    #     else:
-
-    #         data = {
-    #             "action": action,
-    #             "what": "statement",
-    #             "entity": {"type": entity_type, "id": entity},
-    #             "property": pproperty,
-    #             "value": vvalue,
-    #         }
-
     #         sources = []
     #         qualifiers = []
 
@@ -160,18 +134,40 @@ class CSVCommandParser(BaseParser):
             parsed_header.append(cell)
         return parsed_header
 
-    def parse(self, batch_name, batch_owner, raw_csv):
+    def parse(self, batch_name, batch_owner, raw_csv):        
         batch = Batch.objects.create(name=batch_name, user=batch_owner)
         
         memory_file = io.StringIO(raw_csv, newline='')
         
         first_line = True
         reader = csv.reader(memory_file, delimiter=',')
+        index = 0
+
         for row in reader:
             if first_line:
                 header = self.parse_header(row)
                 first_line = False
             else:
                 commands = self.parse_line(row, header)
+                for command in commands:
+                    status = BatchCommand.STATUS_INITIAL
+                    if command["action"] == "add":
+                        action = BatchCommand.ACTION_ADD
+                    elif command["action"] == "remove":
+                        action = BatchCommand.ACTION_REMOVE
+                    elif command["action"] == "create":
+                        action = BatchCommand.ACTION_CREATE
+                    else:
+                        action = BatchCommand.ACTION_MERGE
+                    message = None
+
+                    BatchCommand.objects.create(
+                        batch=batch, index=index, action=action, json=command, status=status
+                    )
+
+                    index += 1
+
                 
         return batch
+
+               
