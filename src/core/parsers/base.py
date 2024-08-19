@@ -140,9 +140,9 @@ class BaseParser(object):
         Returns None otherwise
         """
         if v == "LAST":
-            return {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "LAST"}}
+            return {"type": "wikibase-entityid", "value": "LAST"}
         if self.is_valid_item_id(v):
-            return {"type": "wikibase-entityid", "value": {"entity-type": self.get_entity_type(v), "id": v.upper()}}
+            return {"type": "wikibase-entityid", "value": v.upper()}
         return None
 
     def parse_value_string(self, v):
@@ -183,8 +183,8 @@ class BaseParser(object):
         """
         Returns url data if v matches a monolingual text value:
 
-        en:"Some text"
-        pt:"Algum texto"
+        \"\"\"https://www.google.com\"\"\"
+        \"\"\"http://www.google.com\"\"\"
 
         Returns None otherwise
         """
@@ -290,11 +290,13 @@ class BaseParser(object):
         """
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
-            value = Decimal(quantity_match.group(1))
+            unit = quantity_match.group(4)
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": str(value),
+                    "amount": quantity_match.group(1),
+                    "unit": unit if unit else "1",
+
                 },
             }
 
@@ -304,12 +306,14 @@ class BaseParser(object):
         if quantity_error_match:
             value = Decimal(quantity_error_match.group(1))
             error = Decimal(quantity_error_match.group(3))
+            unit = quantity_error_match.group(6)
             return {
                 "type": "quantity",
                 "value": {
                     "amount": str(value),
                     "upperBound": str(value + error),
                     "lowerBound": str(value - error),
+                    "unit": unit if unit else "1",
                 },
             }
         return None

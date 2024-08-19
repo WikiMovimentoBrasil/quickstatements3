@@ -47,7 +47,7 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         data = parser.parse_command("-Q1234\tP2\tQ1")
         self.assertEqual(
-            data,
+            data,            
             {
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
@@ -163,6 +163,7 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_alias(self):
         parser = V1CommandParser()
+
         data = parser.parse_command("Q1234\tApt\t\"Texto brasileiro\"")
         self.assertEqual(
             data,
