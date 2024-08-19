@@ -16,6 +16,7 @@ from django.views.decorators.http import require_http_methods
 from api.client import Client
 from core.models import Batch
 from core.models import BatchCommand
+from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from .utils import user_from_token, clear_tokens
@@ -33,7 +34,12 @@ oauth.register(
     authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
 )
 
-@require_http_methods(["GET",])
+
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def home(request):
     """
     Main page for this tool
@@ -41,7 +47,11 @@ def home(request):
     return render(request, "index.html")
 
 
-@require_http_methods(["GET",])
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def last_batches(request):
     """
     List last PAGE_SIZE batches modified
@@ -54,7 +64,11 @@ def last_batches(request):
     return render(request, "batches.html", {"page": paginator.page(page)})
 
 
-@require_http_methods(["GET",])
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def last_batches_by_user(request, user):
     """
     List last PAGE_SIZE batches modified created by user
@@ -68,7 +82,11 @@ def last_batches_by_user(request, user):
     return render(request, "batches.html", {"username": user, "page": paginator.page(page)})
 
 
-@require_http_methods(["GET",])
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def batch(request, pk):
     """
     Base call for a batch. Returns the main page, that will load 2 fragments: commands and summary
@@ -76,14 +94,16 @@ def batch(request, pk):
     """
     try:
         batch = Batch.objects.get(pk=pk)
-        return render(request, 
-            "batch.html", {"batch": batch}
-        )
+        return render(request, "batch.html", {"batch": batch})
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
 
-@require_http_methods(["GET",])
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def batch_commands(request, pk):
     """
     RETURNS fragment page with PAGINATED COMMANDs FOR A GIVEN BATCH ID
@@ -94,12 +114,14 @@ def batch_commands(request, pk):
     except:
         page = 1
     paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)
-    return render(request, 
-        "batch_commands.html", {"page": paginator.page(page), "batch_pk": pk}
-    )
+    return render(request, "batch_commands.html", {"page": paginator.page(page), "batch_pk": pk})
 
 
-@require_http_methods(["GET",])
+@require_http_methods(
+    [
+        "GET",
+    ]
+)
 def batch_summary(request, pk):
     """
     Return informations about the current batch. Used as fragment for the main batch page
@@ -112,19 +134,23 @@ def batch_summary(request, pk):
     """
     try:
         from django.db.models import Q, Count
+
         error_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR))
         initial_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL))
         running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
         done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
-        batch = Batch.objects\
-                    .annotate(error_commands=error_commands)\
-                    .annotate(initial_commands=initial_commands)\
-                    .annotate(running_commands=running_commands)\
-                    .annotate(done_commands=done_commands)\
-                    .annotate(total_commands=Count("batchcommand"))\
-                    .get(pk=pk)
-        
-        return render(request, "batch_summary.html", 
+        batch = (
+            Batch.objects.annotate(error_commands=error_commands)
+            .annotate(initial_commands=initial_commands)
+            .annotate(running_commands=running_commands)
+            .annotate(done_commands=done_commands)
+            .annotate(total_commands=Count("batchcommand"))
+            .get(pk=pk)
+        )
+
+        return render(
+            request,
+            "batch_summary.html",
             {
                 "pk": batch.pk,
                 "status": batch.get_status_display(),
@@ -133,8 +159,10 @@ def batch_summary(request, pk):
                 "running_count": batch.running_commands,
                 "done_count": batch.done_commands,
                 "total_count": batch.total_commands,
-                "done_percentage": float(100 * batch.done_commands) / batch.total_commands if batch.total_commands else 0
-            }
+                "done_percentage": float(100 * batch.done_commands) / batch.total_commands
+                if batch.total_commands
+                else 0,
+            },
         )
     except Batch.DoesNotExist:
         return render(request, "batch_summary.html", {}, status=404)
@@ -146,23 +174,59 @@ def new_batch(request):
     """
     if request.user and request.user.is_authenticated:
         if request.method == "POST":
-            batch_owner = request.user.username
-            batch_commands = request.POST.get("commands")
-            batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
-            batch_type = request.POST.get("type", "v1")
-            if batch_type == "v1":
-                parser = V1CommandParser()
-            else:
-                parser = CSVCommandParser()
-            batch = parser.parse(batch_name, batch_owner, batch_commands)
-            return redirect(reverse("batch", args=[batch.pk]))
+            try:
+                batch_owner = request.user.username
+                batch_commands = request.POST.get("commands")
+                batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
+                batch_type = request.POST.get("type", "v1")
+
+                batch_commands = batch_commands.strip()
+                if not batch_commands:
+                    raise ParserException("Command string cannot be empty")
+
+                batch_name = batch_name.strip()
+                if not batch_name:
+                    raise ParserException("Batch name cannot be empty")
+
+                if batch_type == "v1":
+                    parser = V1CommandParser()
+                else:
+                    parser = CSVCommandParser()
+                
+                batch = parser.parse(batch_name, batch_owner, batch_commands)
+                return redirect(reverse("batch", args=[batch.pk]))
+
+            except ParserException as p:
+                return render(
+                    request,
+                    "new_batch.html",
+                    {
+                        "error": p.message,
+                        "name": batch_name,
+                        "type_v1": batch_type == "v1",
+                        "type_csv": batch_type == "csv",
+                        "commands": batch_commands,
+                    },
+                )
+            except Exception as p:
+                return render(
+                    request,
+                    "new_batch.html",
+                    {
+                        "error": str(p),
+                        "name": batch_name,
+                        "type_v1": batch_type == "v1",
+                        "type_csv": batch_type == "csv",
+                        "commands": batch_commands,
+                    },
+                )
+
         else:
             return render(request, "new_batch.html", {})
     else:
-        return render(request, 
-            "new_batch_error.html", 
-            {"message": "User must be logged in", "user": request.user},
-            status=403)
+        return render(
+            request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user}, status=403
+        )
 
 
 def login(request):
