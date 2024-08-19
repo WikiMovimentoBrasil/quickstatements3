@@ -100,9 +100,9 @@ class BaseParser(object):
         Returns None otherwise
         """
         if v == "LAST":
-            return {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "LAST"}}
+            return {"type": "wikibase-entityid", "value": "LAST"}
         if self.is_valid_item_id(v):
-            return {"type": "wikibase-entityid", "value": {"entity-type": self.get_entity_type(v), "id": v.upper()}}
+            return {"type": "wikibase-entityid", "value": v.upper()}
         return None
 
     def parse_value_string(self, v):
