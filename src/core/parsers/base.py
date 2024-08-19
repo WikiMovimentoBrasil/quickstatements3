@@ -123,7 +123,7 @@ class BaseParser(object):
 
     def parse_value_somevalue_novalue(self, v):
         """
-        Returns quantity data if v matches somevalue or novalue 
+        Returns somevalue data if v matches somevalue or novalue 
         Returns None otherwise
         """
         if v in ["somevalue", "novalue"]:
@@ -132,7 +132,7 @@ class BaseParser(object):
 
     def parse_value_item(self, v): 
         """
-        Returns quantity data if v matches a valid item id:
+        Returns ITEM data if v matches a valid item id:
 
         Q1234
         M1234
@@ -147,7 +147,7 @@ class BaseParser(object):
 
     def parse_value_string(self, v):
         """
-        Returns quantity data if v matches a text value, that must be in double quotes:
+        Returns string data if v matches a text value, that must be in double quotes:
 
         "Some text"
         "Algum texto"
@@ -161,7 +161,7 @@ class BaseParser(object):
 
     def parse_value_monolingualtext(self, v):
         """
-        Returns quantity data if v matches a monolingual text value:
+        Returns monolingualtext data if v matches a monolingual text value:
 
         en:"Some text"
         pt:"Algum texto"
@@ -181,7 +181,7 @@ class BaseParser(object):
 
     def parse_value_url(self, v):
         """
-        Returns quantity data if v matches a monolingual text value:
+        Returns url data if v matches a monolingual text value:
 
         en:"Some text"
         pt:"Algum texto"
@@ -198,10 +198,9 @@ class BaseParser(object):
 
     def parse_value_commons_media_file(self, v):
         """
-        Returns quantity data if v matches a monolingual text value:
+        Returns commons media data if v matches a monolingual text value:
 
-        en:"Some text"
-        pt:"Algum texto"
+        \"\"\"Some tex.jpg\"\"\"
 
         Returns None otherwise
         """
@@ -215,10 +214,9 @@ class BaseParser(object):
 
     def parse_value_external_id(self, v):
         """
-        Returns quantity data if v matches a monolingual text value:
+        Returns external-id data if v matches a monolingual text value:
 
-        en:"Some text"
-        pt:"Algum texto"
+        \"\"\"myid\"\"\"
 
         Returns None otherwise
         """
