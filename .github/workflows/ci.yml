@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  SECRET_KEY: dummysecretkey123
+  DJANGO_SECRET_KEY: dummysecretkey123
   OAUTH_CLIENT_ID: dummyoauthclientid
   OAUTH_CLIENT_SECRET: dummyoauthclientsecret
 
