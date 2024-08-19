@@ -176,7 +176,40 @@ class BatchCommand(models.Model):
 
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
-        
+
+    def run(self):
+        """
+        Sends the command to the Wikidata API. This method should not fail.
+        """
+        # Ignore when not INITIAL
+        if self.status != BatchCommand.STATUS_INITIAL:
+            return
+
+        self._update_status_to_running()
+
+        try:
+            self._send_to_api()
+            self._update_status_to_done()
+        except Exception as e:
+            print(e)
+            self._update_status_to_error()
+
+    def _send_to_api(self):
+        from api.commands import ApiCommandBuilder
+        ApiCommandBuilder(self).build_and_send()
+
+    def _update_status_to_running(self):
+        self.status = BatchCommand.STATUS_RUNNING
+        self.save()
+
+    def _update_status_to_done(self):
+        self.status = BatchCommand.STATUS_DONE
+        self.save()
+
+    def _update_status_to_error(self):
+        self.status = BatchCommand.STATUS_ERROR
+        self.save()
+
 
     class Meta:
         verbose_name = _("Batch Command")
