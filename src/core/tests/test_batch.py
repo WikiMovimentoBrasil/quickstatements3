@@ -3,8 +3,9 @@ from django.test import TestCase
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
+from core.parsers.csv import CSVCommandParser
 
-class TestBatch(TestCase):
+class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
         v1 = V1CommandParser()
         self.assertFalse(Batch.objects.count())
@@ -20,6 +21,255 @@ class TestBatch(TestCase):
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
         bc3 = BatchCommand.objects.get(batch=batch, index=2)
         self.assertEqual(bc3.raw, "Q222\tP4\t9~0.1")
-        
 
+
+class TestCSVBatch(TestCase):
+    def test_create_property(self):
+        COMMAND = """qid,Len,Den,P31
+,Regina Phalange,fictional character,Q95074"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch CREATE", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch CREATE") 
+        self.assertEqual(BatchCommand.objects.count(), 4)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 4)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, {"action": "create", "type": "item"})
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, {"action": "add", "what": "label", "item": "LAST", "language": "en", "value": {'type': 'string', 'value': 'Regina Phalange'}})
+        bc3 = BatchCommand.objects.get(batch=batch, index=2)
+        self.assertEqual(bc3.json, {"action": "add", "what": "description", "item": "LAST", "language": "en", "value": {'type': 'string', 'value': 'fictional character'}})
+        bc4 = BatchCommand.objects.get(batch=batch, index=3)
+        self.assertEqual(bc4.json, {"action": "add", "what": "statement", "entity": {"type": "item", "id": "LAST"}, "property": "P31", "value": {'type': 'wikibase-entityid', 'value': {'entity-type': 'item', 'id': 'Q95074'}}})
+
+    def test_add_and_remove_property(self):
+        COMMAND = """qid,P31,-P31
+Q4115189,Q5,Q5"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch CREATE REMOVE", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch CREATE REMOVE") 
+        self.assertEqual(BatchCommand.objects.count(), 2)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(),2)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, 
+            {
+                    'action': 'add',
+                    'entity': {'id': 'Q4115189', 'type': 'item'},
+                    'property': 'P31',
+                    'value': {'type': 'wikibase-entityid',
+                             'value': {'entity-type': 'item', 'id': 'Q5'}},
+                    'what': 'statement'
+            }
+        )
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, 
+            {
+                    'action': 'remove',
+                    'entity': {'id': 'Q4115189', 'type': 'item'},
+                    'property': 'P31',
+                    'value': {'type': 'wikibase-entityid',
+                             'value': {'entity-type': 'item', 'id': 'Q5'}},
+                    'what': 'statement'
+            }
+        )
+
+    def test_add_property(self):
+        COMMAND = """qid,P369
+Q4115189,Q5
+Q4115189,somevalue
+Q4115189,novalue
+L123,Q5
+L123-S1,Q5
+L123-F1,Q5"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch 1", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch 1") 
+        self.assertEqual(BatchCommand.objects.count(), 6)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 6)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, 
+            {
+                'action': 'add',
+                'entity': {'id': 'Q4115189', 'type': 'item'},
+                'property': 'P369',
+                'value': {'type': 'wikibase-entityid',
+                         'value': {'entity-type': 'item', 'id': 'Q5'}},
+                'what': 'statement'
+            }
+        )
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, 
+            {
+                'action': 'add',
+                'entity': {'id': 'Q4115189', 'type': 'item'},
+                'property': 'P369',
+                'value': {'type': 'somevalue', 'value': 'somevalue'},
+                'what': 'statement'
+            }
+        )
+        bc3 = BatchCommand.objects.get(batch=batch, index=2)
+        self.assertEqual(bc3.json, 
+            {
+                'action': 'add',
+                'entity': {'id': 'Q4115189', 'type': 'item'},
+                'property': 'P369',
+                'value': {'type': 'novalue', 'value': 'novalue'},
+                'what': 'statement'
+            }
+        )
+        bc4 = BatchCommand.objects.get(batch=batch, index=3)
+        self.assertEqual(bc4.json, 
+            {
+                'action': 'add',
+                'entity': {'id': 'L123', 'type': 'lexeme'},
+                'property': 'P369',
+                'value': {'type': 'wikibase-entityid',
+                             'value': {'entity-type': 'item', 'id': 'Q5'}},
+                'what': 'statement'
+            }
+        )
+        bc5 = BatchCommand.objects.get(batch=batch, index=4)
+        self.assertEqual(bc5.json, 
+            {
+                    'action': 'add',
+                    'entity': {'id': 'L123-S1', 'type': 'sense'},
+                    'property': 'P369',
+                    'value': {'type': 'wikibase-entityid',
+                             'value': {'entity-type': 'item', 'id': 'Q5'}},
+                    'what': 'statement'
+            }
+        )
+        bc6 = BatchCommand.objects.get(batch=batch, index=5)
+        self.assertEqual(bc6.json, 
+            {
+                    'action': 'add',
+                    'entity': {'id': 'L123-F1', 'type': 'form'},
+                    'property': 'P369',
+                    'value': {'type': 'wikibase-entityid',
+                             'value': {'entity-type': 'item', 'id': 'Q5'}},
+                    'what': 'statement'
+            }
+        )
+        
+    def test_add_label(self):
+        COMMAND = """qid,Len
+Q4115189,Sandbox
+Q4115189,"Patterns, Predictors, and Outcome"
+"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch LABEL", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch LABEL") 
+        self.assertEqual(BatchCommand.objects.count(), 2)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 2)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, 
+            {
+                'action': 'add',
+                'item': 'Q4115189',
+                'value': {'type': 'string', 'value': 'Sandbox'},
+                'what': 'label',
+                'language': "en"
+            }
+        )
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, 
+            {
+                'action': 'add',
+                'item': 'Q4115189',
+                'value': {'type': 'string', 'value': 'Patterns, Predictors, and Outcome'},
+                'what': 'label',
+                'language': "en"
+            }
+        )
+
+    def test_add_alias(self):
+        COMMAND = """qid,Apt
+Q411518,Sandbox 3
+Q411518,"Patterns, Predictors, and Outcome and Questions"
+"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch ALIAS", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch ALIAS") 
+        self.assertEqual(BatchCommand.objects.count(), 2)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 2)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, 
+            {
+                'action': 'add',
+                'item': 'Q411518',
+                'value': {'type': 'string', 'value': 'Sandbox 3'},
+                'what': 'alias',
+                'language': "pt"
+            }
+        )
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, 
+            {
+                'action': 'add',
+                'item': 'Q411518',
+                'value': {'type': 'string', 'value': 'Patterns, Predictors, and Outcome and Questions'},
+                'what': 'alias',
+                'language': "pt"
+            }
+        )
+
+    def test_add_description(self):
+        COMMAND = """qid,Dpt
+Q411518,Sandbox Description
+Q411518,"Patterns, Predictors, and Outcome and Descriptions"
+"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch DESCRIPTION", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch DESCRIPTION") 
+        self.assertEqual(BatchCommand.objects.count(), 2)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 2)
+        bc1 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json, 
+            {
+                'action': 'add',
+                'item': 'Q411518',
+                'value': {'type': 'string', 'value': 'Sandbox Description'},
+                'what': 'description',
+                'language': "pt"
+            }
+        )
+        bc2 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc2.json, 
+            {
+                'action': 'add',
+                'item': 'Q411518',
+                'value': {'type': 'string', 'value': 'Patterns, Predictors, and Outcome and Descriptions'},
+                'what': 'description',
+                'language': "pt"
+            }
+        )
 
