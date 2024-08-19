@@ -1,10 +1,14 @@
+import os
 import requests
 
 
 class Client:
     BASE_URL = "https://www.mediawiki.org/w/rest.php/"
     ENDPOINT_PROFILE = f"{BASE_URL}oauth2/resource/profile"
-    WIKIDATA_URL = "https://www.wikidata.org/w/rest.php/wikibase/v0"
+    WIKIBASE_URL = os.getenv(
+        "WIKIBASE_URL",
+        "https://www.wikidata.org/w/rest.php/wikibase/v0",
+    )
 
     def __init__(self, token):
         self.token = token
@@ -39,7 +43,7 @@ class Client:
     def wikidata_post(self, endpoint, body):
         print(f"Sending request at {endpoint} with body {body}")
         res = requests.post(
-            f"{self.WIKIDATA_URL}{endpoint}",
+            f"{self.WIKIBASE_URL}{endpoint}",
             headers=self.headers(),
             json=body,
         )
