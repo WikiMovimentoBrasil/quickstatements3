@@ -110,7 +110,7 @@ class TestV1BatchCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
                 "what": "statement"
             },
         )
@@ -126,7 +126,7 @@ class TestV1BatchCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
                 "what": "statement"
             },
         )
@@ -147,6 +147,7 @@ class TestV1BatchCommand(TestCase):
                         "amount": "9",
                         "upperBound": 9.1,
                         "lowerBound": 8.9,
+                        "unit": "1",
                     },
                 },
                 "what": "statement"
@@ -182,7 +183,7 @@ class TestV1BatchCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
                 "what": "statement"
             },
         )
@@ -198,7 +199,7 @@ class TestV1BatchCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
                 "what": "statement"
             },
         )
@@ -220,6 +221,7 @@ class TestV1BatchCommand(TestCase):
                         "amount": "9",
                         "upperBound": 9.1,
                         "lowerBound": 8.9,
+                        "unit": "1",
                     },
                 },
                 "what": "statement"

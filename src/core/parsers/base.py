@@ -201,10 +201,12 @@ class BaseParser(object):
         """
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
+            unit = quantity_match.group(4)
             return {
                 "type": "quantity",
                 "value": {
                     "amount": quantity_match.group(1),
+                    "unit": unit if unit else "1",
                 },
             }
 
@@ -214,12 +216,14 @@ class BaseParser(object):
         if quantity_error_match:
             value = float(quantity_error_match.group(1))
             error = float(quantity_error_match.group(3))
+            unit = quantity_error_match.group(6)
             return {
                 "type": "quantity",
                 "value": {
                     "amount": quantity_error_match.group(1),
                     "upperBound": value + error,
                     "lowerBound": value - error,
+                    "unit": unit if unit else "1",
                 },
             }
         return None
