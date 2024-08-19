@@ -1,5 +1,3 @@
-import time
-
 from django.core.management.base import BaseCommand
 from core.models import BatchCommand
 
@@ -21,6 +19,7 @@ class Command(BaseCommand):
         return (
             BatchCommand.objects.select_for_update()
             .filter(status=BatchCommand.STATUS_INITIAL)
+            .order_by("id")
             .first()
         )
 
