@@ -263,7 +263,7 @@ class BaseParser(object):
 
     def parse_value_location(self, v):
         """
-        Returns quantity data if v matches @LAT/LON
+        Returns geolocation data if v matches @LAT/LON
 
         @43.26193/10.92708
 
