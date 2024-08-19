@@ -11,35 +11,6 @@ from core.models import BatchCommand
 
 class CSVCommandParser(BaseParser):
 
-    #         sources = []
-    #         qualifiers = []
-
-    #         # ITERATE OVER qualifiers or sources (key, value) pairs
-    #         index = 3
-    #         while index + 1 < llen:
-    #             key = elements[index].strip()
-    #             value = self.parse_value(elements[index + 1].strip())
-    #             if key[0] == "P":
-    #                 if not self.is_valid_property_id(key):
-    #                     raise ParserException(f"Invalid qualifier property {key}")
-    #                 qualifiers.append({"property": key, "value": value})
-    #             else:
-    #                 new_source_block = False
-    #                 if key.startswith("!S"):
-    #                     new_source_block = False
-    #                     key = key[1:]
-    #                 if not self.is_valid_source_id(key):
-    #                     raise ParserException(f"Invalid source {key}")
-    #                 sources.append({"source": key, "value": value})
-    #             index += 2
-
-    #         if sources:
-    #             data["sources"] = sources
-    #         if qualifiers:
-    #             data["qualifiers"] = qualifiers
-
-    #     return data
-
     def parse_line(self, row, header):
         commands = []
         current_property = None
