@@ -49,19 +49,9 @@ class AddStatement(Utilities):
 
         j = self.command.json
         self.item_id = j["entity"]["id"]
-
-        value_type = j["value"]["type"]
-        value_value = j["value"]["value"]
-
-        if value_type == "wikibase-entityid":
-            self.value = value_value["id"]
-        elif value_type == "quantity":
-            # TODO: this is not working... example with: Q4115189|P1104|12
-            self.value = int(value_value["amount"])
-        else:
-            raise ValueError("Not implemented.")
-
         self.property_id = j["property"]
+
+        self.value = self.command.value
 
     def body(self):
         return {
