@@ -222,10 +222,8 @@ class BaseParser(object):
 
         Returns None otherwise
         """
-        print(v)
         id_match = re.match(r'^"""(.*)"""$', v)
         if id_match:
-            print(id_match.group(1))
             return {
                 "type": "external-id",
                 "value": id_match.group(1)
@@ -330,8 +328,8 @@ class BaseParser(object):
             self.parse_value_url,
             self.parse_value_commons_media_file,
             self.parse_value_external_id,
-            self.parse_value_string,
             self.parse_value_monolingualtext,
+            self.parse_value_string,
             self.parse_value_time,
             self.parse_value_location,
             self.parser_value_quantity,
