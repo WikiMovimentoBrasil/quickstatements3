@@ -13,6 +13,9 @@ class Client:
     def __init__(self, token):
         self.token = token
 
+    def __str__(self):
+        return "API Client with token [redacted]"
+
     @staticmethod
     def from_token(token):
         return Client(token)
@@ -40,10 +43,32 @@ class Client:
                 response,
             )
 
+    def full_wikibase_url(self, endpoint):
+        return f"{self.WIKIBASE_URL}{endpoint}"
+
+    def get_property_data_type(self, property_id):
+        """
+        Returns the expected data type of the property.
+
+        Returns the data type as a string.
+        """
+        endpoint = f"/entities/properties/{property_id}"
+        url = self.full_wikibase_url(endpoint)
+
+        # TODO: add caching
+        res = requests.get(url, headers=self.headers()).json()
+
+        try:
+            data_type = res["data_type"]
+            return data_type
+        except KeyError:
+            raise ValueError("The property does not exist or does not have a data type")
+
     def wikidata_post(self, endpoint, body):
         print(f"Sending request at {endpoint} with body {body}")
+        url = self.full_wikibase_url(endpoint)
         res = requests.post(
-            f"{self.WIKIBASE_URL}{endpoint}",
+            url,
             headers=self.headers(),
             json=body,
         )

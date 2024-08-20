@@ -51,7 +51,23 @@ class AddStatement(Utilities):
         self.item_id = j["entity"]["id"]
         self.property_id = j["property"]
 
-        self.value = self.command.value
+        value = j["value"]
+        self.data_type = value["type"]
+        self.value = value["value"]
+
+        self.verify_data_type()
+
+    def verify_data_type(self):
+        client = self.client()
+        needed_data_type = client.get_property_data_type(self.property_id)
+
+        if needed_data_type != self.data_type:
+            raise ValueError(
+                (
+                    f"Invalid data type for the property {self.property_id}: "
+                    f"{self.data_type} was provided but it needs {needed_data_type}."
+                )
+            )
 
     def body(self):
         return {
