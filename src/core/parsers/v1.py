@@ -2,6 +2,8 @@ import re
 
 from .base import BaseParser
 from .base import ParserException
+from core.models import Batch
+from core.models import BatchCommand
 
 
 class V1CommandParser(BaseParser):
@@ -115,9 +117,8 @@ class V1CommandParser(BaseParser):
             raw_command = m.group(1)
         return raw_command, comment
 
-    def parse(self, raw_command):
-        raw_command, comment = self.parse_comment(raw_command)        
-
+    def parse_command(self, raw_command):
+        raw_command, comment = self.parse_comment(raw_command)
         elements = raw_command.split("\t")
         if len(elements) == 0:
             raise ParserException("Empty command statement")
@@ -135,3 +136,32 @@ class V1CommandParser(BaseParser):
             data["summary"] = comment
 
         return data
+
+    def parse(self, batch_name, batch_owner, raw_commands):
+        batch = Batch.objects.create(name=batch_name, user=batch_owner)
+        batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
+
+        for index, raw_command in enumerate(batch_commands.split("\n")):
+            try:
+                status = BatchCommand.STATUS_INITIAL
+                command = self.parse_command(raw_command)
+                if command["action"] == "add":
+                    action = BatchCommand.ACTION_ADD
+                elif command["action"] == "remove":
+                    action = BatchCommand.ACTION_REMOVE
+                elif command["action"] == "create":
+                    action = BatchCommand.ACTION_CREATE
+                else:
+                    action = BatchCommand.ACTION_MERGE
+                message = None
+            except ParserException as e:
+                status = BatchCommand.STATUS_ERROR
+                command = {}
+                message = e.message
+                action = BatchCommand.ACTION_CREATE
+
+            BatchCommand.objects.create(
+                batch=batch, index=index, action=action, json=command, raw=raw_command, status=status, message=message
+            )
+
+        return batch

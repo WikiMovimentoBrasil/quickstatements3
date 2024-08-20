@@ -2,14 +2,14 @@ from django.test import TestCase
 
 from core.models import Batch
 from core.models import BatchCommand
+from core.parsers.v1 import V1CommandParser
 
 
-class TestV1BatchCommand(TestCase):
-    def setUp(self):
-        self.batch = Batch.objects.create(name="Batch", user="wikiuser")
-
+class TestBatchCommand(TestCase):
     def test_error_status(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "CREATE")
+        command = batch.batchcommand_set.first()
         command.status = BatchCommand.STATUS_ERROR
         command.save()
         self.assertTrue(command.is_error_status())
@@ -24,7 +24,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_create_command(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "CREATE")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "CREATE")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "")
         self.assertEqual(command.action, BatchCommand.ACTION_CREATE)
@@ -40,7 +42,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_merge_command(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "MERGE\tQ1\tQ2")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "MERGE\tQ1\tQ2")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "")
         self.assertEqual(command.action, BatchCommand.ACTION_MERGE)
@@ -56,7 +60,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_remove_item(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP2\tQ1")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "-Q1234\tP2\tQ1")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
@@ -72,7 +78,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_remove_time(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "-Q1234\tP1\t12")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "-Q1234\tP1\t12")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
@@ -88,7 +96,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
        
     def test_add_item(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tP2\tQ1")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)
@@ -104,7 +114,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_add_alias(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tApt\t\"Texto brasileiro\"")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tApt\t\"Texto brasileiro\"")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)
@@ -120,7 +132,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_add_description(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tDen\t\"Item description\"")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tDen\t\"Item description\"")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)
@@ -136,7 +150,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_add_label(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tLfr\t\"Note en français\"")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tLfr\t\"Note en français\"")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)
@@ -152,7 +168,9 @@ class TestV1BatchCommand(TestCase):
         self.assertFalse(command.is_error_status())
 
     def test_add_site(self):
-        command = BatchCommand.objects.create_command_from_v1(self.batch, 0, "Q1234\tSmysite\t\"Site mysite\"")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tSmysite\t\"Site mysite\"")
+        command = batch.batchcommand_set.first()
         self.assertEqual(command.status_info, "INITIAL")
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)

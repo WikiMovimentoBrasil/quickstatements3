@@ -168,6 +168,6 @@ class OAuthRedirect(TestCase):
 
         self.assertRedirect(res)
         location = res.headers["Location"]
-
+        self.assertIsNotNone(os.getenv("OAUTH_CLIENT_ID"))
         self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
         self.assertIn("mediawiki.org/w/rest.php/oauth2/authorize", location)
