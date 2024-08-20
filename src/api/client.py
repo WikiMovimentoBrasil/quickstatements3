@@ -26,14 +26,22 @@ class Client:
             "Content-Type": "application/json",
         }
 
-    def request_get(self, endpoint):
-        return requests.get(
-            endpoint,
-            headers=self.headers(),
-        ).json()
+    def get(self, url):
+        # TODO: better logging
+        print(f"Sending GET request at {url}")
+        return requests.get(url, headers=self.headers())
 
+    def post(self, url, body):
+        print(f"POST request at {url} | sending with body {body}")
+        res = requests.post(url, json=body, headers=self.headers())
+        print(f"POST request at {url} | response: {res.json()}")
+        return res
+
+    # ---
+    # Auth
+    # ---
     def get_username(self):
-        response = self.request_get(self.ENDPOINT_PROFILE)
+        response = self.get(self.ENDPOINT_PROFILE).json()
         try:
             username = response["username"]
             return username
@@ -43,6 +51,9 @@ class Client:
                 response,
             )
 
+    # ---
+    # Wikibase GET/reading
+    # ---
     def full_wikibase_url(self, endpoint):
         return f"{self.WIKIBASE_URL}{endpoint}"
 
@@ -56,7 +67,7 @@ class Client:
         url = self.full_wikibase_url(endpoint)
 
         # TODO: add caching
-        res = requests.get(url, headers=self.headers()).json()
+        res = self.get(url).json()
 
         try:
             data_type = res["data_type"]
@@ -64,17 +75,12 @@ class Client:
         except KeyError:
             raise ValueError("The property does not exist or does not have a data type")
 
-    def wikidata_post(self, endpoint, body):
-        print(f"Sending request at {endpoint} with body {body}")
-        url = self.full_wikibase_url(endpoint)
-        res = requests.post(
-            url,
-            headers=self.headers(),
-            json=body,
-        )
-        print(f"Response content: {res.json()}")
-        res.raise_for_status()
-
-    def wikidata_statement_post(self, item_id, body):
+    # ---
+    # Wikibase POST/editing
+    # ---
+    def add_statement(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/statements"
-        return self.wikidata_post(endpoint, body)
+        url = self.full_wikibase_url(endpoint)
+        res = self.post(url, body)
+        res.raise_for_status()
+        return res.json()

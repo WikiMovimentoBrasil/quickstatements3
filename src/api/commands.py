@@ -85,4 +85,4 @@ class AddStatement(Utilities):
     def send(self):
         full_body = self.full_body()
         client = self.client()
-        return client.wikidata_statement_post(self.item_id, full_body)
+        return client.add_statement(self.item_id, full_body)
