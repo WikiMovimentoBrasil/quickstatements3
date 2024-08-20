@@ -290,11 +290,12 @@ class BaseParser(object):
         """
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
+            amount = Decimal(quantity_match.group(1))
             unit = quantity_match.group(4)
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": quantity_match.group(1),
+                    "amount": str(amount),
                     "unit": unit if unit else "1",
 
                 },

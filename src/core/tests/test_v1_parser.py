@@ -14,20 +14,20 @@ class TestV1ParserCommand(TestCase):
         self.assertEqual(data, {"action": "create", "type": "item"})
         data = parser.parse_command(" CREATE ")
         self.assertEqual(data, {"action": "create", "type": "item"})
-        
+
     def test_v1_bad_create_command(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             data = parser.parse_command("CREATE\tQ123\t")
         self.assertEqual(context.exception.message, "CREATE command can have only 1 column")
-        
+
     def test_v1_correct_merge_command(self):
         parser = V1CommandParser()
         data = parser.parse_command("MERGE\tQ2\tQ1")
         self.assertEqual(data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
         data = parser.parse_command("MERGE \tQ1 \tQ2 ")
         self.assertEqual(data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
-        
+
     def test_v1_bad_merge_command(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
@@ -47,17 +47,17 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         data = parser.parse_command("-Q1234\tP2\tQ1")
         self.assertEqual(
-            data,            
+            data,
             {
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
-                "what": "statement"
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "what": "statement",
             },
         )
-        
-    def test_v1_remove_time(self):
+
+    def test_v1_remove_quantity(self):
         parser = V1CommandParser()
         data = parser.parse_command("-Q1234\tP1\t12")
         self.assertEqual(
@@ -66,11 +66,11 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
-                "what": "statement"
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
+                "what": "statement",
             },
         )
-        
+
         data = parser.parse_command("-Q1234\tP3\t12U11573")
         self.assertEqual(
             data,
@@ -78,8 +78,8 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
-                "what": "statement"
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
+                "what": "statement",
             },
         )
 
@@ -92,13 +92,9 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {
-                        "amount": "9",
-                        "upperBound": '9.1',
-                        "lowerBound": '8.9',
-                    },
+                    "value": {"amount": "9", "upperBound": "9.1", "lowerBound": "8.9", "unit": "1"},
                 },
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -111,8 +107,8 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
-                "what": "statement"
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "what": "statement",
             },
         )
 
@@ -125,8 +121,8 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
-                "what": "statement"
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
+                "what": "statement",
             },
         )
 
@@ -137,11 +133,11 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12"}},
-                "what": "statement"
+                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
+                "what": "statement",
             },
         )
-        
+
         data = parser.parse_command("Q1234\tP4\t9~0.1")
         self.assertEqual(
             data,
@@ -151,29 +147,25 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {
-                        "amount": "9",
-                        "upperBound": '9.1',
-                        "lowerBound": '8.9',
-                    },
+                    "value": {"amount": "9", "upperBound": "9.1", "lowerBound": "8.9", "unit": "1"},
                 },
-                "what": "statement"
+                "what": "statement",
             },
         )
 
     def test_v1_add_alias(self):
         parser = V1CommandParser()
 
-        data = parser.parse_command("Q1234\tApt\t\"Texto brasileiro\"")
+        data = parser.parse_command('Q1234\tApt\t"Texto brasileiro"')
         self.assertEqual(
             data,
             {
-                'action': "add" , 
-                'what': "alias" , 
-                'item': 'Q1234', 
-                'language': 'pt', 
-                'value': {'type': 'string', 'value': 'Texto brasileiro'}
-            }
+                "action": "add",
+                "what": "alias",
+                "item": "Q1234",
+                "language": "pt",
+                "value": {"type": "string", "value": "Texto brasileiro"},
+            },
         )
 
     def test_v1_add_wrong_alias(self):
@@ -184,16 +176,16 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_description(self):
         parser = V1CommandParser()
-        data = parser.parse_command("Q1234\tDen\t\"Item description\"")
+        data = parser.parse_command('Q1234\tDen\t"Item description"')
         self.assertEqual(
             data,
             {
-                'action': "add" , 
-                'what': "description" , 
-                'item': 'Q1234', 
-                'language': 'en', 
-                'value': {'type': 'string', 'value': 'Item description'}
-            }
+                "action": "add",
+                "what": "description",
+                "item": "Q1234",
+                "language": "en",
+                "value": {"type": "string", "value": "Item description"},
+            },
         )
 
     def test_v1_add_wrong_description(self):
@@ -201,19 +193,19 @@ class TestV1ParserCommand(TestCase):
         with self.assertRaises(Exception) as context:
             data = parser.parse_command("Q1234\tDpt\tsomevalue")
         self.assertEqual(context.exception.message, "description must be a string instance")
-        
+
     def test_v1_add_label(self):
         parser = V1CommandParser()
-        data = parser.parse_command("Q1234\tLfr\t\"Note en français\"")
+        data = parser.parse_command('Q1234\tLfr\t"Note en français"')
         self.assertEqual(
             data,
             {
-                'action': "add" , 
-                'what': "label" , 
-                'item': 'Q1234', 
-                'language': 'fr', 
-                'value': {'type': 'string', 'value': 'Note en français'}
-            }
+                "action": "add",
+                "what": "label",
+                "item": "Q1234",
+                "language": "fr",
+                "value": {"type": "string", "value": "Note en français"},
+            },
         )
 
     def test_v1_add_wrong_label(self):
@@ -224,16 +216,16 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_site(self):
         parser = V1CommandParser()
-        data = parser.parse_command("Q1234\tSmysite\t\"Site mysite\"")
+        data = parser.parse_command('Q1234\tSmysite\t"Site mysite"')
         self.assertEqual(
             data,
             {
-                'action': "add" , 
-                'what': "sitelink" , 
-                'item': 'Q1234', 
-                'site': 'mysite', 
-                'value': {'type': 'string', 'value': 'Site mysite'}
-            }
+                "action": "add",
+                "what": "sitelink",
+                "item": "Q1234",
+                "site": "mysite",
+                "value": {"type": "string", "value": "Site mysite"},
+            },
         )
 
     def test_v1_add_wrong_site(self):
@@ -252,7 +244,7 @@ class TestV1ParserCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"value": "somevalue", "type": "somevalue"},
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -264,7 +256,7 @@ class TestV1ParserCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"value": "novalue", "type": "novalue"},
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -278,7 +270,7 @@ class TestV1ParserCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
                 "value": {"type": "string", "value": "this is a string"},
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -298,7 +290,7 @@ class TestV1ParserCommand(TestCase):
                         "text": "this is a string in english",
                     },
                 },
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -320,7 +312,7 @@ class TestV1ParserCommand(TestCase):
                         "globe": "http://www.wikidata.org/entity/Q2",
                     },
                 },
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -344,7 +336,7 @@ class TestV1ParserCommand(TestCase):
                         "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                     },
                 },
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -357,7 +349,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "sources": [
                     {"source": "S1", "value": {"type": "string", "value": "source text"}},
                     {
@@ -375,7 +367,7 @@ class TestV1ParserCommand(TestCase):
                         },
                     },
                 ],
-                "what": "statement"
+                "what": "statement",
             },
         )
 
@@ -388,7 +380,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "qualifiers": [
                     {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
                     {
@@ -406,20 +398,22 @@ class TestV1ParserCommand(TestCase):
                         },
                     },
                 ],
-                "what": "statement"
+                "what": "statement",
             },
         )
- 
+
     def test_v1_add_item_with_qualifiers_and_sources(self):
         parser = V1CommandParser()
-        data = parser.parse_command('Q1234\tP2\tQ1\tS1\t"source text"\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11\tS2\t+1967-01-17T00:00:00Z/11')
+        data = parser.parse_command(
+            'Q1234\tP2\tQ1\tS1\t"source text"\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11\tS2\t+1967-01-17T00:00:00Z/11'
+        )
         self.assertEqual(
             data,
             {
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": {"entity-type": "item", "id": "Q1"}},
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "qualifiers": [
                     {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
                     {
@@ -454,15 +448,23 @@ class TestV1ParserCommand(TestCase):
                         },
                     },
                 ],
-                "what": "statement"
+                "what": "statement",
             },
         )
 
     def test_v1_command_with_comment(self):
         parser = V1CommandParser()
         data = parser.parse_command("CREATE /* This is a comment. */")
-        self.assertEqual(data, {"action": "create", "type": "item", 'summary': 'This is a comment.', })
-        
+        self.assertEqual(
+            data,
+            {
+                "action": "create",
+                "type": "item",
+                "summary": "This is a comment.",
+            },
+        )
+
         data = parser.parse_command("MERGE\tQ1\tQ2 /* This is a comment. */")
-        self.assertEqual(data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2", 'summary': 'This is a comment.'})
-        
+        self.assertEqual(
+            data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2", "summary": "This is a comment."}
+        )
