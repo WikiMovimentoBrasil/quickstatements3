@@ -6,31 +6,46 @@ from core.parsers.csv import CSVCommandParser
 class TestCSVParser(TestCase):
     def test_parse_header(self):
         parser = CSVCommandParser()
-        self.assertEqual(parser.parse_header(["qid", "P31", "-P31"]), ["qid", "P31", "-P31"])
-        self.assertEqual(parser.parse_header(["qid", "Lpt"]), ["qid", "Lpt"])
-        self.assertEqual(parser.parse_header(["qid", "Lpt", "#"]), ["qid", "Lpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Lpt", "#"]), ["qid", "-Lpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Dpt"]), ["qid", "Dpt"])
-        self.assertEqual(parser.parse_header(["qid", "Dpt", "#"]), ["qid", "Dpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Dpt", "#"]), ["qid", "-Dpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Apt"]), ["qid", "Apt"])
-        self.assertEqual(parser.parse_header(["qid", "Apt", "#"]), ["qid", "Apt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Apt", "#"]), ["qid", "-Apt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Swiki"]), ["qid", "Swiki"])
-        self.assertEqual(parser.parse_header(["qid", "Swiki", "#"]), ["qid", "Swiki", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Swiki", "#"]), ["qid", "-Swiki", "#"])
+        self.assertTrue(parser.check_header(["qid", "P31", "-P31"]))
+        self.assertTrue(parser.check_header(["qid", "Lpt"]))
+        self.assertTrue(parser.check_header(["qid", "Lpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Lpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Dpt"]))
+        self.assertTrue(parser.check_header(["qid", "Dpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Dpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Apt"]))
+        self.assertTrue(parser.check_header(["qid", "Apt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Apt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Swiki"]))
+        self.assertTrue(parser.check_header(["qid", "Swiki", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Swiki", "#"]))
 
     def test_parse_header_no_qid(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
-            parser.parse_header(["", "qid", "P31", "-P31"])
+            parser.check_header(["", "qid", "P31", "-P31"])
         self.assertEqual(context.exception.message, "CSV header first element must be qid")
 
     def test_parse_header_comment_before_property(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
-            parser.parse_header(["qid", "#", "P31"])
+            parser.check_header(["qid", "#", "P31"])
         self.assertEqual(context.exception.message, "A valid property must precede a comment")
+
+    def test_parse_header_qal_before_property(self):
+        parser = CSVCommandParser()
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "qal", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a qualifier")
+
+    def test_parse_header_source_before_property(self):
+        parser = CSVCommandParser()
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "S1234", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a source")
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "s1234", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a source")
 
     def test_parse_item(self):
         parser = CSVCommandParser()

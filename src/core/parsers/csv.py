@@ -84,26 +84,33 @@ class CSVCommandParser(BaseParser):
                 commands.append(data)
         return commands
 
-    def parse_header(self, header):
+    def check_header(self, header):
         """
         Validates header
         """
         has_property_alias_description_label_sitelink = False
-        parsed_header = []
         for index, cell in enumerate(header):
             if index == 0:
                 if cell != "qid":
                     raise ParserException(f"CSV header first element must be qid")
-            elif cell == "#":
-                if not has_property_alias_description_label_sitelink:
+                continue
+
+            # Is it a PROPERTY?
+            clean_cell = cell[1:] if cell[0] == "-" else cell
+            _type = self.get_entity_type(clean_cell)
+            if _type in ["alias", "description", "label", "sitelink", "property"]:
+                has_property_alias_description_label_sitelink = True
+                continue    
+
+            # Not a property...lets check if we already have one
+            if not has_property_alias_description_label_sitelink:
+                if clean_cell == "#":
                     raise ParserException(f"A valid property must precede a comment")
-            else:
-                clean_cell = cell[1:] if cell[0] == "-" else cell
-                _type = self.get_entity_type(clean_cell)
-                if not has_property_alias_description_label_sitelink:
-                    has_property_alias_description_label_sitelink = _type in ["alias", "description", "label", "sitelink", "property"]
-            parsed_header.append(cell)
-        return parsed_header
+                elif clean_cell.startswith("qal"):
+                    raise ParserException(f"A valid property must precede a qualifier")
+                elif (clean_cell[0] == "s" or clean_cell[0] == "S") and re.match("^[Ss]\\d+$", clean_cell):
+                    raise ParserException(f"A valid property must precede a source")
+        return True
 
     def parse(self, batch_name, batch_owner, raw_csv):        
         batch = Batch.objects.create(name=batch_name, user=batch_owner)
@@ -116,7 +123,8 @@ class CSVCommandParser(BaseParser):
 
         for row in reader:
             if first_line:
-                header = self.parse_header(row)
+                self.check_header(row)
+                header = row
                 first_line = False
             else:
                 commands = self.parse_line(row, header)
