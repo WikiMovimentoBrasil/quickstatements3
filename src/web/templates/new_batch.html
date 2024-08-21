@@ -4,17 +4,28 @@
 
 <h2> New batch </h2>
 
+{% if error %}
+<article class="pico-background-red-600">{{error}}</article>
+{% endif%}
+
 <form method="POST">
   {% csrf_token %}
   <fieldset>
     <label for="batch_type">Command format</label>
+    
     <select name="type" id="batch_type">
-      <option value="v1">V1</option>
-      <option value="csv">CSV</option>
+      <option value="v1" {% if type_v1 %}selected{% endif %}>V1</option>
+      <option value="csv" {% if type_csv %}selected{% endif %}>CSV</option>
     </select>
-    <input type="text" name="name" aria-label="batch name" placeholder="Custom batch name...">
+    
+    <input type="text" name="name" aria-label="batch name" 
+      placeholder="Custom batch name..." 
+      {% if name %}value="{{name}}" {% endif %}>
+    
     <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
-      style="height: 400px"></textarea>
+      style="height: 400px">
+       {% if commands %}{{commands}}{% endif %}
+      </textarea>
   </fieldset>
   <input type="submit" value="Execute" />
 </form>

@@ -1,6 +1,7 @@
 
 import re
 
+from decimal import Decimal
 
 class ParserException(Exception):
     def __init__(self, message):
@@ -57,6 +58,37 @@ class BaseParser(object):
             re.match("^Q\\d+$", value) is not None or re.match("^M\\d+$", value) is not None
         )
 
+    def is_valid_label(self, value):
+        """
+        Returns True if value is a valid label
+        Len
+        Lpt
+        """
+        return value is not None and re.match("^L[a-z]{2}$", value) is not None
+
+    def is_valid_alias(self, value):
+        """
+        Returns True if value is a valid alias
+        Aen
+        Apt
+        """
+        return value is not None and re.match("^A[a-z]{2}$", value) is not None
+
+    def is_valid_description(self, value):
+        """
+        Returns True if value is a valid description
+        Den
+        Dpt
+        """
+        return value is not None and re.match("^D[a-z]{2}$", value) is not None
+
+    def is_valid_sitelink(self, value):
+        """
+        Returns True if value is a valid sitelink
+        Swiki
+        """
+        return value is not None and re.match("^S[a-z]+$", value) is not None
+
     def get_entity_type(self, entity):
         """
         Detects the entity type based on the pattern. 
@@ -74,6 +106,14 @@ class BaseParser(object):
                 return "form"
             if self.is_valid_sense_id(entity):
                 return "sense"
+            if self.is_valid_alias(entity):
+                return "alias"
+            if self.is_valid_description(entity):
+                return "description"
+            if self.is_valid_label(entity):
+                return "label"
+            if self.is_valid_sitelink(entity):
+                return "sitelink"
         return None
 
     def convert_to_utf8(self, s):
@@ -83,7 +123,7 @@ class BaseParser(object):
 
     def parse_value_somevalue_novalue(self, v):
         """
-        Returns quantity data if v matches somevalue or novalue 
+        Returns somevalue data if v matches somevalue or novalue 
         Returns None otherwise
         """
         if v in ["somevalue", "novalue"]:
@@ -92,7 +132,7 @@ class BaseParser(object):
 
     def parse_value_item(self, v): 
         """
-        Returns quantity data if v matches a valid item id:
+        Returns ITEM data if v matches a valid item id:
 
         Q1234
         M1234
@@ -107,7 +147,7 @@ class BaseParser(object):
 
     def parse_value_string(self, v):
         """
-        Returns quantity data if v matches a text value, that must be in double quotes:
+        Returns string data if v matches a text value, that must be in double quotes:
 
         "Some text"
         "Algum texto"
@@ -121,7 +161,7 @@ class BaseParser(object):
 
     def parse_value_monolingualtext(self, v):
         """
-        Returns quantity data if v matches a monolingual text value:
+        Returns monolingualtext data if v matches a monolingual text value:
 
         en:"Some text"
         pt:"Algum texto"
@@ -136,6 +176,55 @@ class BaseParser(object):
                     "language": monolingualtext_match.group(1),
                     "text": self.convert_to_utf8(monolingualtext_match.group(2)).strip(),
                 },
+            }
+        return None
+
+    def parse_value_url(self, v):
+        """
+        Returns url data if v matches a monolingual text value:
+
+        \"\"\"https://www.google.com\"\"\"
+        \"\"\"http://www.google.com\"\"\"
+
+        Returns None otherwise
+        """
+        url_match = re.match(r'^"""(http(s)?:.*)"""$', v)
+        if url_match:
+            return {
+                "type": "url",
+                "value": url_match.group(1)
+            }
+        return None
+
+    def parse_value_commons_media_file(self, v):
+        """
+        Returns commons media data if v matches a monolingual text value:
+
+        \"\"\"Some tex.jpg\"\"\"
+
+        Returns None otherwise
+        """
+        url_match = re.match(r'^"""(.*\.(?:jpg|JPG|jpeg|JPEG|png|PNG))"""$', v)
+        if url_match:
+            return {
+                "type": "commonsMedia",
+                "value": url_match.group(1)
+            }
+        return None
+
+    def parse_value_external_id(self, v):
+        """
+        Returns external-id data if v matches a monolingual text value:
+
+        \"\"\"myid\"\"\"
+
+        Returns None otherwise
+        """
+        id_match = re.match(r'^"""(.*)"""$', v)
+        if id_match:
+            return {
+                "type": "external-id",
+                "value": id_match.group(1)
             }
         return None
 
@@ -172,7 +261,7 @@ class BaseParser(object):
 
     def parse_value_location(self, v):
         """
-        Returns quantity data if v matches @LAT/LON
+        Returns geolocation data if v matches @LAT/LON
 
         @43.26193/10.92708
 
@@ -183,9 +272,9 @@ class BaseParser(object):
             return {
                 "type": "globecoordinate",
                 "value": {
-                    "latitude": float(gps_match.group(1)),
-                    "longitude": float(gps_match.group(2)),
-                    "precision": 0.000001,
+                    "latitude": gps_match.group(1),
+                    "longitude": gps_match.group(2),
+                    "precision": "0.000001",
                     "globe": "http://www.wikidata.org/entity/Q2",
                 },
             }
@@ -201,12 +290,14 @@ class BaseParser(object):
         """
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
+            amount = Decimal(quantity_match.group(1))
             unit = quantity_match.group(4)
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": quantity_match.group(1),
+                    "amount": str(amount),
                     "unit": unit if unit else "1",
+
                 },
             }
 
@@ -214,15 +305,15 @@ class BaseParser(object):
             r"^([\+\-]{0,1}\d+(\.\d+){0,1})\s*~\s*([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v
         )
         if quantity_error_match:
-            value = float(quantity_error_match.group(1))
-            error = float(quantity_error_match.group(3))
+            value = Decimal(quantity_error_match.group(1))
+            error = Decimal(quantity_error_match.group(3))
             unit = quantity_error_match.group(6)
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": quantity_error_match.group(1),
-                    "upperBound": value + error,
-                    "lowerBound": value - error,
+                    "amount": str(value),
+                    "upperBound": str(value + error),
+                    "lowerBound": str(value - error),
                     "unit": unit if unit else "1",
                 },
             }
@@ -236,9 +327,12 @@ class BaseParser(object):
         v = v.strip()
         for fn in [
             self.parse_value_somevalue_novalue, 
-            self.parse_value_item, 
-            self.parse_value_string,
+            self.parse_value_item,
+            self.parse_value_url,
+            self.parse_value_commons_media_file,
+            self.parse_value_external_id,
             self.parse_value_monolingualtext,
+            self.parse_value_string,
             self.parse_value_time,
             self.parse_value_location,
             self.parser_value_quantity,
