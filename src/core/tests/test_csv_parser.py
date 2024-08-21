@@ -19,6 +19,8 @@ class TestCSVParser(TestCase):
         self.assertTrue(parser.check_header(["qid", "Swiki"]))
         self.assertTrue(parser.check_header(["qid", "Swiki", "#"]))
         self.assertTrue(parser.check_header(["qid", "-Swiki", "#"]))
+        self.assertTrue(parser.check_header(["qid","P31","Len","Den","P18"]))
+        self.assertTrue(parser.check_header(["qid","Len","Den","Aen","P31","-P31","P21","P735","qal1545","S248","s214","S143","Senwiki"]))
 
     def test_parse_header_no_qid(self):
         parser = CSVCommandParser()
