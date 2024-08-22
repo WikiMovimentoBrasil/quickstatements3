@@ -1,5 +1,8 @@
 import os
 import requests
+import logging
+
+logger = logging.getLogger("qsts3")
 
 
 class Client:
@@ -27,14 +30,13 @@ class Client:
         }
 
     def get(self, url):
-        # TODO: better logging
-        print(f"Sending GET request at {url}")
+        logger.debug(f"Sending GET request at {url}")
         return requests.get(url, headers=self.headers())
 
     def post(self, url, body):
-        print(f"POST request at {url} | sending with body {body}")
+        logger.debug(f"POST request at {url} | sending with body {body}")
         res = requests.post(url, json=body, headers=self.headers())
-        print(f"POST request at {url} | response: {res.json()}")
+        logger.debug(f"POST request at {url} | response: {res.json()}")
         return res
 
     # ---

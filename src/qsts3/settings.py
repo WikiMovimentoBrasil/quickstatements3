@@ -136,3 +136,28 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 APPEND_SLASH = True
 
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "%(asctime)s [%(levelname)s] %(message)s"},
+        "complete": {"format": "%(asctime)s - [%(levelname)s] %(name)s => %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "WARN",
+        },
+        "qsts3": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        }
+    },
+}
