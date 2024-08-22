@@ -349,7 +349,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "references": [
                     [
                         {"property": "P1", "value": {"type": "string", "value": "source text"}},
@@ -382,7 +382,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "references": [
                     [
                         {

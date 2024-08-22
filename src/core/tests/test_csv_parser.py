@@ -171,12 +171,12 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "Q22124656", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
+                "value": {"type": "wikibase-item", "value": "Q6581097"},
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "references": [
                     [
-                        {"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
+                        {"property": "P143", "value": {"type": "wikibase-item", "value": "Q24731821"}},
                         {
                             "property": "P813",
                             "value": {
@@ -210,7 +210,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "Q22124656", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
+                "value": {"type": "wikibase-item", "value": "Q6581097"},
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "qualifiers": [
@@ -235,7 +235,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "LAST", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-entityid", "value": "Q3305213"},
+                "value": {"type": "wikibase-item", "value": "Q3305213"},
                 "what": "statement",
             },
             {
