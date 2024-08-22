@@ -10,9 +10,9 @@ from core.models import BatchCommand
 
 
 class CSVCommandParser(BaseParser):
-
     def parse_line(self, row, header):
         commands = []
+        current_command = None
         current_property = None
         current_action = None
         current_what = None
@@ -20,68 +20,93 @@ class CSVCommandParser(BaseParser):
         entity_type = None
 
         for index, cell in enumerate(row):
-            cell = cell.strip()
-            if index == 0: # That is the QID, alway in the firs column
-                if not cell:
+            cell_value = cell.strip()
+            current_value = self.parse_value(cell_value)
+            if current_value is None:
+                current_value = {"type": "string", "value": cell_value}
+
+            header_value = header[index]  # HEADER VALUE
+
+            if index == 0:  # That is the QID, alway in the firs column
+                if not cell_value:
                     # Our qid is empty, so it means we are creating a new item
                     commands.append({"action": "create", "type": "item"})
                     qid = "LAST"
                     entity_type = self.get_entity_type(qid)
                 else:
                     # Just modifying and existing one
-                    qid = cell
+                    qid = cell_value
                     entity_type = self.get_entity_type(qid)
 
-            elif not cell:
-                continue # Empty, does nothing
+            elif not cell_value:
+                continue  # Empty, does nothing
 
-            elif header[index] == "#":
+            elif header_value == "#":
                 # Our header indicates that this column represents comments
                 # We add the cell value to the last command created
-                commands[-1]["summary"] = cell
+                current_command["summary"] = cell_value
                 continue
 
-            else:
-                _header = header[index]
+            elif header_value.startswith("qal"):
+                # Our header indicates that this column represents a qualifier
+                # We add the cell value to the last command created
+                qualifier = {"property": header_value.replace("qal", "P"), "value": current_value}
+                qualifiers = current_command.get("qualifiers", [])
+                qualifiers.append(qualifier)
+                current_command["qualifiers"] = qualifiers
+                continue
 
+            elif re.match("^[Ss]\\d+$", header_value):
+                # Our header indicates that this column represents a source
+                # We add the cell value to the last command created
+                source = {"source": header_value.upper(), "value": current_value}
+
+                if header_value[0] == "S":
+                    previous_sources = [source]
+                    sources = current_command.get("sources", [])
+                    sources.append(previous_sources)
+                    current_command["sources"] = sources
+                else:
+                    previous_sources.append(source)
+
+            else:
                 # Checking action
-                if _header[0] == "-":
+                if header_value[0] == "-":
                     action = "remove"
-                    _header = _header[1:]
+                    header_value = header_value[1:]
                 else:
                     action = "add"
-                    _header = _header
 
-                current_value = self.parse_value(cell)
-                if current_value is None:
-                    current_value = {"type": "string", "value": cell}
+                _type = self.get_entity_type(header_value)
+                if _type in ["property", "alias", "description", "label", "sitelink"]:
+                    # NEW STATEMENT STARTING...
 
-                # Is it a new property
-                if self.is_valid_property_id(_header):
-                    current_property = _header
-                    current_action = action
-                    current_what = "statement"
+                    if _type == "property":
+                        # We have a property based statement
+                        current_property = header_value
+                        current_action = action
+                        current_what = "statement"
 
-                    data = {
-                        "action": current_action,
-                        "what": current_what,
-                        "entity": {"type": entity_type, "id": qid},
-                        "property": current_property,
-                        "value": current_value,
-                    }
-                else:
-                    _type = self.get_entity_type(_header)
-                    if _type in ["alias", "description", "label", "sitelink"]:
+                        current_command = {
+                            "action": current_action,
+                            "what": current_what,
+                            "entity": {"type": entity_type, "id": qid},
+                            "property": current_property,
+                            "value": current_value,
+                        }
+                    else:
+                        # ALIAS, DESCRIPTION, SITELINK or LABEL
                         current_action = action
                         current_what = _type
-                        lang = _header[1:]
-                        data = {"action": action, "what": current_what, "item": qid, "value": current_value}
+                        lang = header_value[1:]
+                        current_command = {"action": action, "what": current_what, "item": qid, "value": current_value}
                         if current_what == "sitelink":
-                            data["site"] = lang
+                            current_command["site"] = lang
                         else:
-                            data["language"] = lang
-            
-                commands.append(data)
+                            current_command["language"] = lang
+
+                    commands.append(current_command)
+
         return commands
 
     def check_header(self, header):
@@ -100,7 +125,7 @@ class CSVCommandParser(BaseParser):
             _type = self.get_entity_type(clean_cell)
             if _type in ["alias", "description", "label", "sitelink", "property"]:
                 has_property_alias_description_label_sitelink = True
-                continue    
+                continue
 
             # Not a property...lets check if we already have one
             if not has_property_alias_description_label_sitelink:
@@ -112,13 +137,13 @@ class CSVCommandParser(BaseParser):
                     raise ParserException(f"A valid property must precede a source")
         return True
 
-    def parse(self, batch_name, batch_owner, raw_csv):        
+    def parse(self, batch_name, batch_owner, raw_csv):
         batch = Batch.objects.create(name=batch_name, user=batch_owner)
-        
-        memory_file = io.StringIO(raw_csv, newline='')
-        
+
+        memory_file = io.StringIO(raw_csv, newline="")
+
         first_line = True
-        reader = csv.reader(memory_file, delimiter=',')
+        reader = csv.reader(memory_file, delimiter=",")
         index = 0
 
         for row in reader:
@@ -140,13 +165,8 @@ class CSVCommandParser(BaseParser):
                         action = BatchCommand.ACTION_MERGE
                     message = None
 
-                    BatchCommand.objects.create(
-                        batch=batch, index=index, action=action, json=command, status=status
-                    )
+                    BatchCommand.objects.create(batch=batch, index=index, action=action, json=command, status=status)
 
                     index += 1
 
-                
         return batch
-
-               
