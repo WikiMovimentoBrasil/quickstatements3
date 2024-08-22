@@ -1,5 +1,8 @@
 import os
 import requests
+import logging
+
+logger = logging.getLogger("qsts3")
 
 
 class Client:
@@ -13,6 +16,9 @@ class Client:
     def __init__(self, token):
         self.token = token
 
+    def __str__(self):
+        return "API Client with token [redacted]"
+
     @staticmethod
     def from_token(token):
         return Client(token)
@@ -23,14 +29,21 @@ class Client:
             "Content-Type": "application/json",
         }
 
-    def request_get(self, endpoint):
-        return requests.get(
-            endpoint,
-            headers=self.headers(),
-        ).json()
+    def get(self, url):
+        logger.debug(f"Sending GET request at {url}")
+        return requests.get(url, headers=self.headers())
 
+    def post(self, url, body):
+        logger.debug(f"POST request at {url} | sending with body {body}")
+        res = requests.post(url, json=body, headers=self.headers())
+        logger.debug(f"POST request at {url} | response: {res.json()}")
+        return res
+
+    # ---
+    # Auth
+    # ---
     def get_username(self):
-        response = self.request_get(self.ENDPOINT_PROFILE)
+        response = self.get(self.ENDPOINT_PROFILE).json()
         try:
             username = response["username"]
             return username
@@ -40,16 +53,36 @@ class Client:
                 response,
             )
 
-    def wikidata_post(self, endpoint, body):
-        print(f"Sending request at {endpoint} with body {body}")
-        res = requests.post(
-            f"{self.WIKIBASE_URL}{endpoint}",
-            headers=self.headers(),
-            json=body,
-        )
-        print(f"Response content: {res.json()}")
-        res.raise_for_status()
+    # ---
+    # Wikibase GET/reading
+    # ---
+    def full_wikibase_url(self, endpoint):
+        return f"{self.WIKIBASE_URL}{endpoint}"
 
-    def wikidata_statement_post(self, item_id, body):
+    def get_property_data_type(self, property_id):
+        """
+        Returns the expected data type of the property.
+
+        Returns the data type as a string.
+        """
+        endpoint = f"/entities/properties/{property_id}"
+        url = self.full_wikibase_url(endpoint)
+
+        # TODO: add caching
+        res = self.get(url).json()
+
+        try:
+            data_type = res["data_type"]
+            return data_type
+        except KeyError:
+            raise ValueError("The property does not exist or does not have a data type")
+
+    # ---
+    # Wikibase POST/editing
+    # ---
+    def add_statement(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/statements"
-        return self.wikidata_post(endpoint, body)
+        url = self.full_wikibase_url(endpoint)
+        res = self.post(url, body)
+        res.raise_for_status()
+        return res.json()

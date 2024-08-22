@@ -84,6 +84,7 @@ class V1CommandParser(BaseParser):
             current_reference_block = [] # We can have multiple reference blocks
             references = [current_reference_block]
             has_references = False
+
             qualifiers = []
 
             # ITERATE OVER qualifiers or previous_references (key, value) pairs
@@ -114,6 +115,7 @@ class V1CommandParser(BaseParser):
 
             if has_references:
                 data["references"] = references
+
             if qualifiers:
                 data["qualifiers"] = qualifiers
 

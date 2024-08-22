@@ -23,9 +23,7 @@
       {% if name %}value="{{name}}" {% endif %}>
     
     <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
-      style="height: 400px">
-       {% if commands %}{{commands}}{% endif %}
-      </textarea>
+      style="height: 400px">{% if commands %}{{commands}}{% endif %}</textarea>
   </fieldset>
   <input type="submit" value="Execute" />
 </form>
