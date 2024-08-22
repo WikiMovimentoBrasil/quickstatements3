@@ -308,3 +308,128 @@ Q411518,"Patterns, Predictors, and Outcome and Descriptions"
                 "language": "pt",
             },
         )
+
+    def test_full_command(self):
+        COMMAND = """qid,Len,Den,Aen,P31,-P31,P21,P735,qal1545,S248,s214,S143,Senwiki
+Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\"\"1\"\"\",Q54919,\"\"\"113230702\"\"\",Q328,Douglas Adams
+"""
+
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+
+        v1 = CSVCommandParser()
+        batch = v1.parse("My batch DESCRIPTION", "myuser", COMMAND)
+        self.assertEqual(batch.user, "myuser")
+        self.assertEqual(batch.name, "My batch DESCRIPTION")
+        self.assertEqual(BatchCommand.objects.count(), 8)
+        self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 8)
+        
+        bc0 = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(bc1.json,
+            {
+                "action": "add",
+                "item": "Q4115189",
+                "value": {"type": "string", "value": "Douglas Adams"},
+                "what": "label",
+                "language": "en",
+            }
+        )
+
+        bc1 = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(bc1.json,
+            {
+                "action": "add",
+                "item": "Q4115189",
+                "value": {"type": "string", "value": "author"},
+                "what": "description",
+                "language": "en",
+            }
+        )
+
+        bc2 = BatchCommand.objects.get(batch=batch, index=2)
+        self.assertEqual(bc2.json,
+            {
+                "action": "add",
+                "item": "Q4115189",
+                "value": {"type": "string", "value": "Douglas Noël Adams"},
+                "what": "alias",
+                "language": "en",
+            }
+        )
+
+        bc3 = BatchCommand.objects.get(batch=batch, index=3)
+        self.assertEqual(bc3.json,
+            {
+                "action": "add",
+                "entity": {"id": "Q4115189", "type": "item"},
+                "property": "P31",
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
+                "what": "statement",
+            }
+        )
+
+        bc4 = BatchCommand.objects.get(batch=batch, index=4)
+        self.assertEqual(bc4.json,
+            {
+                "action": "remove",
+                "entity": {"id": "Q4115189", "type": "item"},
+                "property": "P31",
+                "value": {"type": "wikibase-entityid", "value": "Q36180"},
+                "what": "statement",
+            }
+        )
+
+        bc5 = BatchCommand.objects.get(batch=batch, index=5)
+        self.assertEqual(bc5.json,
+            {
+                "action": "add",
+                "entity": {"id": "Q4115189", "type": "item"},
+                "property": "P21",
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
+                "what": "statement",
+            }
+        )
+
+        bc6 = BatchCommand.objects.get(batch=batch, index=6)
+        self.assertEqual(bc6.json,
+            {
+                "action": "add",
+                "entity": {"id": "Q4115189", "type": "item"},
+                "property": "P735",
+                "value": {"type": "wikibase-entityid", "value": "Q463035"},
+                "what": "statement",
+                "qualifiers": [{"property": "P1545", "value": "1"}],
+                "sources": [
+                    [
+                        {
+                            "source": "S248", 
+                            "value": {"type": "wikibase-entityid", "value": "Q54919"}
+                        },
+                        {
+                            "source": "S214",
+                            "value": {"type": "wikibase-entityid", "value": "113230702"},
+                        },
+                    ],
+                    [
+                        {
+                            "source": "S143", 
+                            "value": {"type": "wikibase-entityid", "value": "Q328"},
+                        }
+                    ]
+                ]
+            }
+        )
+
+        bc7 = BatchCommand.objects.get(batch=batch, index=7)
+        self.assertEqual(bc6.json,
+            {
+                "action": "add",
+                "item": "Q4115189",
+                "property": "P735",
+                "value": "value": {"type": "string", "value": "Douglas Adams"},,
+                "what": "sitelink",
+                "site": "enwiki"
+            }
+        )
+
+
