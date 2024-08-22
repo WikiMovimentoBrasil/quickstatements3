@@ -52,7 +52,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "what": "statement",
             },
         )
@@ -107,7 +107,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "what": "statement",
             },
         )
@@ -349,7 +349,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "sources": [
                     {"source": "S1", "value": {"type": "string", "value": "source text"}},
                     {
@@ -380,7 +380,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "qualifiers": [
                     {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
                     {
@@ -413,7 +413,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "value": {"type": "wikibase-item", "value": "Q1"},
                 "qualifiers": [
                     {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
                     {

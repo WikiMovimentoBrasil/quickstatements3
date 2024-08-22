@@ -123,9 +123,9 @@ class TestBaseParser(TestCase):
 
     def test_parse_value_item(self):
         parser = BaseParser()
-        self.assertEqual(parser.parse_value("LAST"), {"type": "wikibase-entityid", "value": "LAST"})
-        self.assertEqual(parser.parse_value("Q1233"), {"type": "wikibase-entityid", "value": "Q1233"})
-        self.assertEqual(parser.parse_value("M1233"), {"type": "wikibase-entityid", "value": "M1233"})
+        self.assertEqual(parser.parse_value("LAST"), {"type": "wikibase-item", "value": "LAST"})
+        self.assertEqual(parser.parse_value("Q1233"), {"type": "wikibase-item", "value": "Q1233"})
+        self.assertEqual(parser.parse_value("M1233"), {"type": "wikibase-item", "value": "M1233"})
 
     def test_parse_value_string(self):
         parser = BaseParser()
