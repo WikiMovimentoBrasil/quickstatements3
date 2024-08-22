@@ -80,10 +80,10 @@ class V1CommandParser(BaseParser):
                 "value": vvalue,
             }
 
-            sources = []
+            previous_references = []
             qualifiers = []
 
-            # ITERATE OVER qualifiers or sources (key, value) pairs
+            # ITERATE OVER qualifiers or previous_references (key, value) pairs
             index = 3
             while index + 1 < llen:
                 key = elements[index].strip()
@@ -99,11 +99,11 @@ class V1CommandParser(BaseParser):
                         key = key[1:]
                     if not self.is_valid_source_id(key):
                         raise ParserException(f"Invalid source {key}")
-                    sources.append({"source": key, "value": value})
+                    previous_references.append({"property": "P"+key[1:], "value": value})
                 index += 2
 
-            if sources:
-                data["sources"] = sources
+            if previous_references:
+                data["references"] = previous_references
             if qualifiers:
                 data["qualifiers"] = qualifiers
 

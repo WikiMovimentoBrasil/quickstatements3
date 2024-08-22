@@ -6,31 +6,52 @@ from core.parsers.csv import CSVCommandParser
 class TestCSVParser(TestCase):
     def test_parse_header(self):
         parser = CSVCommandParser()
-        self.assertEqual(parser.parse_header(["qid", "P31", "-P31"]), ["qid", "P31", "-P31"])
-        self.assertEqual(parser.parse_header(["qid", "Lpt"]), ["qid", "Lpt"])
-        self.assertEqual(parser.parse_header(["qid", "Lpt", "#"]), ["qid", "Lpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Lpt", "#"]), ["qid", "-Lpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Dpt"]), ["qid", "Dpt"])
-        self.assertEqual(parser.parse_header(["qid", "Dpt", "#"]), ["qid", "Dpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Dpt", "#"]), ["qid", "-Dpt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Apt"]), ["qid", "Apt"])
-        self.assertEqual(parser.parse_header(["qid", "Apt", "#"]), ["qid", "Apt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Apt", "#"]), ["qid", "-Apt", "#"])
-        self.assertEqual(parser.parse_header(["qid", "Swiki"]), ["qid", "Swiki"])
-        self.assertEqual(parser.parse_header(["qid", "Swiki", "#"]), ["qid", "Swiki", "#"])
-        self.assertEqual(parser.parse_header(["qid", "-Swiki", "#"]), ["qid", "-Swiki", "#"])
+        self.assertTrue(parser.check_header(["qid", "P31", "-P31"]))
+        self.assertTrue(parser.check_header(["qid", "Lpt"]))
+        self.assertTrue(parser.check_header(["qid", "Lpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Lpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Dpt"]))
+        self.assertTrue(parser.check_header(["qid", "Dpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Dpt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Apt"]))
+        self.assertTrue(parser.check_header(["qid", "Apt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Apt", "#"]))
+        self.assertTrue(parser.check_header(["qid", "Swiki"]))
+        self.assertTrue(parser.check_header(["qid", "Swiki", "#"]))
+        self.assertTrue(parser.check_header(["qid", "-Swiki", "#"]))
+        self.assertTrue(parser.check_header(["qid", "P31", "Len", "Den", "P18"]))
+        self.assertTrue(
+            parser.check_header(
+                ["qid", "Len", "Den", "Aen", "P31", "-P31", "P21", "P735", "qal1545", "S248", "s214", "S143", "Senwiki"]
+            )
+        )
 
     def test_parse_header_no_qid(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
-            parser.parse_header(["", "qid", "P31", "-P31"])
+            parser.check_header(["", "qid", "P31", "-P31"])
         self.assertEqual(context.exception.message, "CSV header first element must be qid")
 
     def test_parse_header_comment_before_property(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
-            parser.parse_header(["qid", "#", "P31"])
+            parser.check_header(["qid", "#", "P31"])
         self.assertEqual(context.exception.message, "A valid property must precede a comment")
+
+    def test_parse_header_qal_before_property(self):
+        parser = CSVCommandParser()
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "qal", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a qualifier")
+
+    def test_parse_header_source_before_property(self):
+        parser = CSVCommandParser()
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "S1234", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a source")
+        with self.assertRaises(Exception) as context:
+            parser.check_header(["qid", "s1234", "P31"])
+        self.assertEqual(context.exception.message, "A valid property must precede a source")
 
     def test_parse_item(self):
         parser = CSVCommandParser()
@@ -138,6 +159,111 @@ class TestCSVParser(TestCase):
             ],
         )
 
+    def test_parse_references(self):
+        parser = CSVCommandParser()
+        parsed_line = parser.parse_line(
+            ["Q22124656", "Q6581097", "comment to claim adding edit", "Q24731821", "+2017-10-04T00:00:00Z/11"],
+            ["qid", "P21", "#", "S143", "s813"],
+        )
+
+        desired_result = [
+            {
+                "action": "add",
+                "entity": {"id": "Q22124656", "type": "item"},
+                "property": "P21",
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
+                "what": "statement",
+                "summary": "comment to claim adding edit",
+                "references": [
+                    [
+                        {"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
+                        {
+                            "property": "P813",
+                            "value": {
+                                "type": "time",
+                                "value": {
+                                    "time": "+2017-10-04T00:00:00Z",
+                                    "timezone": 0,
+                                    "before": 0,
+                                    "after": 0,
+                                    "precision": 11,
+                                    "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                },
+                            },
+                        },
+                    ],
+                ],
+            }
+        ]
+
+        self.assertEqual(parsed_line, desired_result)
+
+    def test_parse_qualifiers(self):
+        parser = CSVCommandParser()
+        parsed_line = parser.parse_line(
+            ["Q22124656", "Q6581097", "comment to claim adding edit", "1"],
+            ["qid", "P21", "#", "qal1545"],
+        )
+
+        desired_result = [
+            {
+                "action": "add",
+                "entity": {"id": "Q22124656", "type": "item"},
+                "property": "P21",
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
+                "what": "statement",
+                "summary": "comment to claim adding edit",
+                "qualifiers": [
+                    {"property": "P1545", "value": {'type': 'quantity', 'value': {'amount': '1', 'unit': '1'}}},
+                ],
+            }
+        ]
+
+        self.assertEqual(parsed_line, desired_result)
+
+    def test_parse_multiple_item(self):
+        parser = CSVCommandParser()
+
+        parsed_line = parser.parse_line(
+            ["", "Q3305213", "Mona Lisa", "oil painting by Leonardo da Vinci", '"""Mona Lisa - the Louvre.jpg"""'],
+            ["qid", "P31", "Len", "Den", "P18"],
+        )
+
+        desired_result = [
+            {"action": "create", "type": "item"},
+            {
+                "action": "add",
+                "entity": {"id": "LAST", "type": "item"},
+                "property": "P31",
+                "value": {"type": "wikibase-entityid", "value": "Q3305213"},
+                "what": "statement",
+            },
+            {
+                "action": "add",
+                "item": "LAST",
+                "value": {"type": "string", "value": "Mona Lisa"},
+                "what": "label",
+                "language": "en",
+            },
+            {
+                "action": "add",
+                "item": "LAST",
+                "value": {"type": "string", "value": "oil painting by Leonardo da Vinci"},
+                "what": "description",
+                "language": "en",
+            },
+            {
+                "action": "add",
+                "entity": {"id": "LAST", "type": "item"},
+                "property": "P18",
+                "value": {"type": "commonsMedia", "value": "Mona Lisa - the Louvre.jpg"},
+                "what": "statement",
+            },
+        ]
+
+        # ADD / REMOVE
+        self.assertEqual(parsed_line, desired_result)
+
     def test_parse_coordinates(self):
         parser = CSVCommandParser()
 
@@ -221,22 +347,6 @@ class TestCSVParser(TestCase):
             ],
         )
 
-        # result = parser.parse_line(["Q4115189",'"""Toys ""R"" Us"""'], ["qid","P370"])
-        # self.assertEqual(result,
-        #     [
-        #         {
-        #             'action': 'add',
-        #             'entity': {'id': 'Q4115189', 'type': 'item'},
-        #             'property': 'P370',
-        #             'value': {
-        #                 "type": "external-id",
-        #                 "value": "Toys ""R"" Us",
-        #             },
-        #             'what': 'statement'
-        #         },
-        #     ]
-        # )
-
     def test_parse_url(self):
         parser = CSVCommandParser()
         self.assertEqual(
@@ -318,7 +428,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "10", "unit": '1'}},
+                    "value": {"type": "quantity", "value": {"amount": "10", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -331,7 +441,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "20", "unit": '1'}},
+                    "value": {"type": "quantity", "value": {"amount": "20", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -344,7 +454,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "3.1415926", "unit": '1'}},
+                    "value": {"type": "quantity", "value": {"amount": "3.1415926", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -357,7 +467,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "-40", "unit": '1'}},
+                    "value": {"type": "quantity", "value": {"amount": "-40", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -372,7 +482,7 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "-80", "lowerBound": "-81.5", "upperBound": "-78.5", "unit": '1'},
+                        "value": {"amount": "-80", "lowerBound": "-81.5", "upperBound": "-78.5", "unit": "1"},
                     },
                     "what": "statement",
                 },
@@ -388,7 +498,7 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "2.2", "lowerBound": "1.9", "upperBound": "2.5", "unit": '1'},
+                        "value": {"amount": "2.2", "lowerBound": "1.9", "upperBound": "2.5", "unit": "1"},
                     },
                     "what": "statement",
                 },
@@ -404,7 +514,7 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "1.2", "lowerBound": "0.9", "upperBound": "1.5", "unit": '1'},
+                        "value": {"amount": "1.2", "lowerBound": "0.9", "upperBound": "1.5", "unit": "1"},
                     },
                     "what": "statement",
                 },

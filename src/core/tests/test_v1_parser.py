@@ -349,11 +349,11 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P2",
-                "value": {"type": "wikibase-item", "value": "Q1"},
-                "sources": [
-                    {"source": "S1", "value": {"type": "string", "value": "source text"}},
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "references": [
+                    {"property": "P1", "value": {"type": "string", "value": "source text"}},
                     {
-                        "source": "S2",
+                        "property": "P2",
                         "value": {
                             "type": "time",
                             "value": {
@@ -431,10 +431,10 @@ class TestV1ParserCommand(TestCase):
                         },
                     },
                 ],
-                "sources": [
-                    {"source": "S1", "value": {"type": "string", "value": "source text"}},
+                "references": [
+                    {"property": "P1", "value": {"type": "string", "value": "source text"}},
                     {
-                        "source": "S2",
+                        "property": "P2",
                         "value": {
                             "type": "time",
                             "value": {
