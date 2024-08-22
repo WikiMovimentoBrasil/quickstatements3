@@ -16,6 +16,7 @@ class CSVCommandParser(BaseParser):
         current_property = None
         current_action = None
         current_what = None
+        current_summary = None
         qid = None
         entity_type = None
 
@@ -44,7 +45,11 @@ class CSVCommandParser(BaseParser):
             elif header_value == "#":
                 # Our header indicates that this column represents comments
                 # We add the cell value to the last command created
-                current_command["summary"] = cell_value
+                if not current_summary:
+                    current_summary = cell_value
+                else:
+                    current_summary += cell_value
+                current_command["summary"] = current_summary
                 continue
 
             elif header_value.startswith("qal"):
@@ -59,15 +64,15 @@ class CSVCommandParser(BaseParser):
             elif re.match("^[Ss]\\d+$", header_value):
                 # Our header indicates that this column represents a source
                 # We add the cell value to the last command created
-                source = {"source": header_value.upper(), "value": current_value}
+                reference = {"property": "P" + header_value[1:], "value": current_value}
 
                 if header_value[0] == "S":
-                    previous_sources = [source]
-                    sources = current_command.get("sources", [])
-                    sources.append(previous_sources)
-                    current_command["sources"] = sources
+                    previous_references = [reference]
+                    references = current_command.get("references", [])
+                    references.append(previous_references)
+                    current_command["references"] = references
                 else:
-                    previous_sources.append(source)
+                    previous_references.append(reference)
 
             else:
                 # Checking action
@@ -81,6 +86,8 @@ class CSVCommandParser(BaseParser):
                 if _type in ["property", "alias", "description", "label", "sitelink"]:
                     # NEW STATEMENT STARTING...
 
+                    current_summary = None
+                    
                     if _type == "property":
                         # We have a property based statement
                         current_property = header_value
@@ -94,6 +101,7 @@ class CSVCommandParser(BaseParser):
                             "property": current_property,
                             "value": current_value,
                         }
+
                     else:
                         # ALIAS, DESCRIPTION, SITELINK or LABEL
                         current_action = action

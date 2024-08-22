@@ -159,7 +159,7 @@ class TestCSVParser(TestCase):
             ],
         )
 
-    def test_parse_sources(self):
+    def test_parse_references(self):
         parser = CSVCommandParser()
         parsed_line = parser.parse_line(
             ["Q22124656", "Q6581097", "comment to claim adding edit", "Q24731821", "+2017-10-04T00:00:00Z/11"],
@@ -174,11 +174,11 @@ class TestCSVParser(TestCase):
                 "value": {"type": "wikibase-entityid", "value": "Q6581097"},
                 "what": "statement",
                 "summary": "comment to claim adding edit",
-                "sources": [
+                "references": [
                     [
-                        {"source": "S143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
+                        {"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
                         {
-                            "source": "S813",
+                            "property": "P813",
                             "value": {
                                 "type": "time",
                                 "value": {
@@ -191,7 +191,7 @@ class TestCSVParser(TestCase):
                                 },
                             },
                         },
-                    ]
+                    ],
                 ],
             }
         ]

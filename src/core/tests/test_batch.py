@@ -313,6 +313,7 @@ Q411518,"Patterns, Predictors, and Outcome and Descriptions"
         COMMAND = """qid,Len,Den,Aen,P31,-P31,P21,P735,qal1545,S248,s214,S143,Senwiki
 Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\"\"1\"\"\",Q54919,\"\"\"113230702\"\"\",Q328,Douglas Adams
 """
+        self.maxDiff = None
 
         self.assertFalse(Batch.objects.count())
         self.assertFalse(BatchCommand.objects.count())
@@ -325,7 +326,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
         self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 8)
         
         bc0 = BatchCommand.objects.get(batch=batch, index=0)
-        self.assertEqual(bc1.json,
+        self.assertEqual(bc0.json,
             {
                 "action": "add",
                 "item": "Q4115189",
@@ -398,22 +399,27 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "property": "P735",
                 "value": {"type": "wikibase-entityid", "value": "Q463035"},
                 "what": "statement",
-                "qualifiers": [{"property": "P1545", "value": "1"}],
-                "sources": [
+                "qualifiers": [
+                    {
+                        "property": "P1545", 
+                        "value": {'type': 'string','value': '1'}
+                    }
+                ],
+                "references": [
                     [
                         {
-                            "source": "S248", 
+                            "property": "P248", 
                             "value": {"type": "wikibase-entityid", "value": "Q54919"}
                         },
                         {
-                            "source": "S214",
-                            "value": {"type": "wikibase-entityid", "value": "113230702"},
+                            "property": "P214",
+                            "value": {"type": "string", "value": "113230702"}
                         },
                     ],
                     [
                         {
-                            "source": "S143", 
-                            "value": {"type": "wikibase-entityid", "value": "Q328"},
+                            "property": "P143", 
+                            "value": {"type": "wikibase-entityid", "value": "Q328"}
                         }
                     ]
                 ]
@@ -421,12 +427,11 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
         )
 
         bc7 = BatchCommand.objects.get(batch=batch, index=7)
-        self.assertEqual(bc6.json,
+        self.assertEqual(bc7.json,
             {
                 "action": "add",
                 "item": "Q4115189",
-                "property": "P735",
-                "value": "value": {"type": "string", "value": "Douglas Adams"},,
+                "value": {"type": "string", "value": "Douglas Adams"},
                 "what": "sitelink",
                 "site": "enwiki"
             }
