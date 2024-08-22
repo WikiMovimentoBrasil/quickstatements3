@@ -340,7 +340,7 @@ class TestV1ParserCommand(TestCase):
             },
         )
 
-    def test_v1_add_item_with_sources(self):
+    def test_v1_add_item_with_references(self):
         parser = V1CommandParser()
         data = parser.parse_command('Q1234\tP2\tQ1\tS1\t"source text"\tS2\t+1967-01-17T00:00:00Z/11')
         self.assertEqual(
@@ -351,21 +351,64 @@ class TestV1ParserCommand(TestCase):
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "references": [
-                    {"property": "P1", "value": {"type": "string", "value": "source text"}},
-                    {
-                        "property": "P2",
-                        "value": {
-                            "type": "time",
+                    [
+                        {"property": "P1", "value": {"type": "string", "value": "source text"}},
+                        {
+                            "property": "P2",
                             "value": {
-                                "time": "+1967-01-17T00:00:00Z",
-                                "timezone": 0,
-                                "before": 0,
-                                "after": 0,
-                                "precision": 11,
-                                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                "type": "time",
+                                "value": {
+                                    "time": "+1967-01-17T00:00:00Z",
+                                    "timezone": 0,
+                                    "before": 0,
+                                    "after": 0,
+                                    "precision": 11,
+                                    "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                },
                             },
+                        }
+                    ]
+                ],
+                "what": "statement",
+            },
+        )
+
+    def test_v1_add_item_with_references_multiple_blocks(self):
+        parser = V1CommandParser()
+        data = parser.parse_command('Q1234\tP2\tQ1\tS1\t"source text"\t!S2\t+1967-01-17T00:00:00Z/11')
+        self.assertEqual(
+            data,
+            {
+                "action": "add",
+                "entity": {"type": "item", "id": "Q1234"},
+                "property": "P2",
+                "value": {"type": "wikibase-entityid", "value": "Q1"},
+                "references": [
+                    [
+                        {
+                            "property": "P1", 
+                            "value": {
+                                "type": "string", 
+                                "value": "source text"
+                            }
                         },
-                    },
+                    ],
+                    [
+                        {
+                            "property": "P2",
+                            "value": {
+                                "type": "time",
+                                "value": {
+                                    "time": "+1967-01-17T00:00:00Z",
+                                    "timezone": 0,
+                                    "before": 0,
+                                    "after": 0,
+                                    "precision": 11,
+                                    "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                },
+                            },
+                        }
+                    ]
                 ],
                 "what": "statement",
             },
@@ -402,7 +445,7 @@ class TestV1ParserCommand(TestCase):
             },
         )
 
-    def test_v1_add_item_with_qualifiers_and_sources(self):
+    def test_v1_add_item_with_qualifiers_and_references(self):
         parser = V1CommandParser()
         data = parser.parse_command(
             'Q1234\tP2\tQ1\tS1\t"source text"\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11\tS2\t+1967-01-17T00:00:00Z/11'
@@ -432,21 +475,23 @@ class TestV1ParserCommand(TestCase):
                     },
                 ],
                 "references": [
-                    {"property": "P1", "value": {"type": "string", "value": "source text"}},
-                    {
-                        "property": "P2",
-                        "value": {
-                            "type": "time",
+                    [
+                        {"property": "P1", "value": {"type": "string", "value": "source text"}},
+                        {
+                            "property": "P2",
                             "value": {
-                                "time": "+1967-01-17T00:00:00Z",
-                                "timezone": 0,
-                                "before": 0,
-                                "after": 0,
-                                "precision": 11,
-                                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                "type": "time",
+                                "value": {
+                                    "time": "+1967-01-17T00:00:00Z",
+                                    "timezone": 0,
+                                    "before": 0,
+                                    "after": 0,
+                                    "precision": 11,
+                                    "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                },
                             },
-                        },
-                    },
+                        }
+                    ]
                 ],
                 "what": "statement",
             },
