@@ -80,30 +80,42 @@ class V1CommandParser(BaseParser):
                 "value": vvalue,
             }
 
-            sources = []
+
+            current_reference_block = [] # We can have multiple reference blocks
+            references = [current_reference_block]
+            has_references = False
+
             qualifiers = []
 
-            # ITERATE OVER qualifiers or sources (key, value) pairs
+            # ITERATE OVER qualifiers or previous_references (key, value) pairs
             index = 3
             while index + 1 < llen:
                 key = elements[index].strip()
                 value = self.parse_value(elements[index + 1].strip())
-                if key[0] == "P":
+                
+                if key[0] == "P": # PROPERTIES 
                     if not self.is_valid_property_id(key):
                         raise ParserException(f"Invalid qualifier property {key}")
                     qualifiers.append({"property": key, "value": value})
-                else:
-                    new_source_block = False
+                
+                else: # REFERENCES
                     if key.startswith("!S"):
-                        new_source_block = False
+                        # !S marks the beggining of a new reference block
+                        current_reference_block = []
+                        references.append(current_reference_block)
                         key = key[1:]
+                    
                     if not self.is_valid_source_id(key):
                         raise ParserException(f"Invalid source {key}")
-                    sources.append({"source": key, "value": value})
+                    
+                    current_reference_block.append({"property": "P"+key[1:], "value": value})
+                    has_references = True
+                
                 index += 2
 
-            if sources:
-                data["sources"] = sources
+            if has_references:
+                data["references"] = references
+
             if qualifiers:
                 data["qualifiers"] = qualifiers
 
