@@ -196,31 +196,20 @@ def new_batch(request):
                 
                 batch = parser.parse(batch_name, batch_owner, batch_commands)
                 return redirect(reverse("batch", args=[batch.pk]))
-
             except ParserException as p:
-                return render(
-                    request,
-                    "new_batch.html",
-                    {
-                        "error": p.message,
-                        "name": batch_name,
-                        "type_v1": batch_type == "v1",
-                        "type_csv": batch_type == "csv",
-                        "commands": batch_commands,
-                    },
-                )
+                error = p.message
             except Exception as p:
-                return render(
-                    request,
-                    "new_batch.html",
-                    {
-                        "error": str(p),
-                        "name": batch_name,
-                        "type_v1": batch_type == "v1",
-                        "type_csv": batch_type == "csv",
-                        "commands": batch_commands,
-                    },
-                )
+                error = str(p)
+            return render(
+                request,
+                "new_batch.html",
+                {
+                    "error": error,
+                    "name": batch_name,
+                    "batch_type": batch_type,
+                    "commands": batch_commands,
+                },
+            )
 
         else:
             preferred_batch_type = request.session.get("preferred_batch_type", "v1")
@@ -228,8 +217,7 @@ def new_batch(request):
                 request,
                 "new_batch.html",
                 {
-                    "type_v1": preferred_batch_type == "v1",
-                    "type_csv": preferred_batch_type == "csv",
+                    "batch_type": preferred_batch_type,
                 }
             )
     else:
