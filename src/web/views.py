@@ -179,6 +179,7 @@ def new_batch(request):
                 batch_commands = request.POST.get("commands")
                 batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
                 batch_type = request.POST.get("type", "v1")
+                request.session["preferred_batch_type"] = batch_type
 
                 batch_commands = batch_commands.strip()
                 if not batch_commands:
@@ -222,7 +223,15 @@ def new_batch(request):
                 )
 
         else:
-            return render(request, "new_batch.html", {})
+            preferred_batch_type = request.session.get("preferred_batch_type", "v1")
+            return render(
+                request,
+                "new_batch.html",
+                {
+                    "type_v1": preferred_batch_type == "v1",
+                    "type_csv": preferred_batch_type == "csv",
+                }
+            )
     else:
         return render(
             request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user}, status=403
