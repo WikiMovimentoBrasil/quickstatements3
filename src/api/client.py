@@ -119,3 +119,7 @@ class Client:
     def add_alias(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/aliases"
         return self.wikibase_patch(endpoint, body)
+
+    def add_sitelink(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/sitelinks"
+        return self.wikibase_patch(endpoint, body)

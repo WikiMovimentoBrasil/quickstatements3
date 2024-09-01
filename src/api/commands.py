@@ -18,6 +18,8 @@ class ApiCommandBuilder:
                 return AddStatement(self.command)
             elif self.command.json["what"] in ["label", "description", "alias"]:
                 return AddLabelDescriptionOrAlias(self.command)
+            elif self.command.json["what"] == "sitelink":
+                return AddSitelink(self.command)
 
         raise ValueError("Not Implemented")
 
@@ -128,3 +130,31 @@ class AddLabelDescriptionOrAlias(Utilities):
             return client.add_alias(self.item_id, full_body)
         else:
             raise ValueError("'what' is not label, description or alias.")
+
+
+class AddSitelink(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+
+        self.what = j["what"]
+        self.item_id = j["item"]
+        self.site = j["site"]
+        self.value = j["value"]["value"]
+
+    def body(self):
+        return {
+            "patch": [
+                {
+                    "op": "replace",
+                    "path": f"/{self.site}/title",
+                    "value": self.value,
+                }
+            ]
+        }
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        return client.add_sitelink(self.item_id, full_body)
