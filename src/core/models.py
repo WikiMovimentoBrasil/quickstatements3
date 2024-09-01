@@ -1,5 +1,9 @@
+import logging
+
 from django.db import models
 from django.utils.translation import gettext as _
+
+logger = logging.getLogger("qsts3")
    
 
 class Batch(models.Model):
@@ -35,6 +39,44 @@ class Batch(models.Model):
 
     def commands(self):
         return BatchCommand.objects.filter(batch=self).all().order_by("index")
+
+    def run(self):
+        """
+        Sends all the batch commands to the Wikidata API. This method should not fail.
+        Sets the batch status to BLOCKED when a command fails.
+        """
+        # Ignore when not INITIAL
+        if self.status != Batch.STATUS_INITIAL:
+            return
+
+        self._update_status_to_running()
+        logger.debug(f"[{self}] running...")
+
+        for command in self.commands():
+            command.run()
+            if command.is_error_status():
+                self._update_status_to_blocked()
+                logger.warn(f"[{self}] blocked by {command}")
+                return
+
+        self._update_status_to_done()
+        logger.info(f"[{self}] finished")
+
+    def _send_to_api(self):
+        from api.commands import ApiCommandBuilder
+        ApiCommandBuilder(self).build_and_send()
+
+    def _update_status_to_running(self):
+        self.status = self.STATUS_RUNNING
+        self.save()
+
+    def _update_status_to_done(self):
+        self.status = self.STATUS_DONE
+        self.save()
+
+    def _update_status_to_blocked(self):
+        self.status = self.STATUS_BLOCKED
+        self.save()
 
 
 class BatchCommand(models.Model):
@@ -138,12 +180,14 @@ class BatchCommand(models.Model):
             return
 
         self._update_status_to_running()
+        logger.debug(f"[{self}] running...")
 
         try:
             self._send_to_api()
             self._update_status_to_done()
+            logger.info(f"[{self}] finished")
         except Exception as e:
-            print(e)
+            logger.error(f"[{self}] error: {e}")
             self._update_status_to_error()
 
     def _send_to_api(self):
