@@ -58,6 +58,8 @@ class AddStatement(Utilities):
         value = j["value"]
         self.data_type = value["type"]
         self.value = value["value"]
+        self.references = j.get("references", [])
+        self.qualifiers = j.get("qualifiers", [])
 
         self.verify_data_type()
 
@@ -74,6 +76,32 @@ class AddStatement(Utilities):
             )
 
     def body(self):
+        all_quali = [
+            {
+                "property": {"id": q["property"]},
+                "value": {
+                    "content": q["value"]["value"],
+                    "type": "value",
+                },
+            }
+            for q in self.qualifiers
+        ]
+
+        all_refs = []
+        for ref in self.references:
+            fixed_parts = []
+            for part in ref:
+                fixed_parts.append(
+                    {
+                        "property": {"id": part["property"]},
+                        "value": {
+                            "content": part["value"]["value"],
+                            "type": "value",
+                        },
+                    }
+                )
+            all_refs.append({"parts": fixed_parts})
+
         return {
             "statement": {
                 "property": {
@@ -83,6 +111,8 @@ class AddStatement(Utilities):
                     "content": self.value,
                     "type": "value",
                 },
+                "qualifiers": all_quali,
+                "references": all_refs,
             }
         }
 
