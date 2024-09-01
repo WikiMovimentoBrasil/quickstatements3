@@ -16,6 +16,8 @@ class ApiCommandBuilder:
         if self.command.action == BatchCommand.ACTION_ADD:
             if self.command.json["what"] == "statement":
                 return AddStatement(self.command)
+            elif self.command.json["what"] in ["label", "description", "alias"]:
+                return AddLabelDescriptionOrAlias(self.command)
 
         raise ValueError("Not Implemented")
 
@@ -86,3 +88,43 @@ class AddStatement(Utilities):
         full_body = self.full_body()
         client = self.client()
         return client.add_statement(self.item_id, full_body)
+
+
+class AddLabelDescriptionOrAlias(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+
+        self.what = j["what"]
+        self.item_id = j["item"]
+        self.language = j["language"]
+        self.value = j["value"]["value"]
+
+    def body(self):
+        if self.what != "alias":
+            path = f"/{self.language}"
+        else:
+            path = f"/{self.language}/0"
+
+        return {
+            "patch": [
+                {
+                    "op": "add",
+                    "path": path,
+                    "value": self.value,
+                }
+            ]
+        }
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        if self.what == "label":
+            return client.add_label(self.item_id, full_body)
+        elif self.what == "description":
+            return client.add_description(self.item_id, full_body)
+        elif self.what == "alias":
+            return client.add_alias(self.item_id, full_body)
+        else:
+            raise ValueError("'what' is not label, description or alias.")

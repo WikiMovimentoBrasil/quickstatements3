@@ -39,6 +39,12 @@ class Client:
         logger.debug(f"POST request at {url} | response: {res.json()}")
         return res
 
+    def patch(self, url, body):
+        logger.debug(f"patch request at {url} | sending with body {body}")
+        res = requests.patch(url, json=body, headers=self.headers())
+        logger.debug(f"patch request at {url} | response: {res.json()}")
+        return res
+
     # ---
     # Auth
     # ---
@@ -84,5 +90,26 @@ class Client:
         endpoint = f"/entities/items/{item_id}/statements"
         url = self.full_wikibase_url(endpoint)
         res = self.post(url, body)
+        res.raise_for_status()
+        return res.json()
+
+    def add_label(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/labels"
+        url = self.full_wikibase_url(endpoint)
+        res = self.patch(url, body)
+        res.raise_for_status()
+        return res.json()
+
+    def add_description(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/descriptions"
+        url = self.full_wikibase_url(endpoint)
+        res = self.patch(url, body)
+        res.raise_for_status()
+        return res.json()
+
+    def add_alias(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/aliases"
+        url = self.full_wikibase_url(endpoint)
+        res = self.patch(url, body)
         res.raise_for_status()
         return res.json()
