@@ -1,5 +1,3 @@
-from enum import Enum
-
 from django.db import models
 from django.utils.translation import gettext as _
    
@@ -8,15 +6,22 @@ class Batch(models.Model):
     """
     Represents a BATCH, containing multiple commands
     """
-    class STATUS(Enum):
-        BLOCKED = (-1, _("Blocked"))
-        INITIAL = (0, _("Initial"))
-        RUNNING = (1, _("Running"))
-        DONE = (2, _("Done"))
+
+    STATUS_BLOCKED = -1
+    STATUS_INITIAL = 0
+    STATUS_RUNNING = 1
+    STATUS_DONE = 2
+
+    STATUS_CHOICES = (
+        (STATUS_BLOCKED, _("Blocked")),
+        (STATUS_INITIAL, _("Initial")),
+        (STATUS_RUNNING, _("Running")),
+        (STATUS_DONE, _("Done"))
+    )
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
-    status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
+    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
