@@ -270,7 +270,7 @@ class BaseParser(object):
         gps_match = re.match(r"^\@\s*([+-]{0,1}[0-9.]+)\s*\/\s*([+-]{0,1}[0-9.]+)$", v)
         if gps_match:
             return {
-                "type": "globecoordinate",
+                "type": "globe-coordinate",
                 "value": {
                     "latitude": gps_match.group(1),
                     "longitude": gps_match.group(2),

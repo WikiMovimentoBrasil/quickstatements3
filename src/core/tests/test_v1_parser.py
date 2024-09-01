@@ -304,7 +304,7 @@ class TestV1ParserCommand(TestCase):
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P10",
                 "value": {
-                    "type": "globecoordinate",
+                    "type": "globe-coordinate",
                     "value": {
                         "latitude": "43.26193",
                         "longitude": "10.92708",

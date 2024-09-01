@@ -275,7 +275,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P625",
                     "value": {
-                        "type": "globecoordinate",
+                        "type": "globe-coordinate",
                         "value": {
                             "globe": "http://www.wikidata.org/entity/Q2",
                             "latitude": "43.26193",

@@ -250,7 +250,7 @@ class TestBaseParser(TestCase):
     def test_parse_value_location(self):
         parser = BaseParser()
         ret = {
-            "type": "globecoordinate",
+            "type": "globe-coordinate",
             "value": {
                 "latitude": "43.26193",
                 "longitude": "10.92708",
