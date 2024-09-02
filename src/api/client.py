@@ -104,6 +104,10 @@ class Client:
     # ---
     # Wikibase POST/editing
     # ---
+    def create_entity(self, body):
+        endpoint = "/entities/items"
+        return self.wikibase_post(endpoint, body)
+
     def add_statement(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/statements"
         return self.wikibase_post(endpoint, body)

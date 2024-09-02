@@ -20,6 +20,8 @@ class ApiCommandBuilder:
                 return AddLabelDescriptionOrAlias(self.command)
             elif self.command.json["what"] == "sitelink":
                 return AddSitelink(self.command)
+        elif self.command.action == BatchCommand.ACTION_CREATE:
+            return CreateItem(self.command)
 
         raise ValueError("Not Implemented")
 
@@ -188,3 +190,16 @@ class AddSitelink(Utilities):
         full_body = self.full_body()
         client = self.client()
         return client.add_sitelink(self.item_id, full_body)
+
+
+class CreateItem(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+    def body(self):
+        return {"item": {}}
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        return client.create_entity(full_body)
