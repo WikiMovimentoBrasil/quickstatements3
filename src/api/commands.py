@@ -16,6 +16,10 @@ class ApiCommandBuilder:
         if self.command.action == BatchCommand.ACTION_ADD:
             if self.command.json["what"] == "statement":
                 return AddStatement(self.command)
+            elif self.command.json["what"] in ["label", "description", "alias"]:
+                return AddLabelDescriptionOrAlias(self.command)
+            elif self.command.json["what"] == "sitelink":
+                return AddSitelink(self.command)
 
         raise ValueError("Not Implemented")
 
@@ -54,6 +58,8 @@ class AddStatement(Utilities):
         value = j["value"]
         self.data_type = value["type"]
         self.value = value["value"]
+        self.references = j.get("references", [])
+        self.qualifiers = j.get("qualifiers", [])
 
         self.verify_data_type()
 
@@ -70,6 +76,32 @@ class AddStatement(Utilities):
             )
 
     def body(self):
+        all_quali = [
+            {
+                "property": {"id": q["property"]},
+                "value": {
+                    "content": q["value"]["value"],
+                    "type": "value",
+                },
+            }
+            for q in self.qualifiers
+        ]
+
+        all_refs = []
+        for ref in self.references:
+            fixed_parts = []
+            for part in ref:
+                fixed_parts.append(
+                    {
+                        "property": {"id": part["property"]},
+                        "value": {
+                            "content": part["value"]["value"],
+                            "type": "value",
+                        },
+                    }
+                )
+            all_refs.append({"parts": fixed_parts})
+
         return {
             "statement": {
                 "property": {
@@ -79,6 +111,8 @@ class AddStatement(Utilities):
                     "content": self.value,
                     "type": "value",
                 },
+                "qualifiers": all_quali,
+                "references": all_refs,
             }
         }
 
@@ -86,3 +120,71 @@ class AddStatement(Utilities):
         full_body = self.full_body()
         client = self.client()
         return client.add_statement(self.item_id, full_body)
+
+
+class AddLabelDescriptionOrAlias(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+
+        self.what = j["what"]
+        self.item_id = j["item"]
+        self.language = j["language"]
+        self.value = j["value"]["value"]
+
+    def body(self):
+        if self.what != "alias":
+            path = f"/{self.language}"
+        else:
+            path = f"/{self.language}/0"
+
+        return {
+            "patch": [
+                {
+                    "op": "add",
+                    "path": path,
+                    "value": self.value,
+                }
+            ]
+        }
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        if self.what == "label":
+            return client.add_label(self.item_id, full_body)
+        elif self.what == "description":
+            return client.add_description(self.item_id, full_body)
+        elif self.what == "alias":
+            return client.add_alias(self.item_id, full_body)
+        else:
+            raise ValueError("'what' is not label, description or alias.")
+
+
+class AddSitelink(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+
+        self.what = j["what"]
+        self.item_id = j["item"]
+        self.site = j["site"]
+        self.value = j["value"]["value"]
+
+    def body(self):
+        return {
+            "patch": [
+                {
+                    "op": "replace",
+                    "path": f"/{self.site}/title",
+                    "value": self.value,
+                }
+            ]
+        }
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        return client.add_sitelink(self.item_id, full_body)

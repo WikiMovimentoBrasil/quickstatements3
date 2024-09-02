@@ -33,12 +33,6 @@ class Client:
         logger.debug(f"Sending GET request at {url}")
         return requests.get(url, headers=self.headers())
 
-    def post(self, url, body):
-        logger.debug(f"POST request at {url} | sending with body {body}")
-        res = requests.post(url, json=body, headers=self.headers())
-        logger.debug(f"POST request at {url} | response: {res.json()}")
-        return res
-
     # ---
     # Auth
     # ---
@@ -54,11 +48,41 @@ class Client:
             )
 
     # ---
-    # Wikibase GET/reading
+    # Wikibase utilities
     # ---
-    def full_wikibase_url(self, endpoint):
+    def wikibase_url(self, endpoint):
         return f"{self.WIKIBASE_URL}{endpoint}"
 
+    def wikibase_request_wrapper(self, method, endpoint, body):
+        kwargs = {
+            "json": body,
+            "headers": self.headers(),
+        }
+
+        url = self.wikibase_url(endpoint)
+
+        logger.debug(f"{method} request at {url} | sending with body {body}")
+
+        if method == "POST":
+            res = requests.post(url, **kwargs)
+        elif method == "PATCH":
+            res = requests.patch(url, **kwargs)
+        else:
+            raise ValueError("not implemented")
+
+        logger.debug(f"{method} request at {url} | response: {res.json()}")
+        res.raise_for_status()
+        return res.json()
+
+    def wikibase_post(self, endpoint, body):
+        return self.wikibase_request_wrapper("POST", endpoint, body)
+
+    def wikibase_patch(self, endpoint, body):
+        return self.wikibase_request_wrapper("PATCH", endpoint, body)
+
+    # ---
+    # Wikibase GET/reading
+    # ---
     def get_property_data_type(self, property_id):
         """
         Returns the expected data type of the property.
@@ -66,7 +90,7 @@ class Client:
         Returns the data type as a string.
         """
         endpoint = f"/entities/properties/{property_id}"
-        url = self.full_wikibase_url(endpoint)
+        url = self.wikibase_url(endpoint)
 
         # TODO: add caching
         res = self.get(url).json()
@@ -82,7 +106,20 @@ class Client:
     # ---
     def add_statement(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/statements"
-        url = self.full_wikibase_url(endpoint)
-        res = self.post(url, body)
-        res.raise_for_status()
-        return res.json()
+        return self.wikibase_post(endpoint, body)
+
+    def add_label(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/labels"
+        return self.wikibase_patch(endpoint, body)
+
+    def add_description(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/descriptions"
+        return self.wikibase_patch(endpoint, body)
+
+    def add_alias(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/aliases"
+        return self.wikibase_patch(endpoint, body)
+
+    def add_sitelink(self, item_id, body):
+        endpoint = f"/entities/items/{item_id}/sitelinks"
+        return self.wikibase_patch(endpoint, body)
