@@ -179,6 +179,7 @@ def new_batch(request):
                 batch_commands = request.POST.get("commands")
                 batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
                 batch_type = request.POST.get("type", "v1")
+                request.session["preferred_batch_type"] = batch_type
 
                 batch_commands = batch_commands.strip()
                 if not batch_commands:
@@ -195,34 +196,30 @@ def new_batch(request):
                 
                 batch = parser.parse(batch_name, batch_owner, batch_commands)
                 return redirect(reverse("batch", args=[batch.pk]))
-
             except ParserException as p:
-                return render(
-                    request,
-                    "new_batch.html",
-                    {
-                        "error": p.message,
-                        "name": batch_name,
-                        "type_v1": batch_type == "v1",
-                        "type_csv": batch_type == "csv",
-                        "commands": batch_commands,
-                    },
-                )
+                error = p.message
             except Exception as p:
-                return render(
-                    request,
-                    "new_batch.html",
-                    {
-                        "error": str(p),
-                        "name": batch_name,
-                        "type_v1": batch_type == "v1",
-                        "type_csv": batch_type == "csv",
-                        "commands": batch_commands,
-                    },
-                )
+                error = str(p)
+            return render(
+                request,
+                "new_batch.html",
+                {
+                    "error": error,
+                    "name": batch_name,
+                    "batch_type": batch_type,
+                    "commands": batch_commands,
+                },
+            )
 
         else:
-            return render(request, "new_batch.html", {})
+            preferred_batch_type = request.session.get("preferred_batch_type", "v1")
+            return render(
+                request,
+                "new_batch.html",
+                {
+                    "batch_type": preferred_batch_type,
+                }
+            )
     else:
         return render(
             request, "new_batch_error.html", {"message": "User must be logged in", "user": request.user}, status=403
