@@ -56,14 +56,14 @@ class Batch(models.Model):
 
         for command in self.commands():
             command.update_last_id(last_id)
-            res = command.run()
+            command.run()
             if command.is_error_status():
                 self._update_status_to_blocked()
                 logger.warn(f"[{self}] blocked by {command}")
                 return
 
             if command.action == BatchCommand.ACTION_CREATE:
-                last_id = res["id"]
+                last_id = command.response_id()
 
         self._update_status_to_done()
         logger.info(f"[{self}] finished")
@@ -123,6 +123,7 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    response_json = models.JSONField(default=dict)
 
     def __str__(self):
         return f"Batch #{self.batch.pk} Command #{self.pk}"
@@ -187,6 +188,14 @@ class BatchCommand(models.Model):
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
 
+    def response_id(self):
+        """
+        Returns the response's id.            
+
+        It is the created entity id when in a CREATE action.
+        """
+        return self.response_json.get("id")
+
     def update_last_id(self, last_id=None):
         """
         Updates this command's entity id, if it's LAST, to the argument.
@@ -207,10 +216,9 @@ class BatchCommand(models.Model):
         logger.debug(f"[{self}] running...")
 
         try:
-            res = self._send_to_api()
+            self.response_json = self._send_to_api()
             self._update_status_to_done()
             logger.info(f"[{self}] finished")
-            return res
         except Exception as e:
             logger.error(f"[{self}] error: {e}")
             self._update_status_to_error()
