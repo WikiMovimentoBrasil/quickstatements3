@@ -123,12 +123,22 @@ class BatchCommand(models.Model):
 
     @property
     def entity_info(self):
+        entity_id = self.entity_id()
+        return f"[{entity_id}]" if entity_id else ""
+
+    def entity_id(self):
         item = self.json.get("item", None)
         if item:
-            return f"[{item}]"
+            return item
+        return self.json.get("entity", {}).get("id", None)
+
+    def set_entity_id(self, value):
+        if self.json.get("item", None):
+            self.json["item"] = value
+        elif self.json.get("entity", {}).get("id", None):
+            self.json["entity"]["id"] = value
         else:
-            eid = self.json.get('entity', {}).get('id', None)
-            return f"[{eid}]" if eid else ""
+            raise ValueError("This command has no entity to update its id.")
 
     @property
     def status_info(self):
