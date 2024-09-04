@@ -52,12 +52,18 @@ class Batch(models.Model):
         self._update_status_to_running()
         logger.debug(f"[{self}] running...")
 
+        last_id = None
+
         for command in self.commands():
-            command.run()
+            command.update_last_id(last_id)
+            res = command.run()
             if command.is_error_status():
                 self._update_status_to_blocked()
                 logger.warn(f"[{self}] blocked by {command}")
                 return
+
+            if command.action == BatchCommand.ACTION_CREATE:
+                last_id = res["id"]
 
         self._update_status_to_done()
         logger.info(f"[{self}] finished")
@@ -181,6 +187,14 @@ class BatchCommand(models.Model):
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
 
+    def update_last_id(self, last_id=None):
+        """
+        Updates this command's entity id, if it's LAST, to the argument.
+        """
+        if self.entity_id() == "LAST" and last_id is not None:
+            self.set_entity_id(last_id)
+            self.save()
+
     def run(self):
         """
         Sends the command to the Wikidata API. This method should not fail.
@@ -193,16 +207,17 @@ class BatchCommand(models.Model):
         logger.debug(f"[{self}] running...")
 
         try:
-            self._send_to_api()
+            res = self._send_to_api()
             self._update_status_to_done()
             logger.info(f"[{self}] finished")
+            return res
         except Exception as e:
             logger.error(f"[{self}] error: {e}")
             self._update_status_to_error()
 
     def _send_to_api(self):
         from api.commands import ApiCommandBuilder
-        ApiCommandBuilder(self).build_and_send()
+        return ApiCommandBuilder(self).build_and_send()
 
     def _update_status_to_running(self):
         self.status = BatchCommand.STATUS_RUNNING
