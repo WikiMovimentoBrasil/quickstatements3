@@ -2,6 +2,10 @@ import os
 import requests
 import logging
 
+from .exceptions import NonexistantPropertyOrNoDataType
+from .exceptions import UserError
+from .exceptions import ServerError
+
 logger = logging.getLogger("qsts3")
 
 
@@ -32,6 +36,14 @@ class Client:
     def get(self, url):
         logger.debug(f"Sending GET request at {url}")
         return requests.get(url, headers=self.headers())
+
+    def raise_for_status(self, response):
+        j = response.json()
+        status = response.status_code
+        if 400 <= status <= 499:
+            raise UserError(j.get("code"), j.get("message"))
+        if 500 <= status <= 599:
+            raise ServerError(j)
 
     # ---
     # Auth
@@ -71,7 +83,7 @@ class Client:
             raise ValueError("not implemented")
 
         logger.debug(f"{method} request at {url} | response: {res.json()}")
-        res.raise_for_status()
+        self.raise_for_status(res)
         return res.json()
 
     def wikibase_post(self, endpoint, body):
@@ -99,7 +111,7 @@ class Client:
             data_type = res["data_type"]
             return data_type
         except KeyError:
-            raise ValueError("The property does not exist or does not have a data type")
+            raise NonexistantPropertyOrNoDataType(property_id)
 
     # ---
     # Wikibase POST/editing
