@@ -79,6 +79,8 @@ class Client:
             res = requests.post(url, **kwargs)
         elif method == "PATCH":
             res = requests.patch(url, **kwargs)
+        elif method == "DELETE":
+            res = requests.delete(url, **kwargs)
         else:
             raise ValueError("not implemented")
 
@@ -91,6 +93,9 @@ class Client:
 
     def wikibase_patch(self, endpoint, body):
         return self.wikibase_request_wrapper("PATCH", endpoint, body)
+
+    def wikibase_delete(self, endpoint, body):
+        return self.wikibase_request_wrapper("DELETE", endpoint, body)
 
     # ---
     # Wikibase GET/reading
@@ -112,6 +117,17 @@ class Client:
             return data_type
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
+
+    def get_statements(self, item_id):
+        """
+        Returns all statements for an item in the form of a dictionary.
+
+        The key is the property id, and the value is an array with
+        the statement objects.
+        """
+        endpoint = f"/entities/items/{item_id}/statements"
+        url = self.wikibase_url(endpoint)
+        return self.get(url).json()
 
     # ---
     # Wikibase POST/editing
@@ -139,3 +155,7 @@ class Client:
     def add_sitelink(self, item_id, body):
         endpoint = f"/entities/items/{item_id}/sitelinks"
         return self.wikibase_patch(endpoint, body)
+
+    def delete_statement(self, statement_id, body):
+        endpoint = f"/statements/{statement_id}"
+        return self.wikibase_delete(endpoint, body)

@@ -5,6 +5,8 @@ from .client import Client
 from .exceptions import ApiNotImplemented
 from .exceptions import InvalidPropertyDataType
 from .exceptions import NoToken
+from .exceptions import NoStatementsForThatProperty
+from .exceptions import NoStatementsWithThatValue
 
 
 class ApiCommandBuilder:
@@ -25,6 +27,11 @@ class ApiCommandBuilder:
                 return AddSitelink(self.command)
         elif self.command.action == BatchCommand.ACTION_CREATE:
             return CreateItem(self.command)
+        elif (
+            self.command.action == BatchCommand.ACTION_REMOVE
+            and self.command.json["what"] == "statement"
+        ):
+            return RemoveStatement(self.command)
 
         raise ApiNotImplemented()
 
@@ -206,3 +213,57 @@ class CreateItem(Utilities):
         full_body = self.full_body()
         client = self.client()
         return client.create_entity(full_body)
+
+
+class RemoveStatement(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+
+        self.item_id = j["entity"]["id"]
+        self.property_id = j["property"]
+        self.value = j["value"]["value"]
+
+        self.load_ids_to_delete()
+
+    def load_ids_to_delete(self):
+        ids_to_delete = []
+
+        statements = self._get_statements_for_our_property()
+
+        for statement in statements:
+            id = statement["id"]
+            value = statement["value"]["content"]
+
+            if value == self.value:
+                ids_to_delete.append(id)
+
+        if len(ids_to_delete) == 0:
+            raise NoStatementsWithThatValue(self.item_id, self.property_id, self.value)
+
+        self.ids_to_delete = ids_to_delete
+
+    def _get_statements_for_our_property(self):
+        client = self.client()
+
+        all_statements = client.get_statements(self.item_id)
+
+        our_statements = all_statements.get(self.property_id, [])
+
+        if len(our_statements) == 0:
+            raise NoStatementsForThatProperty(self.item_id, self.property_id)
+
+        return our_statements
+
+    def body(self):
+        return {}
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        responses = []
+        for id in self.ids_to_delete:
+            res = client.delete_statement(id, full_body)
+            responses.append(res)
+        return responses
