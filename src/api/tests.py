@@ -3,6 +3,7 @@ import requests_mock
 from django.test import TestCase
 
 from .client import Client
+from .exceptions import NonexistantPropertyOrNoDataType
 
 
 class ApiMocker:
@@ -51,5 +52,5 @@ class ClientTests(TestCase):
     @requests_mock.Mocker()
     def test_get_property_data_type_error(self, mocker):
         ApiMocker.property_data_type_not_found(mocker, "P321341234")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NonexistantPropertyOrNoDataType):
             self.api_client().get_property_data_type("P321341234")
