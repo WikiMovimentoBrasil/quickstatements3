@@ -25,7 +25,10 @@ class ApiCommandBuilder:
                 return AddLabelDescriptionOrAlias(self.command)
             elif self.command.json["what"] == "sitelink":
                 return AddSitelink(self.command)
-        elif self.command.action == BatchCommand.ACTION_CREATE:
+        elif (
+            self.command.action == BatchCommand.ACTION_CREATE
+            and self.command.json["type"] == "item"
+        ):
             return CreateItem(self.command)
         elif (
             self.command.action == BatchCommand.ACTION_REMOVE
@@ -65,7 +68,7 @@ class AddStatement(Utilities):
         self.command = command
 
         j = self.command.json
-        self.item_id = j["entity"]["id"]
+        self.entity_id = j["entity"]["id"]
         self.property_id = j["property"]
 
         value = j["value"]
@@ -131,7 +134,7 @@ class AddStatement(Utilities):
     def send(self):
         full_body = self.full_body()
         client = self.client()
-        return client.add_statement(self.item_id, full_body)
+        return client.add_statement(self.entity_id, full_body)
 
 
 class AddLabelDescriptionOrAlias(Utilities):
@@ -141,7 +144,7 @@ class AddLabelDescriptionOrAlias(Utilities):
         j = self.command.json
 
         self.what = j["what"]
-        self.item_id = j["item"]
+        self.entity_id = j["item"]
         self.language = j["language"]
         self.value = j["value"]["value"]
 
@@ -165,11 +168,11 @@ class AddLabelDescriptionOrAlias(Utilities):
         full_body = self.full_body()
         client = self.client()
         if self.what == "label":
-            return client.add_label(self.item_id, full_body)
+            return client.add_label(self.entity_id, full_body)
         elif self.what == "description":
-            return client.add_description(self.item_id, full_body)
+            return client.add_description(self.entity_id, full_body)
         elif self.what == "alias":
-            return client.add_alias(self.item_id, full_body)
+            return client.add_alias(self.entity_id, full_body)
         else:
             raise ValueError("'what' is not label, description or alias.")
 
@@ -181,7 +184,7 @@ class AddSitelink(Utilities):
         j = self.command.json
 
         self.what = j["what"]
-        self.item_id = j["item"]
+        self.entity_id = j["item"]
         self.site = j["site"]
         self.value = j["value"]["value"]
 
@@ -199,7 +202,7 @@ class AddSitelink(Utilities):
     def send(self):
         full_body = self.full_body()
         client = self.client()
-        return client.add_sitelink(self.item_id, full_body)
+        return client.add_sitelink(self.entity_id, full_body)
 
 
 class CreateItem(Utilities):
@@ -212,7 +215,7 @@ class CreateItem(Utilities):
     def send(self):
         full_body = self.full_body()
         client = self.client()
-        return client.create_entity(full_body)
+        return client.create_item(full_body)
 
 
 class RemoveStatement(Utilities):
@@ -221,7 +224,7 @@ class RemoveStatement(Utilities):
 
         j = self.command.json
 
-        self.item_id = j["entity"]["id"]
+        self.entity_id = j["entity"]["id"]
         self.property_id = j["property"]
         self.value = j["value"]["value"]
 
@@ -240,19 +243,18 @@ class RemoveStatement(Utilities):
                 ids_to_delete.append(id)
 
         if len(ids_to_delete) == 0:
-            raise NoStatementsWithThatValue(self.item_id, self.property_id, self.value)
+            raise NoStatementsWithThatValue(self.entity_id, self.property_id, self.value)
 
         self.ids_to_delete = ids_to_delete
 
     def _get_statements_for_our_property(self):
         client = self.client()
 
-        all_statements = client.get_statements(self.item_id)
-
+        all_statements = client.get_statements(self.entity_id)
         our_statements = all_statements.get(self.property_id, [])
 
         if len(our_statements) == 0:
-            raise NoStatementsForThatProperty(self.item_id, self.property_id)
+            raise NoStatementsForThatProperty(self.entity_id, self.property_id)
 
         return our_statements
 

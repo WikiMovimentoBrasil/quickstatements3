@@ -70,6 +70,12 @@ class ApiNotImplemented(ApiException):
         return super().__init__(message)
 
 
+class EntityTypeNotImplemented(ApiException):
+    def __init__(self, entity_id):
+        message = f"{entity_id}: entity type not supported"
+        return super().__init__(message)
+
+
 class NoToken(ApiException):
     def __init__(self, username):
         self.username = username
