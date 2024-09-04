@@ -9,6 +9,24 @@ from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
 
 
+def parser_value_to_api_value(parser_value):
+    # TODO: refactor parser to use this
+    # format for values, instead of having to reprocess them here.
+    # Basically, types can be "value", "novalue" and "somevalue",
+    # when working with the API. The data type is not needed.
+    # It is only used when checking with the property's data type,
+    # so it's still useful, but it can be saved not in value's type.
+    if parser_value["type"] in ["novalue", "somevalue"]:
+        return {
+            "type": parser_value["type"],
+        }
+    else:
+        return {
+            "type": "value",
+            "content": parser_value["value"],
+        }
+
+
 class ApiCommandBuilder:
     def __init__(self, command):
         self.command = command
@@ -71,9 +89,8 @@ class AddStatement(Utilities):
         self.entity_id = j["entity"]["id"]
         self.property_id = j["property"]
 
-        value = j["value"]
-        self.data_type = value["type"]
-        self.value = value["value"]
+        self.parser_value = j["value"]
+        self.data_type = self.parser_value["type"]
         self.references = j.get("references", [])
         self.qualifiers = j.get("qualifiers", [])
 
@@ -82,6 +99,9 @@ class AddStatement(Utilities):
     def verify_data_type(self):
         client = self.client()
         needed_data_type = client.get_property_data_type(self.property_id)
+
+        if self.data_type in ["somevalue", "novalue"]:
+            return
 
         if needed_data_type != self.data_type:
             raise InvalidPropertyDataType(
@@ -94,10 +114,7 @@ class AddStatement(Utilities):
         all_quali = [
             {
                 "property": {"id": q["property"]},
-                "value": {
-                    "content": q["value"]["value"],
-                    "type": "value",
-                },
+                "value": parser_value_to_api_value(q["value"]),
             }
             for q in self.qualifiers
         ]
@@ -109,10 +126,7 @@ class AddStatement(Utilities):
                 fixed_parts.append(
                     {
                         "property": {"id": part["property"]},
-                        "value": {
-                            "content": part["value"]["value"],
-                            "type": "value",
-                        },
+                        "value": parser_value_to_api_value(part["value"]),
                     }
                 )
             all_refs.append({"parts": fixed_parts})
@@ -122,10 +136,7 @@ class AddStatement(Utilities):
                 "property": {
                     "id": self.property_id,
                 },
-                "value": {
-                    "content": self.value,
-                    "type": "value",
-                },
+                "value": parser_value_to_api_value(self.parser_value),
                 "qualifiers": all_quali,
                 "references": all_refs,
             }
@@ -226,7 +237,8 @@ class RemoveStatement(Utilities):
 
         self.entity_id = j["entity"]["id"]
         self.property_id = j["property"]
-        self.value = j["value"]["value"]
+        self.parser_value = j["value"]
+        self.api_value = parser_value_to_api_value(self.parser_value)
 
         self.load_ids_to_delete()
 
@@ -237,13 +249,17 @@ class RemoveStatement(Utilities):
 
         for statement in statements:
             id = statement["id"]
-            value = statement["value"]["content"]
+            api_value = statement["value"]
 
-            if value == self.value:
+            if api_value == self.api_value:
                 ids_to_delete.append(id)
 
         if len(ids_to_delete) == 0:
-            raise NoStatementsWithThatValue(self.entity_id, self.property_id, self.value)
+            raise NoStatementsWithThatValue(
+                self.entity_id,
+                self.property_id,
+                self.parser_value["value"],
+            )
 
         self.ids_to_delete = ids_to_delete
 
