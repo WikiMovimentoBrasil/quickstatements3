@@ -1,7 +1,10 @@
 from core.models import BatchCommand
-from .client import Client
-
 from web.models import Token
+
+from .client import Client
+from .exceptions import ApiNotImplemented
+from .exceptions import InvalidPropertyDataType
+from .exceptions import NoToken
 
 
 class ApiCommandBuilder:
@@ -23,18 +26,19 @@ class ApiCommandBuilder:
         elif self.command.action == BatchCommand.ACTION_CREATE:
             return CreateItem(self.command)
 
-        raise ValueError("Not Implemented")
+        raise ApiNotImplemented()
 
 
 class Utilities:
     def client(self):
         try:
+            username = self.command.batch.user
             # TODO: maybe save the user directly in the Batch,
             # so that we don't have to query by username?
-            token = Token.objects.get(user__username=self.command.batch.user).value
+            token = Token.objects.get(user__username=username).value
             return Client.from_token(token)
         except Token.DoesNotExist:
-            raise ValueError("We don't have a token for that user")
+            raise NoToken(username)
 
     def full_body(self):
         body = self.body()
@@ -70,11 +74,10 @@ class AddStatement(Utilities):
         needed_data_type = client.get_property_data_type(self.property_id)
 
         if needed_data_type != self.data_type:
-            raise ValueError(
-                (
-                    f"Invalid data type for the property {self.property_id}: "
-                    f"{self.data_type} was provided but it needs {needed_data_type}."
-                )
+            raise InvalidPropertyDataType(
+                self.property_id,
+                self.data_type,
+                needed_data_type,
             )
 
     def body(self):

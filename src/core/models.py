@@ -3,6 +3,8 @@ import logging
 from django.db import models
 from django.utils.translation import gettext as _
 
+from api.exceptions import ApiException
+
 logger = logging.getLogger("qsts3")
    
 
@@ -219,8 +221,10 @@ class BatchCommand(models.Model):
             self.response_json = self._send_to_api()
             self._update_status_to_done()
             logger.info(f"[{self}] finished")
-        except Exception as e:
-            logger.error(f"[{self}] error: {e}")
+        except (ApiException, Exception) as e:
+            message = getattr(e, "message", str(e))
+            logger.error(f"[{self}] error: {message}")
+            self.message = message
             self._update_status_to_error()
 
     def _send_to_api(self):
