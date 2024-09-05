@@ -2,6 +2,8 @@ import os
 import requests
 import logging
 
+from web.models import Token
+
 from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
@@ -24,9 +26,19 @@ class Client:
     def __str__(self):
         return "API Client with token [redacted]"
 
-    @staticmethod
-    def from_token(token):
-        return Client(token)
+    @classmethod
+    def from_token(cls, token):
+        return cls(token)
+
+    @classmethod
+    def from_user(cls, user):
+        token = Token.objects.get(user=user).value
+        return cls.from_token(token)
+
+    @classmethod
+    def from_username(cls, username):
+        token = Token.objects.get(user__username=username).value
+        return cls.from_token(token)
 
     def headers(self):
         return {
