@@ -12,6 +12,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from api.client import Client
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.base import ParserException
@@ -111,8 +112,23 @@ def batch_commands(request, pk):
         page = int(request.GET.get("page", 1))
     except:
         page = 1
+
     paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)
-    return render(request, "batch_commands.html", {"page": paginator.page(page), "batch_pk": pk})
+    page = paginator.page(page)
+
+    if request.user.is_authenticated:
+        client = Client.from_user(request.user)
+        cached = {}
+        for command in page.object_list:
+            id = command.entity_id()
+            if id is None: # this can happen for CREATE commands, for example
+                continue
+            if cached.get(id) is None:
+                # TODO: get user's language preference
+                cached[id] = client.get_labels(id).get("en", "")
+            command.display_label = cached[id]
+
+    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
 
 
 @require_http_methods(

@@ -141,6 +141,15 @@ class Client:
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
+    def get_labels(self, entity_id):
+        """
+        Returns all labels for an entity: a dictionary with the language
+        code as the keys.
+        """
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
+        url = self.wikibase_url(endpoint)
+        return self.get(url).json()
+
     def get_statements(self, entity_id):
         """
         Returns all statements for an entity in the form of a dictionary.
