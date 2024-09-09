@@ -7,6 +7,7 @@ from django.test import Client
 from api.tests import ApiMocker
 from api.client import Client as ApiClient
 from web.models import Token
+from web.models import Preferences
 
 from core.models import Batch
 from core.parsers.v1 import V1CommandParser
@@ -219,4 +220,20 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{batch.pk}/commands/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch_commands.html")
+        self.assertInRes("English label", response)
+
+        # Portuguse uses its label
+        prefs = Preferences.objects.create(
+            user=user,
+            language="pt",
+        )
+        response = self.client.get(f"/batch/{batch.pk}/commands/")
+        self.assertEqual(response.status_code, 200)
+        self.assertInRes("Portuguese label", response)
+
+        # Spanish will use the english label
+        prefs.language = "es"
+        prefs.save()
+        response = self.client.get(f"/batch/{batch.pk}/commands/")
+        self.assertEqual(response.status_code, 200)
         self.assertInRes("English label", response)
