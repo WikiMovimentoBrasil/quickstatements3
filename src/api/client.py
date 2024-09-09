@@ -88,6 +88,10 @@ class Client:
 
         return f"{base}/{entity_id}{entity_endpoint}"
 
+    def wikibase_entity_url(self, entity_id, entity_endpoint):
+        endpoint = self.wikibase_entity_endpoint(entity_id, entity_endpoint)
+        return self.wikibase_url(endpoint)
+
     def wikibase_request_wrapper(self, method, endpoint, body):
         kwargs = {
             "json": body,
@@ -146,8 +150,7 @@ class Client:
         Returns all labels for an entity: a dictionary with the language
         code as the keys.
         """
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
-        url = self.wikibase_url(endpoint)
+        url = self.wikibase_entity_url(entity_id, "/labels")
         return self.get(url).json()
 
     def get_statements(self, entity_id):
@@ -157,8 +160,7 @@ class Client:
         The key is the property id, and the value is an array with
         the statement objects.
         """
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
-        url = self.wikibase_url(endpoint)
+        url = self.wikibase_entity_url(entity_id, "/statements")
         return self.get(url).json()
 
     # ---
