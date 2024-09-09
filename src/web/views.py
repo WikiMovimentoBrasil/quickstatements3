@@ -19,6 +19,7 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from .utils import user_from_token, clear_tokens
+from .models import Preferences
 
 
 PAGE_SIZE = 30
@@ -278,4 +279,12 @@ def login_dev(request):
 
 
 def profile(request):
-    return render(request, "profile.html")
+    data = {}
+    if request.user.is_authenticated:
+        user = request.user
+        if request.method == "POST":
+            prefs, _ = Preferences.objects.get_or_create(user=user)
+            prefs.language = request.POST["language"]
+            prefs.save()
+        data["language"] = Preferences.objects.get_language(user, "en")
+    return render(request, "profile.html", data)
