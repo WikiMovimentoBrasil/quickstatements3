@@ -122,13 +122,7 @@ def batch_commands(request, pk):
         language = Preferences.objects.get_language(request.user, "en")
         cached = {}
         for command in page.object_list:
-            id = command.entity_id()
-            if id is None: # this can happen for CREATE commands, for example
-                continue
-            if cached.get(id) is None:
-                labels = client.get_labels(id)
-                cached[id] = labels.get(language, labels.get("en", ""))
-            command.display_label = cached[id]
+            command.display_label = command.get_label(client, language, cached)
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
 
