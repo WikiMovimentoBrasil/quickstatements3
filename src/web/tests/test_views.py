@@ -1,13 +1,37 @@
+import requests_mock
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test import Client
 
+from api.tests import ApiMocker
+from api.client import Client as ApiClient
+from web.models import Token
+
 from core.models import Batch
+from core.parsers.v1 import V1CommandParser
 
 
 class ViewsTest(TestCase):
     URL_NAME = "profile"
+
+    def assertInRes(self, substring, response):
+        """Checks if a substring is contained in response content"""
+        self.assertIn(substring.lower(), str(response.content).lower().strip())
+
+    def login_user_and_get_token(self, username):
+        """
+        Creates an user and a test token.
+
+        Returns a tuple with the user object and their API client.
+        """
+        user = User.objects.create_user(username=username)
+        self.client.force_login(user)
+
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        api_client = ApiClient.from_user(user)
+
+        return (user, api_client)
 
     def test_home(self):
         c = Client()
@@ -178,3 +202,21 @@ class ViewsTest(TestCase):
         response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
+
+    @requests_mock.Mocker()
+    def test_command_labels(self, mocker):
+        user, api_client = self.login_user_and_get_token("wikiuser")
+
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
+
+        labels = {
+            "en": "English label",
+            "pt": "Portuguese label",
+        }
+        ApiMocker.labels(mocker, api_client, "Q1234", labels)
+
+        response = self.client.get(f"/batch/{batch.pk}/commands/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch_commands.html")
+        self.assertInRes("English label", response)
