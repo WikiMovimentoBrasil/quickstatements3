@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext as _
 
+from .languages import LANGUAGE_CHOICES
 
 class Token(models.Model):
     """
@@ -33,8 +34,7 @@ class Preferences(models.Model):
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False)
-    # TODO: include choices from https://doc.wikimedia.org/mediawiki-core/master/php/Names_8php_source.html
-    language = models.CharField(max_length=10, blank=True, null=False)
+    language = models.CharField(max_length=32, choices=LANGUAGE_CHOICES, blank=True, null=False)
 
     objects = PreferencesManager()
 

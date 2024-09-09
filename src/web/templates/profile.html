@@ -13,7 +13,11 @@
 <form method="POST">
   {% csrf_token %}
   <label for="language">Preferred language</label>
-  <input type="text" name="language" value="{{ language }}">
+  <select name="language" required>
+    {% for code, name in language_choices %}
+    <option {% if code == language %}selected{% endif %} value="{{ code }}"> {{ code }}: {{ name }} </option>
+    {% endfor %}
+  </select>
   <input type="submit" value="Update">
 </form>
 
