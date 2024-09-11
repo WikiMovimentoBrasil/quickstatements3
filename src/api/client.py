@@ -2,6 +2,7 @@ import os
 import requests
 import logging
 
+from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
@@ -65,6 +66,16 @@ class Client:
     def wikibase_url(self, endpoint):
         return f"{self.WIKIBASE_URL}{endpoint}"
 
+    def wikibase_entity_endpoint(self, entity_id, entity_endpoint):
+        if entity_id.startswith("Q"):
+            base = "/entities/items"
+        elif entity_id.startswith("P"):
+            base = "/entities/properties"
+        else:
+            raise EntityTypeNotImplemented(entity_id)
+
+        return f"{base}/{entity_id}{entity_endpoint}"
+
     def wikibase_request_wrapper(self, method, endpoint, body):
         kwargs = {
             "json": body,
@@ -79,6 +90,8 @@ class Client:
             res = requests.post(url, **kwargs)
         elif method == "PATCH":
             res = requests.patch(url, **kwargs)
+        elif method == "DELETE":
+            res = requests.delete(url, **kwargs)
         else:
             raise ValueError("not implemented")
 
@@ -91,6 +104,9 @@ class Client:
 
     def wikibase_patch(self, endpoint, body):
         return self.wikibase_request_wrapper("PATCH", endpoint, body)
+
+    def wikibase_delete(self, endpoint, body):
+        return self.wikibase_request_wrapper("DELETE", endpoint, body)
 
     # ---
     # Wikibase GET/reading
@@ -113,29 +129,44 @@ class Client:
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
+    def get_statements(self, entity_id):
+        """
+        Returns all statements for an entity in the form of a dictionary.
+
+        The key is the property id, and the value is an array with
+        the statement objects.
+        """
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
+        url = self.wikibase_url(endpoint)
+        return self.get(url).json()
+
     # ---
     # Wikibase POST/editing
     # ---
-    def create_entity(self, body):
+    def create_item(self, body):
         endpoint = "/entities/items"
         return self.wikibase_post(endpoint, body)
 
-    def add_statement(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/statements"
+    def add_statement(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
         return self.wikibase_post(endpoint, body)
 
-    def add_label(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/labels"
+    def add_label(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
         return self.wikibase_patch(endpoint, body)
 
-    def add_description(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/descriptions"
+    def add_description(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/descriptions")
         return self.wikibase_patch(endpoint, body)
 
-    def add_alias(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/aliases"
+    def add_alias(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/aliases")
         return self.wikibase_patch(endpoint, body)
 
-    def add_sitelink(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/sitelinks"
+    def add_sitelink(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/sitelinks")
         return self.wikibase_patch(endpoint, body)
+
+    def delete_statement(self, statement_id, body):
+        endpoint = f"/statements/{statement_id}"
+        return self.wikibase_delete(endpoint, body)
