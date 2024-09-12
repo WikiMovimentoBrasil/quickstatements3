@@ -57,6 +57,31 @@ class TestV1ParserCommand(TestCase):
             },
         )
 
+    def test_v1_create_property(self):
+        parser = V1CommandParser()
+        for datatype in parser.CREATE_PROPERTY_ALLOWED_DATATYPES:
+            data = parser.parse_command(f"CREATE_PROPERTY\t{datatype}")
+            self.assertEqual(
+                data,
+                {
+                    "action": "create",
+                    "type": "property",
+                    "data": datatype
+                },
+            )
+
+    def test_v1_bad_create_property(self):
+        parser = V1CommandParser()
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command(f"CREATE_PROPERTY")
+        self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command("CREATE_PROPERTY\tP1\t12")
+        self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command("CREATE_PROPERTY\tmy_datatype")
+        self.assertEqual(context.exception.message, "CREATE PROPERTY datatype allowed values: ['commonsMedia', 'globe-coordinate', 'wikibase-item', 'wikibase-property', 'string', 'monolingualtext', 'external-id', 'quantity', 'time', 'url', 'math', 'geo-shape', 'musical-notation', 'tabular-data', 'wikibase-lexeme', 'wikibase-form', 'wikibase-sense']")        
+
     def test_v1_remove_statement_by_id(self):
         parser = V1CommandParser()
         data = parser.parse_command("-STATEMENT\tQ4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34")

@@ -18,6 +18,16 @@ class V1CommandParser(BaseParser):
         else:
             return {"action": "create", "type": "item"}
 
+    def parse_create_property(self, elements):
+        llen = len(elements)
+        if llen != 2:
+            raise ParserException("CREATE PROPERTY command must have 2 columns")
+        else:
+            datatype = elements[1]
+            if datatype not in self.CREATE_PROPERTY_ALLOWED_DATATYPES:
+                raise ParserException(f"CREATE PROPERTY datatype allowed values: {self.CREATE_PROPERTY_ALLOWED_DATATYPES}")
+            return {"action": "create", "type": "property", "data": datatype}
+
     def parse_merge(self, elements):
         llen = len(elements)
         if llen != 3:
@@ -154,6 +164,8 @@ class V1CommandParser(BaseParser):
 
         if first_command == "CREATE":
             data = self.parse_create(elements)
+        elif first_command == "CREATE_PROPERTY":
+            data = self.parse_create_property(elements)
         elif first_command == "MERGE":
             data = self.parse_merge(elements)
         elif first_command == "STATEMENT" or first_command == "-STATEMENT":
