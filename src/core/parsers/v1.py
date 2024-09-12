@@ -8,6 +8,7 @@ from core.models import BatchCommand
 
 class V1CommandParser(BaseParser):
 
+    CREATE_PROPERTY_ALLOWED_DATATYPES = ["commonsMedia", "globe-coordinate", "wikibase-item", "wikibase-property", "string", "monolingualtext", "external-id", "quantity", "time", "url", "math", "geo-shape", "musical-notation", "tabular-data", "wikibase-lexeme", "wikibase-form", "wikibase-sense"]
     WHAT = {"L": "label", "D": "description", "A": "alias", "S": "sitelink"}
 
     def parse_create(self, elements):
@@ -33,6 +34,20 @@ class V1CommandParser(BaseParser):
                 return {"action": "merge", "type": "item", "item1": item1, "item2": item2}
             except ValueError:
                 raise ParserException(f"MERGE items wrong format item1=[{item1}] item2=[{item2}]")
+
+    def parse_statement_by_id(self, elements):
+        llen = len(elements)
+        if llen != 2:
+            raise ParserException("remove statement by ID command must have 2 columns")
+        else:
+            command = elements[0]
+            action = "remove" if command[0] == "-" else "add"
+            item = elements[1].strip()
+            tokens = item.split("$")
+            if len(tokens) != 2:
+                raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$<ID>")
+            _id = tokens[1]
+            return {'action': action , 'what': 'statement' , 'id': _id}
 
     def parse_statement(self, elements, first_command):
         llen = len(elements)
@@ -141,6 +156,8 @@ class V1CommandParser(BaseParser):
             data = self.parse_create(elements)
         elif first_command == "MERGE":
             data = self.parse_merge(elements)
+        elif first_command == "STATEMENT" or first_command == "-STATEMENT":
+            data = self.parse_statement_by_id(elements)
         else:
             data = self.parse_statement(elements, first_command)
 

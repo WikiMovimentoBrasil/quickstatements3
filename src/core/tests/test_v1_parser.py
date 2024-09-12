@@ -57,6 +57,30 @@ class TestV1ParserCommand(TestCase):
             },
         )
 
+    def test_v1_remove_statement_by_id(self):
+        parser = V1CommandParser()
+        data = parser.parse_command("-STATEMENT\tQ4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34")
+        self.assertEqual(
+            data,
+            {
+                "action": "remove",
+                "id": "0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34",
+                "what": "statement",
+            },
+        )
+
+    def test_v1_bad_remove_statement_by_id(self):
+        parser = V1CommandParser()
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command("-STATEMENT")
+        self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command("-STATEMENT\tP1\t12")
+        self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
+        with self.assertRaises(Exception) as context:
+            data = parser.parse_command("-STATEMENT\tQ1")
+        self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$<ID>")        
+
     def test_v1_remove_quantity(self):
         parser = V1CommandParser()
         data = parser.parse_command("-Q1234\tP1\t12")
