@@ -2,6 +2,11 @@ import os
 import requests
 import logging
 
+from .exceptions import EntityTypeNotImplemented
+from .exceptions import NonexistantPropertyOrNoDataType
+from .exceptions import UserError
+from .exceptions import ServerError
+
 logger = logging.getLogger("qsts3")
 
 
@@ -33,11 +38,13 @@ class Client:
         logger.debug(f"Sending GET request at {url}")
         return requests.get(url, headers=self.headers())
 
-    def post(self, url, body):
-        logger.debug(f"POST request at {url} | sending with body {body}")
-        res = requests.post(url, json=body, headers=self.headers())
-        logger.debug(f"POST request at {url} | response: {res.json()}")
-        return res
+    def raise_for_status(self, response):
+        j = response.json()
+        status = response.status_code
+        if 400 <= status <= 499:
+            raise UserError(j.get("code"), j.get("message"))
+        if 500 <= status <= 599:
+            raise ServerError(j)
 
     # ---
     # Auth
@@ -54,11 +61,56 @@ class Client:
             )
 
     # ---
-    # Wikibase GET/reading
+    # Wikibase utilities
     # ---
-    def full_wikibase_url(self, endpoint):
+    def wikibase_url(self, endpoint):
         return f"{self.WIKIBASE_URL}{endpoint}"
 
+    def wikibase_entity_endpoint(self, entity_id, entity_endpoint):
+        if entity_id.startswith("Q"):
+            base = "/entities/items"
+        elif entity_id.startswith("P"):
+            base = "/entities/properties"
+        else:
+            raise EntityTypeNotImplemented(entity_id)
+
+        return f"{base}/{entity_id}{entity_endpoint}"
+
+    def wikibase_request_wrapper(self, method, endpoint, body):
+        kwargs = {
+            "json": body,
+            "headers": self.headers(),
+        }
+
+        url = self.wikibase_url(endpoint)
+
+        logger.debug(f"{method} request at {url} | sending with body {body}")
+
+        if method == "POST":
+            res = requests.post(url, **kwargs)
+        elif method == "PATCH":
+            res = requests.patch(url, **kwargs)
+        elif method == "DELETE":
+            res = requests.delete(url, **kwargs)
+        else:
+            raise ValueError("not implemented")
+
+        logger.debug(f"{method} request at {url} | response: {res.json()}")
+        self.raise_for_status(res)
+        return res.json()
+
+    def wikibase_post(self, endpoint, body):
+        return self.wikibase_request_wrapper("POST", endpoint, body)
+
+    def wikibase_patch(self, endpoint, body):
+        return self.wikibase_request_wrapper("PATCH", endpoint, body)
+
+    def wikibase_delete(self, endpoint, body):
+        return self.wikibase_request_wrapper("DELETE", endpoint, body)
+
+    # ---
+    # Wikibase GET/reading
+    # ---
     def get_property_data_type(self, property_id):
         """
         Returns the expected data type of the property.
@@ -66,7 +118,7 @@ class Client:
         Returns the data type as a string.
         """
         endpoint = f"/entities/properties/{property_id}"
-        url = self.full_wikibase_url(endpoint)
+        url = self.wikibase_url(endpoint)
 
         # TODO: add caching
         res = self.get(url).json()
@@ -75,14 +127,46 @@ class Client:
             data_type = res["data_type"]
             return data_type
         except KeyError:
-            raise ValueError("The property does not exist or does not have a data type")
+            raise NonexistantPropertyOrNoDataType(property_id)
+
+    def get_statements(self, entity_id):
+        """
+        Returns all statements for an entity in the form of a dictionary.
+
+        The key is the property id, and the value is an array with
+        the statement objects.
+        """
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
+        url = self.wikibase_url(endpoint)
+        return self.get(url).json()
 
     # ---
     # Wikibase POST/editing
     # ---
-    def add_statement(self, item_id, body):
-        endpoint = f"/entities/items/{item_id}/statements"
-        url = self.full_wikibase_url(endpoint)
-        res = self.post(url, body)
-        res.raise_for_status()
-        return res.json()
+    def create_item(self, body):
+        endpoint = "/entities/items"
+        return self.wikibase_post(endpoint, body)
+
+    def add_statement(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
+        return self.wikibase_post(endpoint, body)
+
+    def add_label(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
+        return self.wikibase_patch(endpoint, body)
+
+    def add_description(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/descriptions")
+        return self.wikibase_patch(endpoint, body)
+
+    def add_alias(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/aliases")
+        return self.wikibase_patch(endpoint, body)
+
+    def add_sitelink(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/sitelinks")
+        return self.wikibase_patch(endpoint, body)
+
+    def delete_statement(self, statement_id, body):
+        endpoint = f"/statements/{statement_id}"
+        return self.wikibase_delete(endpoint, body)

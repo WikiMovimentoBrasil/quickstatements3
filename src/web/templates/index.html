@@ -11,14 +11,14 @@
 
 <form id="batchForm">
   <fieldset role="group">
-    <input id="batchInput" type="text" placeholder="Batch ID..." oninput="updateBatchForm()" />
+    <input id="batchInput" type="number" placeholder="Batch ID..." oninput="updateBatchForm()" required />
     <input type="submit" value="See batch details" />
   </fieldset>
 </form>
 
 <form id="userForm">
   <fieldset role="group">
-    <input id="userInput" type="text" placeholder="Username..." oninput="updateUserForm()" />
+    <input id="userInput" type="text" placeholder="Username..." oninput="updateUserForm()" required />
     <input type="submit" value="See batches by user" />
   </fieldset>
 </form>

@@ -1,22 +1,33 @@
-from enum import Enum
+import logging
 
 from django.db import models
 from django.utils.translation import gettext as _
+
+from api.exceptions import ApiException
+
+logger = logging.getLogger("qsts3")
    
 
 class Batch(models.Model):
     """
     Represents a BATCH, containing multiple commands
     """
-    class STATUS(Enum):
-        BLOCKED = (-1, _("Blocked"))
-        INITIAL = (0, _("Initial"))
-        RUNNING = (1, _("Running"))
-        DONE = (2, _("Done"))
+
+    STATUS_BLOCKED = -1
+    STATUS_INITIAL = 0
+    STATUS_RUNNING = 1
+    STATUS_DONE = 2
+
+    STATUS_CHOICES = (
+        (STATUS_BLOCKED, _("Blocked")),
+        (STATUS_INITIAL, _("Initial")),
+        (STATUS_RUNNING, _("Running")),
+        (STATUS_DONE, _("Done"))
+    )
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
-    status = models.IntegerField(default=STATUS.INITIAL.value[0], choices=[s.value for s in STATUS], null=False)
+    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
@@ -30,6 +41,50 @@ class Batch(models.Model):
 
     def commands(self):
         return BatchCommand.objects.filter(batch=self).all().order_by("index")
+
+    def run(self):
+        """
+        Sends all the batch commands to the Wikidata API. This method should not fail.
+        Sets the batch status to BLOCKED when a command fails.
+        """
+        # Ignore when not INITIAL
+        if self.status != Batch.STATUS_INITIAL:
+            return
+
+        self._update_status_to_running()
+        logger.debug(f"[{self}] running...")
+
+        last_id = None
+
+        for command in self.commands():
+            command.update_last_id(last_id)
+            command.run()
+            if command.is_error_status():
+                self._update_status_to_blocked()
+                logger.warn(f"[{self}] blocked by {command}")
+                return
+
+            if command.action == BatchCommand.ACTION_CREATE:
+                last_id = command.response_id()
+
+        self._update_status_to_done()
+        logger.info(f"[{self}] finished")
+
+    def _send_to_api(self):
+        from api.commands import ApiCommandBuilder
+        ApiCommandBuilder(self).build_and_send()
+
+    def _update_status_to_running(self):
+        self.status = self.STATUS_RUNNING
+        self.save()
+
+    def _update_status_to_done(self):
+        self.status = self.STATUS_DONE
+        self.save()
+
+    def _update_status_to_blocked(self):
+        self.status = self.STATUS_BLOCKED
+        self.save()
 
 
 class BatchCommand(models.Model):
@@ -70,18 +125,29 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    response_json = models.JSONField(default=dict)
 
     def __str__(self):
         return f"Batch #{self.batch.pk} Command #{self.pk}"
 
     @property
     def entity_info(self):
+        entity_id = self.entity_id()
+        return f"[{entity_id}]" if entity_id else ""
+
+    def entity_id(self):
         item = self.json.get("item", None)
         if item:
-            return f"[{item}]"
+            return item
+        return self.json.get("entity", {}).get("id", None)
+
+    def set_entity_id(self, value):
+        if self.json.get("item", None):
+            self.json["item"] = value
+        elif self.json.get("entity", {}).get("id", None):
+            self.json["entity"]["id"] = value
         else:
-            eid = self.json.get('entity', {}).get('id', None)
-            return f"[{eid}]" if eid else ""
+            raise ValueError("This command has no entity to update its id.")
 
     @property
     def status_info(self):
@@ -124,6 +190,22 @@ class BatchCommand(models.Model):
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
 
+    def response_id(self):
+        """
+        Returns the response's id.            
+
+        It is the created entity id when in a CREATE action.
+        """
+        return self.response_json.get("id")
+
+    def update_last_id(self, last_id=None):
+        """
+        Updates this command's entity id, if it's LAST, to the argument.
+        """
+        if self.entity_id() == "LAST" and last_id is not None:
+            self.set_entity_id(last_id)
+            self.save()
+
     def run(self):
         """
         Sends the command to the Wikidata API. This method should not fail.
@@ -133,17 +215,21 @@ class BatchCommand(models.Model):
             return
 
         self._update_status_to_running()
+        logger.debug(f"[{self}] running...")
 
         try:
-            self._send_to_api()
+            self.response_json = self._send_to_api()
             self._update_status_to_done()
-        except Exception as e:
-            print(e)
+            logger.info(f"[{self}] finished")
+        except (ApiException, Exception) as e:
+            message = getattr(e, "message", str(e))
+            logger.error(f"[{self}] error: {message}")
+            self.message = message
             self._update_status_to_error()
 
     def _send_to_api(self):
         from api.commands import ApiCommandBuilder
-        ApiCommandBuilder(self).build_and_send()
+        return ApiCommandBuilder(self).build_and_send()
 
     def _update_status_to_running(self):
         self.status = BatchCommand.STATUS_RUNNING

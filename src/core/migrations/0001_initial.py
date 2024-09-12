@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255)),
                 ('user', models.CharField(db_index=True, max_length=128)),
-                ('status', models.IntegerField(choices=[(-1, 'Blocked'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], default=core.models.Batch.STATUS['INITIAL'])),
+                ('status', models.IntegerField(choices=[(-1, 'Blocked'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], default=0)),
                 ('message', models.TextField()),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('modified', models.DateTimeField(auto_now=True)),

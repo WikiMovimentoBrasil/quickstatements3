@@ -14,8 +14,8 @@
     <label for="batch_type">Command format</label>
     
     <select name="type" id="batch_type">
-      <option value="v1" {% if type_v1 %}selected{% endif %}>V1</option>
-      <option value="csv" {% if type_csv %}selected{% endif %}>CSV</option>
+      <option value="v1" {% if batch_type == "v1" %}selected{% endif %}>V1</option>
+      <option value="csv" {% if batch_type != "v1" %}selected{% endif %}>CSV</option>
     </select>
     
     <input type="text" name="name" aria-label="batch name" 
