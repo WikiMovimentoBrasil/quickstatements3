@@ -63,8 +63,7 @@ class Utilities:
             username = self.command.batch.user
             # TODO: maybe save the user directly in the Batch,
             # so that we don't have to query by username?
-            token = Token.objects.get(user__username=username).value
-            return Client.from_token(token)
+            return Client.from_username(username)
         except Token.DoesNotExist:
             raise NoToken(username)
 

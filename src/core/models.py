@@ -243,6 +243,38 @@ class BatchCommand(models.Model):
         self.status = BatchCommand.STATUS_ERROR
         self.save()
 
+    def get_label(self, api_client, preferred_language="en", cache_dictionary={}):
+        """
+        Obtains the label for the entity of this command.
+
+        If there is no initial entity, like in a CREATE command, it will return None.
+
+        Using the entity's entity id, will obtain the labels from the API.
+
+        The prefered language will be used at first. If there is no label for the
+        preferred language, it will use the english label.
+
+        The cache_dictionary argument can be used when running this in a for loop
+        with multiple commands that have the same entity id, to reduce API calls.
+        """
+        id = self.entity_id()
+
+        if id is None:
+            return None
+
+        if cache_dictionary.get(id) is None:
+            labels = api_client.get_labels(id)
+
+            preferred = labels.get(preferred_language)
+
+            if not preferred and preferred_language != "en":
+                cache_dictionary[id] = labels.get("en")
+            else:
+                cache_dictionary[id] = preferred
+
+        return cache_dictionary[id]
+
+
 
     class Meta:
         verbose_name = _("Batch Command")
