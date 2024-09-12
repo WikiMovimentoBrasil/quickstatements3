@@ -78,6 +78,7 @@ class BatchDetailSerializer(serializers.HyperlinkedModelSerializer):
 
     status = serializers.SerializerMethodField()
     commands_url = serializers.SerializerMethodField()
+    summary = serializers.SerializerMethodField()
 
     def get_status(self, obj):
         return {"code": obj.status, "display": obj.get_status_display()}
@@ -85,9 +86,17 @@ class BatchDetailSerializer(serializers.HyperlinkedModelSerializer):
     def get_commands_url(self, obj):
         return reverse_lazy("batch-commands", kwargs={"batchpk": obj.pk}, request=self.context["request"])
 
+    def get_summary(self, obj):
+        return {
+            "initial_commands": obj.initial_commands,
+            "running_commands": obj.running_commands,
+            "done_commands": obj.done_commands,
+            "total_commands": obj.total_commands
+        }
+
     class Meta:
         model = Batch
-        fields = ["pk", "name", "user", "status", "commands_url", "message", "created", "modified"]
+        fields = ["pk", "name", "user", "status", "summary", "commands_url","message", "created", "modified"]
 
 
 class BatchCommandListSerializer(serializers.HyperlinkedModelSerializer):
@@ -168,9 +177,27 @@ class BatchDetailView(mixins.RetrieveModelMixin, generics.GenericAPIView):
     """
     Batch detail
     """
-
     queryset = Batch.objects.all()
     serializer_class = BatchDetailSerializer
+
+    def get_object(self):
+        from django.db.models import Q, Count
+        try:
+            error_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR))
+            initial_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL))
+            running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
+            done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
+            batch = (
+                Batch.objects.annotate(error_commands=error_commands)
+                .annotate(initial_commands=initial_commands)
+                .annotate(running_commands=running_commands)
+                .annotate(done_commands=done_commands)
+                .annotate(total_commands=Count("batchcommand"))
+                .get(pk=self.kwargs["pk"])
+            )
+            return batch
+        except Batch.DoesNotExist:
+            raise Http404
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
