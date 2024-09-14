@@ -1,4 +1,6 @@
 
+from django.http import Http404
+
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.authentication import SessionAuthentication
