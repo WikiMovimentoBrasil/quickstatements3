@@ -67,7 +67,7 @@ class BatchCommandListSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BatchCommand
-        fields = ["url", "pk", "index", "action", "json", "status", "created", "modified"]
+        fields = ["url", "pk", "index", "action", "json", "response_json",  "status", "created", "modified"]
 
 
 class BatchCommandDetailSerializer(serializers.HyperlinkedModelSerializer):
