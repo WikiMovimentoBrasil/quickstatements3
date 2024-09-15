@@ -35,13 +35,14 @@ class BatchDetailSerializer(serializers.HyperlinkedModelSerializer):
         return {"code": obj.status, "display": obj.get_status_display()}
 
     def get_commands_url(self, obj):
-        return reverse_lazy("batch-commands", kwargs={"batchpk": obj.pk}, request=self.context["request"])
+        return reverse_lazy("command-list", kwargs={"batchpk": obj.pk}, request=self.context["request"])
 
     def get_summary(self, obj):
         return {
             "initial_commands": obj.initial_commands,
             "running_commands": obj.running_commands,
             "done_commands": obj.done_commands,
+            "error_commands": obj.error_commands,
             "total_commands": obj.total_commands
         }
 
@@ -62,7 +63,7 @@ class BatchCommandListSerializer(serializers.HyperlinkedModelSerializer):
         return obj.get_action_display()
 
     def get_url(self, obj):
-        return reverse_lazy("batchcommand-detail", kwargs={"pk": obj.pk}, request=self.context["request"])
+        return reverse_lazy("command-detail", kwargs={"pk": obj.pk}, request=self.context["request"])
 
     class Meta:
         model = BatchCommand
@@ -86,5 +87,5 @@ class BatchCommandDetailSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BatchCommand
-        fields = ["batch", "index", "action", "raw", "json", "response_json", "status", "created", "modified"]
+        fields = ["batch", "pk", "index", "action", "raw", "json", "response_json", "status", "created", "modified"]
 
