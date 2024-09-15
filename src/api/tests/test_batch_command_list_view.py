@@ -106,4 +106,18 @@ class BatchCommandDetailViewTest(TestCase):
         self.assertEqual(data["links"]["previous"], 'http://testserver/api/v1/batches/1/commands/?page=2')
         self.assertEqual(data["total"], 250)
         self.assertEqual(data["page_size"], 50)
-       
+
+    def test_non_allowed_methods_request(self):
+        v1 = V1CommandParser()
+        self.assertFalse(Batch.objects.count())
+        self.assertFalse(BatchCommand.objects.count())
+        batch = v1.parse("My batch", "myuser", "CREATE||-Q1234|P1|12||Q222|P4|9~0.1")
+
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+        url = f"http://testserver/api/v1/batches/{batch.pk}/commands/"
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 405)
+        response = self.client.put(url)
+        self.assertEqual(response.status_code, 405)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 405)
