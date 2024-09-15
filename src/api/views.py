@@ -62,7 +62,8 @@ class BatchDetailView(generics.GenericAPIView, mixins.RetrieveModelMixin):
             running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
             done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
             batch = (
-                Batch.objects.annotate(error_commands=error_commands)
+                Batch.objects
+                .annotate(error_commands=error_commands)
                 .annotate(initial_commands=initial_commands)
                 .annotate(running_commands=running_commands)
                 .annotate(done_commands=done_commands)
