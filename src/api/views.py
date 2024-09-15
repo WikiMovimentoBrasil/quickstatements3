@@ -92,6 +92,11 @@ class BatchCommandListView(generics.GenericAPIView, mixins.ListModelMixin):
         return BatchCommand.objects.select_related("batch").filter(batch__pk=self.kwargs["batchpk"]).order_by("index")
 
     def get(self, request, *args, **kwargs):
+        try:
+            batch = Batch.objects.get(pk=kwargs["batchpk"])
+            request.batch = batch
+        except Batch.DoesNotExist:
+            raise Http404
         return self.list(request, *args, **kwargs)
 
 
