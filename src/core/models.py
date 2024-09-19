@@ -65,7 +65,7 @@ class Batch(models.Model):
         # TODO: if self.verify_data_types_before_running
         for command in self.commands():
             try:
-                command.verify_data_type(client)
+                command.verify_data_types(client)
             except InvalidPropertyDataType:
                 return self.block_by(command)
 
@@ -201,6 +201,18 @@ class BatchCommand(models.Model):
     def data_type(self):
         return self.json.get("value", {}).get("type", "")
 
+    def qualifiers(self):
+        return self.json.get("qualifiers", [])
+
+    def references(self):
+        return self.json.get("references", [])
+
+    def reference_parts(self):
+        parts = []
+        for ref in self.references():
+            parts.extend(ref)
+        return parts
+
     def is_add(self):
         return self.action == BatchCommand.ACTION_ADD
 
@@ -280,7 +292,7 @@ class BatchCommand(models.Model):
             self._error(message)
 
     def send_to_api(self, client: Client):
-        self.verify_data_type(client)
+        self.verify_data_types(client)
         self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
     def _start(self):
@@ -324,35 +336,37 @@ class BatchCommand(models.Model):
         else:
             return preferred
 
-    def verify_data_type(self, client: Client):
+    def verify_data_types(self, client: Client):
         """
         Checks if the supplied data type is allowed by the property's required data type.
+
+        Makes that check for the statement and for qualifiers and references.
 
         It sets the status to ERROR if the data type is invalid, updates the message,
         and raises InvalidPropertyDataType.
 
         Only makes sense in commands that require data type verification
-        (see self._should_verify_data_type)
+        (see self._should_verify_data_types)
 
         # Raises
 
         - InvalidPropertyDataType: when the data type is not valid.
         """
-        if self.should_verify_data_type():
-            needed_data_type = client.get_property_data_type(self.prop)
-            if self.data_type != needed_data_type:
-                exception = InvalidPropertyDataType(
-                    self.prop,
-                    self.data_type,
-                    needed_data_type
-                )
-                self._error(exception.message)
-                raise exception
+        if self.should_verify_data_types():
+            try:
+                client.verify_data_type(self.prop, self.data_type)
+                for q in self.qualifiers():
+                    client.verify_data_type(q["property"], q["value"]["type"])
+                for p in self.reference_parts():
+                    client.verify_data_type(p["property"], p["value"]["type"])
+            except InvalidPropertyDataType as e:
+                self._error(e.message)
+                raise e
 
         self.data_type_verified = True
         self.save()
 
-    def should_verify_data_type(self):
+    def should_verify_data_types(self):
         """
         Checks if this command needs data type verification.
 
@@ -361,20 +375,10 @@ class BatchCommand(models.Model):
         2) It needs if it is of the following types/actions:
 
         - Statement addition
-
-        3) And the data type is not somevalue or novalue, since those
-        can be used in any property.
         """
         is_not_verified_yet = not self.data_type_verified
-        needed_actions = self.is_add_statement()
-        data_type_is_not_somevalue_or_novalue = self.data_type not in ["somevalue", "novalue"]
-        return (
-            is_not_verified_yet
-            and needed_actions
-            and data_type_is_not_somevalue_or_novalue
-        )
-
-
+        is_needed_actions = self.is_add_statement()
+        return is_not_verified_yet and is_needed_actions
 
     class Meta:
         verbose_name = _("Batch Command")

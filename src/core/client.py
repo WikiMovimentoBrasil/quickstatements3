@@ -9,6 +9,7 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
+from .exceptions import InvalidPropertyDataType
 
 logger = logging.getLogger("qsts3")
 
@@ -192,6 +193,19 @@ class Client:
             return res["data_type"]
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
+
+    def verify_data_type(self, property_id, data_type):
+        """
+        Verifies if the data type of the property with `property_id` matches `data_type`.
+
+        If not, raises `InvalidPropertyDataType`.
+
+        Data types "somevalue" and "novalue" are allowed for every property.
+        """
+        if data_type not in ["somevalue", "novalue"]:
+            needed = self.get_property_data_type(property_id)
+            if needed != data_type:
+                raise InvalidPropertyDataType(property_id, data_type, needed)
 
     @cache_with_first_arg("label_cache")
     def get_labels(self, entity_id):
