@@ -228,33 +228,33 @@ class BatchCommand(models.Model):
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
-        self._update_status_to_running()
-        logger.debug(f"[{self}] running...")
+        self._start()
 
         try:
             self.verify_data_type(client)
-            self.response_json = self._send_to_api()
-            self._update_status_to_done()
-            logger.info(f"[{self}] finished")
+            self.response_json = self.send_to_api()
+            self._finish()
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
-            logger.error(f"[{self}] error: {message}")
-            self.message = message
-            self._update_status_to_error()
+            self._error(message)
 
-    def _send_to_api(self):
+    def send_to_api(self):
         from .commands import ApiCommandBuilder
         return ApiCommandBuilder(self).build_and_send()
 
-    def _update_status_to_running(self):
+    def _start(self):
+        logger.debug(f"[{self}] running...")
         self.status = BatchCommand.STATUS_RUNNING
         self.save()
 
-    def _update_status_to_done(self):
+    def _finish(self):
+        logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
         self.save()
 
-    def _update_status_to_error(self):
+    def _error(self, message):
+        logger.error(f"[{self}] error: {message}")
+        self.message = message
         self.status = BatchCommand.STATUS_ERROR
         self.save()
 
@@ -311,8 +311,7 @@ class BatchCommand(models.Model):
                     self.data_type,
                     needed_data_type
                 )
-                self.message = exception.message
-                self._update_status_to_error()
+                self._error(exception.message)
                 raise exception
 
         self.data_type_verified = True
