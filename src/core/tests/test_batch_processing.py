@@ -33,13 +33,42 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
 
     @requests_mock.Mocker()
-    def test_batch_is_blocked_when_a_command_fails(self, mocker):
+    def test_batch_is_blocked_when_data_type_verification_fails(self, mocker):
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
-        batch = self.parse_and_run("Q1234|P65|32||Q1234|P65|'string'")
+        batch = self.parse_and_run('Q1234|P65|32||Q1234|P65|"string"')
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
 
         commands = batch.commands()
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+
+    @requests_mock.Mocker()
+    def test_successful_data_type_verification_stays_on_initial(self, mocker):
+        ApiMocker.property_data_type(mocker, "P111", "quantity")
+        ApiMocker.add_statement_successful(mocker, "Q1234")
+
+        raw = """Q1234|P111|0
+        Q1234|P111|1
+        Q1234|P111|2
+        Q1234|P111|3
+        Q1234|P111|4
+        Q1234|P111|5
+        Q1234|P111|6
+        Q1234|P111|"string"
+        Q1234|P111|8"""
+        batch = self.parse_and_run(raw)
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[4].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[5].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[6].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[7].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[8].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(len(commands), 9)
