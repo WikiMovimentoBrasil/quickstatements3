@@ -259,8 +259,8 @@ class BatchCommand(models.Model):
         """
         id = self.entity_id()
 
-        if id is None:
-            return None
+        if id is None or id == "LAST":
+            return id
 
         if cache_dictionary.get(id) is None:
             labels = api_client.get_labels(id)
