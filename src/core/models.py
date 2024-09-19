@@ -4,8 +4,10 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from .client import Client
+from .commands import ApiCommandBuilder
 from .exceptions import ApiException
 from .exceptions import InvalidPropertyDataType
+from .exceptions import NoToken
 
 logger = logging.getLogger("qsts3")
    
@@ -55,7 +57,10 @@ class Batch(models.Model):
 
         self._start()
 
-        client = Client.from_username(self.user)
+        try:
+            client = Client.from_username(self.user)
+        except NoToken:
+            return self.block_no_token()
 
         # TODO: if self.verify_data_types_before_running
         for command in self.commands():
@@ -85,6 +90,12 @@ class Batch(models.Model):
     def _finish(self):
         logger.info(f"[{self}] finished")
         self.status = self.STATUS_DONE
+        self.save()
+
+    def block_no_token(self):
+        logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
+        self.message = "We don't have an API token for the user"
+        self.status = self.STATUS_BLOCKED
         self.save()
 
     def block_by(self, command):
@@ -231,16 +242,15 @@ class BatchCommand(models.Model):
         self._start()
 
         try:
-            self.verify_data_type(client)
-            self.response_json = self.send_to_api()
+            self.send_to_api(client)
             self._finish()
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
             self._error(message)
 
-    def send_to_api(self):
-        from .commands import ApiCommandBuilder
-        return ApiCommandBuilder(self).build_and_send()
+    def send_to_api(self, client: Client):
+        self.verify_data_type(client)
+        self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
     def _start(self):
         logger.debug(f"[{self}] running...")

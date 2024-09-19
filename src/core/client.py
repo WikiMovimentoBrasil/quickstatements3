@@ -8,6 +8,7 @@ from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
+from .exceptions import NoToken
 
 logger = logging.getLogger("qsts3")
 
@@ -33,13 +34,15 @@ class Client:
 
     @classmethod
     def from_user(cls, user):
-        token = Token.objects.get(user=user).value
-        return cls.from_token(token)
+        return cls.from_username(user.username)
 
     @classmethod
     def from_username(cls, username):
-        token = Token.objects.get(user__username=username).value
-        return cls.from_token(token)
+        try:
+            token = Token.objects.get(user__username=username).value
+            return cls.from_token(token)
+        except Token.DoesNotExist:
+            raise NoToken(username)
 
     def headers(self):
         return {
