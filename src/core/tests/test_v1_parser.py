@@ -89,7 +89,7 @@ class TestV1ParserCommand(TestCase):
             data,
             {
                 "action": "remove",
-                "id": "0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34",
+                "id": "Q4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34",
                 "what": "statement",
             },
         )
@@ -104,7 +104,7 @@ class TestV1ParserCommand(TestCase):
         self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
         with self.assertRaises(Exception) as context:
             data = parser.parse_command("-STATEMENT\tQ1")
-        self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$<ID>")        
+        self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
 
     def test_v1_remove_quantity(self):
         parser = V1CommandParser()
