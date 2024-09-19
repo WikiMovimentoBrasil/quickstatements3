@@ -52,17 +52,15 @@ class V1CommandParser(BaseParser):
         else:
             command = elements[0]
             action = "remove" if command[0] == "-" else "add"
-            item = elements[1].strip()
-            tokens = item.split("$")
-            if len(tokens) != 2:
-                raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$<ID>")
-            _id = tokens[1]
+            _id = elements[1].strip()
+            if len(_id.split("$")) != 2:
+                raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
             return {'action': action , 'what': 'statement' , 'id': _id}
 
     def parse_statement(self, elements, first_command):
         llen = len(elements)
         if llen < 3:
-            raise ParserException(f"STATEMENT must contain at least entity, property and value")
+            raise ParserException("STATEMENT must contain at least entity, property and value")
 
         if first_command[0] == "-":
             action = "remove"
