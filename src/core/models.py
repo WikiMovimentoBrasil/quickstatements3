@@ -3,7 +3,9 @@ import logging
 from django.db import models
 from django.utils.translation import gettext as _
 
+from .client import Client
 from .exceptions import ApiException
+from .exceptions import InvalidPropertyDataType
 
 logger = logging.getLogger("qsts3")
    
@@ -54,11 +56,13 @@ class Batch(models.Model):
         self._update_status_to_running()
         logger.debug(f"[{self}] running...")
 
+        client = Client.from_username(self.user)
+
         last_id = None
 
         for command in self.commands():
             command.update_last_id(last_id)
-            command.run()
+            command.run(client)
             if command.is_error_status():
                 self._update_status_to_blocked()
                 logger.warn(f"[{self}] blocked by {command}")
@@ -125,6 +129,7 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    data_type_verified = models.BooleanField(default=False)
     response_json = models.JSONField(default=dict)
 
     def __str__(self):
@@ -175,6 +180,13 @@ class BatchCommand(models.Model):
     def value(self):
         return self.json.get("value", {}).get("value", "")
 
+    @property
+    def data_type(self):
+        return self.json.get("value", {}).get("type", "")
+
+    def is_add_statement(self):
+        return self.action == BatchCommand.ACTION_ADD and self.what == "STATEMENT"
+
     def is_add_or_remove_command(self):
         return self.action in [BatchCommand.ACTION_ADD, BatchCommand.ACTION_REMOVE]
 
@@ -206,7 +218,7 @@ class BatchCommand(models.Model):
             self.set_entity_id(last_id)
             self.save()
 
-    def run(self):
+    def run(self, client: Client):
         """
         Sends the command to the Wikidata API. This method should not fail.
         """
@@ -218,6 +230,7 @@ class BatchCommand(models.Model):
         logger.debug(f"[{self}] running...")
 
         try:
+            self.verify_data_type(client)
             self.response_json = self._send_to_api()
             self._update_status_to_done()
             logger.info(f"[{self}] finished")
@@ -273,6 +286,53 @@ class BatchCommand(models.Model):
                 cache_dictionary[id] = preferred
 
         return cache_dictionary[id]
+
+    def verify_data_type(self, client: Client):
+        """
+        Checks if the supplied data type is allowed by the property's required data type.
+
+        It sets the status to ERROR if the data type is invalid, updates the message,
+        and raises InvalidPropertyDataType.
+
+        Only makes sense in commands that require data type verification
+        (see self._should_verify_data_type)
+        """
+        if self.should_verify_data_type():
+            needed_data_type = client.get_property_data_type(self.prop)
+            if self.data_type != needed_data_type:
+                exception = InvalidPropertyDataType(
+                    self.prop,
+                    self.data_type,
+                    needed_data_type
+                )
+                self.message = exception.message
+                self._update_status_to_error()
+                raise exception
+
+        self.data_type_verified = True
+        self.save()
+
+    def should_verify_data_type(self):
+        """
+        Checks if this command needs data type verification.
+
+        1) It needs to be not verified yet, of course.
+
+        2) It needs if it is of the following types/actions:
+
+        - Statement addition
+
+        3) And the data type is not somevalue or novalue, since those
+        can be used in any property.
+        """
+        is_not_verified_yet = not self.data_type_verified
+        needed_actions = self.is_add_statement()
+        data_type_is_not_somevalue_or_novalue = self.data_type not in ["somevalue", "novalue"]
+        return (
+            is_not_verified_yet
+            and needed_actions
+            and data_type_is_not_somevalue_or_novalue
+        )
 
 
 

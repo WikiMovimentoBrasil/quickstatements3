@@ -3,7 +3,6 @@ from web.models import Token
 
 from .client import Client
 from .exceptions import ApiNotImplemented
-from .exceptions import InvalidPropertyDataType
 from .exceptions import NoToken
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
@@ -96,22 +95,6 @@ class AddStatement(Utilities):
         self.data_type = self.parser_value["type"]
         self.references = j.get("references", [])
         self.qualifiers = j.get("qualifiers", [])
-
-        self.verify_data_type()
-
-    def verify_data_type(self):
-        client = self.client()
-        needed_data_type = client.get_property_data_type(self.property_id)
-
-        if self.data_type in ["somevalue", "novalue"]:
-            return
-
-        if needed_data_type != self.data_type:
-            raise InvalidPropertyDataType(
-                self.property_id,
-                self.data_type,
-                needed_data_type,
-            )
 
     def body(self):
         all_quali = [
