@@ -1,6 +1,5 @@
 
 from rest_framework import serializers
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.reverse import reverse_lazy
 
 from core.models import Batch

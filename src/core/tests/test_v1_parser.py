@@ -1,7 +1,5 @@
 from django.test import TestCase
 
-from core.models import Batch
-from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
 
 
@@ -18,7 +16,7 @@ class TestV1ParserCommand(TestCase):
     def test_v1_bad_create_command(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("CREATE\tQ123\t")
+            _data = parser.parse_command("CREATE\tQ123\t")
         self.assertEqual(context.exception.message, "CREATE command can have only 1 column")
 
     def test_v1_correct_merge_command(self):
@@ -31,16 +29,16 @@ class TestV1ParserCommand(TestCase):
     def test_v1_bad_merge_command(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("MERGE")
+            _data = parser.parse_command("MERGE")
         self.assertEqual(context.exception.message, "MERGE command must have 3 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("MERGE\tQ1")
+            _data = parser.parse_command("MERGE\tQ1")
         self.assertEqual(context.exception.message, "MERGE command must have 3 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("MERGE\tQ1\t")
+            _data = parser.parse_command("MERGE\tQ1\t")
         self.assertEqual(context.exception.message, "MERGE items wrong format item1=[Q1] item2=[]")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("MERGE\tQ1\tQ2\tQ3")
+            _data = parser.parse_command("MERGE\tQ1\tQ2\tQ3")
         self.assertEqual(context.exception.message, "MERGE command must have 3 columns")
 
     def test_v1_remove_item(self):
@@ -73,13 +71,13 @@ class TestV1ParserCommand(TestCase):
     def test_v1_bad_create_property(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command(f"CREATE_PROPERTY")
+            _data = parser.parse_command("CREATE_PROPERTY")
         self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("CREATE_PROPERTY\tP1\t12")
+            _data = parser.parse_command("CREATE_PROPERTY\tP1\t12")
         self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("CREATE_PROPERTY\tmy_datatype")
+            _data = parser.parse_command("CREATE_PROPERTY\tmy_datatype")
         self.assertEqual(context.exception.message, "CREATE PROPERTY datatype allowed values: ['commonsMedia', 'globe-coordinate', 'wikibase-item', 'wikibase-property', 'string', 'monolingualtext', 'external-id', 'quantity', 'time', 'url', 'math', 'geo-shape', 'musical-notation', 'tabular-data', 'wikibase-lexeme', 'wikibase-form', 'wikibase-sense']")        
 
     def test_v1_remove_statement_by_id(self):
@@ -97,13 +95,13 @@ class TestV1ParserCommand(TestCase):
     def test_v1_bad_remove_statement_by_id(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("-STATEMENT")
+            _data = parser.parse_command("-STATEMENT")
         self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("-STATEMENT\tP1\t12")
+            _data = parser.parse_command("-STATEMENT\tP1\t12")
         self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("-STATEMENT\tQ1")
+            _data = parser.parse_command("-STATEMENT\tQ1")
         self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
 
     def test_v1_remove_quantity(self):
@@ -220,7 +218,7 @@ class TestV1ParserCommand(TestCase):
     def test_v1_add_wrong_alias(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("Q1234\tApt\tsomevalue")
+            _data = parser.parse_command("Q1234\tApt\tsomevalue")
         self.assertEqual(context.exception.message, "alias must be a string instance")
 
     def test_v1_add_description(self):
@@ -240,7 +238,7 @@ class TestV1ParserCommand(TestCase):
     def test_v1_add_wrong_description(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("Q1234\tDpt\tsomevalue")
+            _data = parser.parse_command("Q1234\tDpt\tsomevalue")
         self.assertEqual(context.exception.message, "description must be a string instance")
 
     def test_v1_add_label(self):
@@ -260,7 +258,7 @@ class TestV1ParserCommand(TestCase):
     def test_v1_add_wrong_label(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("Q1234\tLpt\tbla")
+            _data = parser.parse_command("Q1234\tLpt\tbla")
         self.assertEqual(context.exception.message, "label must be a string instance")
 
     def test_v1_add_site(self):
@@ -280,7 +278,7 @@ class TestV1ParserCommand(TestCase):
     def test_v1_add_wrong_site(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
-            data = parser.parse_command("Q1234\tSpt\tsomevalue")
+            _data = parser.parse_command("Q1234\tSpt\tsomevalue")
         self.assertEqual(context.exception.message, "sitelink must be a string instance")
 
     def test_v1_add_somevalue_novalue(self):

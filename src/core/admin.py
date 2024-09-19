@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.utils.translation import gettext as _
 
 from core.models import Batch
 from core.models import BatchCommand

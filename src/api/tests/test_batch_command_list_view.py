@@ -74,7 +74,7 @@ class BatchCommandDetailViewTest(TestCase):
         self.assertEqual(c1["status"], 0)
 
     def test_batch_command_list_paginated_authenticated_request(self):
-        batch = Batch.objects.create(name=f"Paginated batch", user="user")
+        batch = Batch.objects.create(name="Paginated batch", user="user")
         for i in range(0, 250):
             BatchCommand.objects.create(batch=batch, json={}, action=BatchCommand.ACTION_ADD, index=i)
 
