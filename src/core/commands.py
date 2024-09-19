@@ -1,5 +1,3 @@
-from core.models import BatchCommand
-
 from .client import Client
 from .exceptions import ApiNotImplemented
 from .exceptions import NoStatementsForThatProperty
@@ -34,29 +32,24 @@ class ApiCommandBuilder:
         return api_command.send(self.client)
 
     def build(self):
-        if self.command.action == BatchCommand.ACTION_ADD:
-            if self.command.json["what"] == "statement":
-                return AddStatement(self.command)
-            elif self.command.json["what"] in ["label", "description", "alias"]:
-                return AddLabelDescriptionOrAlias(self.command)
-            elif self.command.json["what"] == "sitelink":
-                return AddSitelink(self.command)
-        elif self.command.action == BatchCommand.ACTION_CREATE:
-            if self.command.json["type"] == "item":
-                return CreateItem(self.command)
-            elif self.command.json["type"] == "property":
-                # Waiting for the Wikibase REST API to implement this...
-                raise ApiNotImplemented()
-        elif (
-            self.command.action == BatchCommand.ACTION_REMOVE
-            and self.command.json["what"] == "statement"
-        ):
-            if self.command.json.get("id") is not None:
-                return RemoveStatementById(self.command)
-            else:
-                return RemoveStatement(self.command)
+        cmd = self.command
 
-        raise ApiNotImplemented()
+        if cmd.is_add_statement():
+            return AddStatement(cmd)
+        elif cmd.is_add_label_description_alias():
+            return AddLabelDescriptionOrAlias(cmd)
+        elif cmd.is_add_sitelink():
+            return AddSitelink(cmd)
+        elif cmd.is_create_item():
+            return CreateItem(cmd)
+        elif cmd.is_create_property():
+            raise ApiNotImplemented()
+        elif cmd.is_remove_statement_by_id():
+            return RemoveStatementById(cmd)
+        elif cmd.is_remove_statement_by_value():
+            return RemoveStatement(cmd)
+        else:
+            raise ApiNotImplemented()
 
 
 class Utilities:

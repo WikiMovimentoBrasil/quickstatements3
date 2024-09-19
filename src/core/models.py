@@ -190,6 +190,10 @@ class BatchCommand(models.Model):
         return self.json.get("property", "") 
 
     @property
+    def type(self):
+        return self.json.get("type", "").upper()
+
+    @property
     def value(self):
         return self.json.get("value", {}).get("value", "")
 
@@ -197,8 +201,35 @@ class BatchCommand(models.Model):
     def data_type(self):
         return self.json.get("value", {}).get("type", "")
 
+    def is_add(self):
+        return self.action == BatchCommand.ACTION_ADD
+
     def is_add_statement(self):
-        return self.action == BatchCommand.ACTION_ADD and self.what == "STATEMENT"
+        return self.is_add() and self.what == "STATEMENT"
+
+    def is_add_label_description_alias(self):
+        return self.is_add() and self.what in ["DESCRIPTION", "LABEL", "ALIAS"]
+
+    def is_add_sitelink(self):
+        return self.is_add() and self.what == "SITELINK"
+
+    def is_create(self):
+        return self.action == BatchCommand.ACTION_CREATE
+
+    def is_create_item(self):
+        return self.is_create() and self.type == "ITEM"
+
+    def is_create_property(self):
+        return self.is_create() and self.type == "PROPERTY"
+
+    def is_remove(self):
+        return self.action == BatchCommand.ACTION_REMOVE
+
+    def is_remove_statement_by_id(self):
+        return self.is_remove() and self.what == "STATEMENT" and "id" in self.json.keys()
+
+    def is_remove_statement_by_value(self):
+        return self.is_remove() and self.what == "STATEMENT" and "id" not in self.json.keys()
 
     def is_add_or_remove_command(self):
         return self.action in [BatchCommand.ACTION_ADD, BatchCommand.ACTION_REMOVE]
