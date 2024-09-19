@@ -53,10 +53,16 @@ class Batch(models.Model):
         if self.status != Batch.STATUS_INITIAL:
             return
 
-        self._update_status_to_running()
-        logger.debug(f"[{self}] running...")
+        self._start()
 
         client = Client.from_username(self.user)
+
+        # TODO: if self.verify_data_types_before_running
+        for command in self.commands():
+            try:
+                command.verify_data_type(client)
+            except InvalidPropertyDataType:
+                return self.block_by(command)
 
         last_id = None
 
@@ -64,29 +70,25 @@ class Batch(models.Model):
             command.update_last_id(last_id)
             command.run(client)
             if command.is_error_status():
-                self._update_status_to_blocked()
-                logger.warn(f"[{self}] blocked by {command}")
-                return
+                return self.block_by(command)
 
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
-        self._update_status_to_done()
-        logger.info(f"[{self}] finished")
+        self._finish()
 
-    def _send_to_api(self):
-        from .commands import ApiCommandBuilder
-        ApiCommandBuilder(self).build_and_send()
-
-    def _update_status_to_running(self):
+    def _start(self):
+        logger.debug(f"[{self}] running...")
         self.status = self.STATUS_RUNNING
         self.save()
 
-    def _update_status_to_done(self):
+    def _finish(self):
+        logger.info(f"[{self}] finished")
         self.status = self.STATUS_DONE
         self.save()
 
-    def _update_status_to_blocked(self):
+    def block_by(self, command):
+        logger.warn(f"[{self}] blocked by {command}")
         self.status = self.STATUS_BLOCKED
         self.save()
 
@@ -296,6 +298,10 @@ class BatchCommand(models.Model):
 
         Only makes sense in commands that require data type verification
         (see self._should_verify_data_type)
+
+        # Raises
+
+        - InvalidPropertyDataType: when the data type is not valid.
         """
         if self.should_verify_data_type():
             needed_data_type = client.get_property_data_type(self.prop)
