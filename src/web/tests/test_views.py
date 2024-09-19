@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test import Client
 
-from api.tests import ApiMocker
-from api.client import Client as ApiClient
+from core.tests.test_api import ApiMocker
+from core.client import Client as ApiClient
 from web.models import Token
 from web.models import Preferences
 
