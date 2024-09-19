@@ -43,11 +43,12 @@ class ApiCommandBuilder:
                 return AddLabelDescriptionOrAlias(self.command)
             elif self.command.json["what"] == "sitelink":
                 return AddSitelink(self.command)
-        elif (
-            self.command.action == BatchCommand.ACTION_CREATE
-            and self.command.json["type"] == "item"
-        ):
-            return CreateItem(self.command)
+        elif self.command.action == BatchCommand.ACTION_CREATE:
+            if self.command.json["type"] == "item":
+                return CreateItem(self.command)
+            elif self.command.json["type"] == "property":
+                # Waiting for the Wikibase REST API to implement this...
+                raise ApiNotImplemented()
         elif (
             self.command.action == BatchCommand.ACTION_REMOVE
             and self.command.json["what"] == "statement"
