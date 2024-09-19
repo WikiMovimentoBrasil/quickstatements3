@@ -32,7 +32,7 @@ class BatchCommandDetailViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_batch_command_authenticated_request(self):
-        batch = Batch.objects.create(name=f"Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
+        batch = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
         command = BatchCommand.objects.create(
             batch=batch, index=1, action=BatchCommand.ACTION_ADD, json={}, status=BatchCommand.STATUS_INITIAL
         )
@@ -116,7 +116,7 @@ class BatchCommandDetailViewTest(TestCase):
         self.assertEqual(data['status'], {'code': -1, 'display': 'Error'})
 
     def test_non_allowed_methods_request(self):
-        original = Batch.objects.create(name=f"Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
+        original = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
         command = BatchCommand.objects.create(
             batch=original, index=1, action=BatchCommand.ACTION_ADD, json={}, status=BatchCommand.STATUS_INITIAL
         )

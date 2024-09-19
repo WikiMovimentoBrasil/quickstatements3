@@ -59,7 +59,7 @@ def last_batches(request):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
     paginator = Paginator(Batch.objects.all().order_by("-modified"), PAGE_SIZE)
     return render(request, "batches.html", {"page": paginator.page(page)})
@@ -76,7 +76,7 @@ def last_batches_by_user(request, user):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
     paginator = Paginator(Batch.objects.filter(user=user).order_by("-modified"), PAGE_SIZE)
     # we need to use `username` since `user` is always supplied by django templates
@@ -112,7 +112,7 @@ def batch_commands(request, pk):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
 
     paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)

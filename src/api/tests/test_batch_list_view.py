@@ -31,7 +31,7 @@ class BatchListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_single_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 0", user="testuser")
+        original = Batch.objects.create(name="Batch 0", user="testuser")
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
@@ -52,7 +52,7 @@ class BatchListViewTest(TestCase):
         self.assertTrue('modified' in batch)
 
     def test_single_running_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 1", user="testuser", status=Batch.STATUS_RUNNING, message="My running message")
+        original = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING, message="My running message")
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
@@ -67,7 +67,7 @@ class BatchListViewTest(TestCase):
         self.assertTrue('modified' in batch)
 
     def test_single_done_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 2", user="testuser", status=Batch.STATUS_DONE, message="My DONE message")
+        original = Batch.objects.create(name="Batch 2", user="testuser", status=Batch.STATUS_DONE, message="My DONE message")
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
@@ -82,7 +82,7 @@ class BatchListViewTest(TestCase):
         self.assertTrue('modified' in batch)
 
     def test_single_blocked_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 3", user="testuser", status=Batch.STATUS_BLOCKED, message="My BLOCKED message")
+        original = Batch.objects.create(name="Batch 3", user="testuser", status=Batch.STATUS_BLOCKED, message="My BLOCKED message")
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data

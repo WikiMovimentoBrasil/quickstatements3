@@ -32,7 +32,7 @@ class BatchDetailViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_initial_empty_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 0", user="testuser")
+        original = Batch.objects.create(name="Batch 0", user="testuser")
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.get(reverse("batch-detail", kwargs={"pk": original.pk}))
         self.assertEqual(response.status_code, 200)
@@ -48,7 +48,7 @@ class BatchDetailViewTest(TestCase):
         self.assertEqual(batch['commands_url'], f'http://testserver/api/v1/batches/{original.pk}/commands/')
 
     def test_batch_authenticated_request(self):
-        original = Batch.objects.create(name=f"Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
+        original = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
         command = BatchCommand.objects.create(
             batch=original, index=1, action=BatchCommand.ACTION_ADD, json={}, status=BatchCommand.STATUS_INITIAL
         )
@@ -100,7 +100,7 @@ class BatchDetailViewTest(TestCase):
         self.assertTrue('modified' in batch)
         self.assertEqual(batch['commands_url'], f'http://testserver/api/v1/batches/{original.pk}/commands/')
 
-        command2 = BatchCommand.objects.create(
+        _command2 = BatchCommand.objects.create(
             batch=original, index=1, action=BatchCommand.ACTION_ADD, json={}, status=BatchCommand.STATUS_INITIAL
         )
 
@@ -117,7 +117,7 @@ class BatchDetailViewTest(TestCase):
         self.assertTrue('modified' in batch)
         self.assertEqual(batch['commands_url'], f'http://testserver/api/v1/batches/{original.pk}/commands/')
 
-        command3 = BatchCommand.objects.create(
+        _command3 = BatchCommand.objects.create(
             batch=original, index=1, action=BatchCommand.ACTION_ADD, json={}, status=BatchCommand.STATUS_RUNNING
         )
 
@@ -134,7 +134,7 @@ class BatchDetailViewTest(TestCase):
         self.assertTrue('modified' in batch)
         self.assertEqual(batch['commands_url'], f'http://testserver/api/v1/batches/{original.pk}/commands/')
 
-        command4 = BatchCommand.objects.create(
+        _command4 = BatchCommand.objects.create(
             batch=original, index=1, action=BatchCommand.ACTION_CREATE, json={}, status=BatchCommand.STATUS_ERROR
         )
 
@@ -152,7 +152,7 @@ class BatchDetailViewTest(TestCase):
         self.assertEqual(batch['commands_url'], f'http://testserver/api/v1/batches/{original.pk}/commands/')
 
     def test_non_allowed_methods_request(self):
-        original = Batch.objects.create(name=f"Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
+        original = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING)
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.post(reverse("batch-detail", kwargs={"pk": original.pk}))
         self.assertEqual(response.status_code, 405)

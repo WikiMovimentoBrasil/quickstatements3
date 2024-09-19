@@ -125,7 +125,7 @@ class CSVCommandParser(BaseParser):
         for index, cell in enumerate(header):
             if index == 0:
                 if cell != "qid":
-                    raise ParserException(f"CSV header first element must be qid")
+                    raise ParserException("CSV header first element must be qid")
                 continue
 
             # Is it a PROPERTY?
@@ -138,11 +138,11 @@ class CSVCommandParser(BaseParser):
             # Not a property...lets check if we already have one
             if not has_property_alias_description_label_sitelink:
                 if clean_cell == "#":
-                    raise ParserException(f"A valid property must precede a comment")
+                    raise ParserException("A valid property must precede a comment")
                 elif clean_cell.startswith("qal"):
-                    raise ParserException(f"A valid property must precede a qualifier")
+                    raise ParserException("A valid property must precede a qualifier")
                 elif (clean_cell[0] == "s" or clean_cell[0] == "S") and re.match("^[Ss]\\d+$", clean_cell):
-                    raise ParserException(f"A valid property must precede a source")
+                    raise ParserException("A valid property must precede a source")
         return True
 
     def parse(self, batch_name, batch_owner, raw_csv):
@@ -171,7 +171,6 @@ class CSVCommandParser(BaseParser):
                         action = BatchCommand.ACTION_CREATE
                     else:
                         action = BatchCommand.ACTION_MERGE
-                    message = None
 
                     BatchCommand.objects.create(batch=batch, index=index, action=action, json=command, status=status)
 
