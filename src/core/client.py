@@ -13,6 +13,40 @@ from .exceptions import NoToken
 logger = logging.getLogger("qsts3")
 
 
+def cache_with_first_arg(cache_name):
+    """
+    Returns a decorator that caches the value in a dictionary cache with `cache_name`,
+    using as key the first argument of the method.
+
+    If there is not first argument or first keyword argument, it uses a generic key.
+    """
+
+    def decorator(method):
+        def wrapper(self, *args, **kwargs):
+            if not hasattr(self, cache_name):
+                setattr(self, cache_name, {})
+
+            if len(args) >= 1:
+                key = args[0]
+            elif len(kwargs) >= 1:
+                key = next(iter(kwargs.values()))
+            else:
+                key = "key"
+
+            cache = getattr(self, cache_name)
+
+            if cache.get(key) is not None:
+                return cache.get(key)
+            else:
+                value = method(self, *args, **kwargs)
+                cache[key] = value
+                return value
+
+        return wrapper
+
+    return decorator
+
+
 class Client:
     BASE_URL = "https://www.mediawiki.org/w/rest.php/"
     ENDPOINT_PROFILE = f"{BASE_URL}oauth2/resource/profile"
@@ -29,6 +63,10 @@ class Client:
     def __str__(self):
         return "API Client with token [redacted]"
 
+    # ---
+    # Constructors
+    # ---
+
     @classmethod
     def from_token(cls, token):
         return cls(token)
@@ -44,6 +82,10 @@ class Client:
             return cls.from_token(token)
         except Token.DoesNotExist:
             raise NoToken(username)
+
+    # ---
+    # Utilities
+    # ----
 
     def headers(self):
         return {
@@ -132,6 +174,7 @@ class Client:
     # ---
     # Wikibase GET/reading
     # ---
+    @cache_with_first_arg("data_type_cache")
     def get_property_data_type(self, property_id):
         """
         Returns the expected data type of the property.
@@ -140,32 +183,24 @@ class Client:
 
         Uses a dictionary attribute for caching.
         """
-        if self.data_type_cache.get(property_id) is not None:
-            return self.data_type_cache.get(property_id)
-
         endpoint = f"/entities/properties/{property_id}"
         url = self.wikibase_url(endpoint)
 
         res = self.get(url).json()
 
         try:
-            data_type = res["data_type"]
-            self.data_type_cache[property_id] = data_type
-            return data_type
+            return res["data_type"]
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
+    @cache_with_first_arg("label_cache")
     def get_labels(self, entity_id):
         """
         Returns all labels for an entity: a dictionary with the language
         code as the keys.
         """
-        if self.labels_cache.get(entity_id) is not None:
-            return self.labels_cache.get(entity_id)
         url = self.wikibase_entity_url(entity_id, "/labels")
-        res = self.get(url).json()
-        self.labels_cache[entity_id] = res
-        return res
+        return self.get(url).json()
 
     def get_statements(self, entity_id):
         """
@@ -190,7 +225,7 @@ class Client:
 
     def add_label(self, entity_id, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
-        self.labels_cache = {}
+        self.label_cache = {}
         return self.wikibase_patch(endpoint, body)
 
     def add_description(self, entity_id, body):
