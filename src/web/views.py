@@ -12,7 +12,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
-from api.client import Client
+from core.client import Client
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.base import ParserException
