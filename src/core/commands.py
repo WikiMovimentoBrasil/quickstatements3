@@ -53,7 +53,10 @@ class ApiCommandBuilder:
             self.command.action == BatchCommand.ACTION_REMOVE
             and self.command.json["what"] == "statement"
         ):
-            return RemoveStatement(self.command)
+            if self.command.json.get("id") is not None:
+                return RemoveStatementById(self.command)
+            else:
+                return RemoveStatement(self.command)
 
         raise ApiNotImplemented()
 
@@ -285,3 +288,20 @@ class RemoveStatement(Utilities):
             res = client.delete_statement(id, full_body)
             responses.append(res)
         return responses
+
+
+class RemoveStatementById(Utilities):
+    def __init__(self, command):
+        self.command = command
+
+        j = self.command.json
+        self.id = j["id"]
+
+    def body(self):
+        return {}
+
+    def send(self):
+        full_body = self.full_body()
+        client = self.client()
+        res = client.delete_statement(self.id, full_body)
+        return res
