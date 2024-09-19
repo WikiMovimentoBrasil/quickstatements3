@@ -3,7 +3,7 @@ import logging
 from django.db import models
 from django.utils.translation import gettext as _
 
-from api.exceptions import ApiException
+from .exceptions import ApiException
 
 logger = logging.getLogger("qsts3")
    
@@ -71,7 +71,7 @@ class Batch(models.Model):
         logger.info(f"[{self}] finished")
 
     def _send_to_api(self):
-        from api.commands import ApiCommandBuilder
+        from .commands import ApiCommandBuilder
         ApiCommandBuilder(self).build_and_send()
 
     def _update_status_to_running(self):
@@ -228,7 +228,7 @@ class BatchCommand(models.Model):
             self._update_status_to_error()
 
     def _send_to_api(self):
-        from api.commands import ApiCommandBuilder
+        from .commands import ApiCommandBuilder
         return ApiCommandBuilder(self).build_and_send()
 
     def _update_status_to_running(self):

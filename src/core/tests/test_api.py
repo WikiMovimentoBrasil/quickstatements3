@@ -2,8 +2,8 @@ import requests_mock
 
 from django.test import TestCase
 
-from .client import Client
-from .exceptions import NonexistantPropertyOrNoDataType
+from core.client import Client
+from core.exceptions import NonexistantPropertyOrNoDataType
 
 
 class ApiMocker:

@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 
 from .models import Token
-from api.client import Client
+from core.client import Client
 
 
 def user_from_token(token):

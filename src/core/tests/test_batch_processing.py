@@ -3,7 +3,7 @@ import requests_mock
 from django.test import TestCase
 from django.contrib.auth.models import User
 
-from api.utils import ApiMocker
+from core.tests.test_api import ApiMocker
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
