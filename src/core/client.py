@@ -24,6 +24,7 @@ class Client:
     def __init__(self, token):
         self.token = token
         self.data_type_cache = {}
+        self.labels_cache = {}
 
     def __str__(self):
         return "API Client with token [redacted]"
@@ -159,8 +160,12 @@ class Client:
         Returns all labels for an entity: a dictionary with the language
         code as the keys.
         """
+        if self.labels_cache.get(entity_id) is not None:
+            return self.labels_cache.get(entity_id)
         url = self.wikibase_entity_url(entity_id, "/labels")
-        return self.get(url).json()
+        res = self.get(url).json()
+        self.labels_cache[entity_id] = res
+        return res
 
     def get_statements(self, entity_id):
         """
@@ -185,6 +190,7 @@ class Client:
 
     def add_label(self, entity_id, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
+        self.labels_cache = {}
         return self.wikibase_patch(endpoint, body)
 
     def add_description(self, entity_id, body):
