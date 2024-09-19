@@ -22,6 +22,7 @@ class Client:
 
     def __init__(self, token):
         self.token = token
+        self.data_type_cache = {}
 
     def __str__(self):
         return "API Client with token [redacted]"
@@ -132,15 +133,20 @@ class Client:
         Returns the expected data type of the property.
 
         Returns the data type as a string.
+
+        Uses a dictionary attribute for caching.
         """
+        if self.data_type_cache.get(property_id) is not None:
+            return self.data_type_cache.get(property_id)
+
         endpoint = f"/entities/properties/{property_id}"
         url = self.wikibase_url(endpoint)
 
-        # TODO: add caching
         res = self.get(url).json()
 
         try:
             data_type = res["data_type"]
+            self.data_type_cache[property_id] = data_type
             return data_type
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
