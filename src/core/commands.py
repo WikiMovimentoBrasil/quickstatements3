@@ -1,10 +1,5 @@
-from core.models import BatchCommand
-from web.models import Token
-
 from .client import Client
 from .exceptions import ApiNotImplemented
-from .exceptions import InvalidPropertyDataType
-from .exceptions import NoToken
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
 
@@ -28,49 +23,36 @@ def parser_value_to_api_value(parser_value):
 
 
 class ApiCommandBuilder:
-    def __init__(self, command):
+    def __init__(self, command, client):
         self.command = command
+        self.client = client
 
     def build_and_send(self):
         api_command = self.build()
-        return api_command.send()
+        return api_command.send(self.client)
 
     def build(self):
-        if self.command.action == BatchCommand.ACTION_ADD:
-            if self.command.json["what"] == "statement":
-                return AddStatement(self.command)
-            elif self.command.json["what"] in ["label", "description", "alias"]:
-                return AddLabelDescriptionOrAlias(self.command)
-            elif self.command.json["what"] == "sitelink":
-                return AddSitelink(self.command)
-        elif self.command.action == BatchCommand.ACTION_CREATE:
-            if self.command.json["type"] == "item":
-                return CreateItem(self.command)
-            elif self.command.json["type"] == "property":
-                # Waiting for the Wikibase REST API to implement this...
-                raise ApiNotImplemented()
-        elif (
-            self.command.action == BatchCommand.ACTION_REMOVE
-            and self.command.json["what"] == "statement"
-        ):
-            if self.command.json.get("id") is not None:
-                return RemoveStatementById(self.command)
-            else:
-                return RemoveStatement(self.command)
+        cmd = self.command
 
-        raise ApiNotImplemented()
+        if cmd.is_add_statement():
+            return AddStatement(cmd)
+        elif cmd.is_add_label_description_alias():
+            return AddLabelDescriptionOrAlias(cmd)
+        elif cmd.is_add_sitelink():
+            return AddSitelink(cmd)
+        elif cmd.is_create_item():
+            return CreateItem(cmd)
+        elif cmd.is_create_property():
+            raise ApiNotImplemented()
+        elif cmd.is_remove_statement_by_id():
+            return RemoveStatementById(cmd)
+        elif cmd.is_remove_statement_by_value():
+            return RemoveStatement(cmd)
+        else:
+            raise ApiNotImplemented()
 
 
 class Utilities:
-    def client(self):
-        try:
-            username = self.command.batch.user
-            # TODO: maybe save the user directly in the Batch,
-            # so that we don't have to query by username?
-            return Client.from_username(username)
-        except Token.DoesNotExist:
-            raise NoToken(username)
-
     def full_body(self):
         body = self.body()
         body["comment"] = self._comment()
@@ -96,22 +78,6 @@ class AddStatement(Utilities):
         self.data_type = self.parser_value["type"]
         self.references = j.get("references", [])
         self.qualifiers = j.get("qualifiers", [])
-
-        self.verify_data_type()
-
-    def verify_data_type(self):
-        client = self.client()
-        needed_data_type = client.get_property_data_type(self.property_id)
-
-        if self.data_type in ["somevalue", "novalue"]:
-            return
-
-        if needed_data_type != self.data_type:
-            raise InvalidPropertyDataType(
-                self.property_id,
-                self.data_type,
-                needed_data_type,
-            )
 
     def body(self):
         all_quali = [
@@ -145,9 +111,8 @@ class AddStatement(Utilities):
             }
         }
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         return client.add_statement(self.entity_id, full_body)
 
 
@@ -178,9 +143,8 @@ class AddLabelDescriptionOrAlias(Utilities):
             ]
         }
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         if self.what == "label":
             return client.add_label(self.entity_id, full_body)
         elif self.what == "description":
@@ -213,9 +177,8 @@ class AddSitelink(Utilities):
             ]
         }
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         return client.add_sitelink(self.entity_id, full_body)
 
 
@@ -226,9 +189,8 @@ class CreateItem(Utilities):
     def body(self):
         return {"item": {}}
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         return client.create_item(full_body)
 
 
@@ -280,9 +242,8 @@ class RemoveStatement(Utilities):
     def body(self):
         return {}
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         responses = []
         for id in self.ids_to_delete:
             res = client.delete_statement(id, full_body)
@@ -300,8 +261,7 @@ class RemoveStatementById(Utilities):
     def body(self):
         return {}
 
-    def send(self):
+    def send(self, client: Client):
         full_body = self.full_body()
-        client = self.client()
         res = client.delete_statement(self.id, full_body)
         return res

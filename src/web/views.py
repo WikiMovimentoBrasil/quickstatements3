@@ -121,9 +121,8 @@ def batch_commands(request, pk):
     if request.user.is_authenticated:
         client = Client.from_user(request.user)
         language = Preferences.objects.get_language(request.user, "en")
-        cached = {}
         for command in page.object_list:
-            command.display_label = command.get_label(client, language, cached)
+            command.display_label = command.get_label(client, language)
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
 
