@@ -2,6 +2,8 @@ import os
 import requests
 import logging
 
+from web.models import Token
+
 from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
@@ -24,9 +26,19 @@ class Client:
     def __str__(self):
         return "API Client with token [redacted]"
 
-    @staticmethod
-    def from_token(token):
-        return Client(token)
+    @classmethod
+    def from_token(cls, token):
+        return cls(token)
+
+    @classmethod
+    def from_user(cls, user):
+        token = Token.objects.get(user=user).value
+        return cls.from_token(token)
+
+    @classmethod
+    def from_username(cls, username):
+        token = Token.objects.get(user__username=username).value
+        return cls.from_token(token)
 
     def headers(self):
         return {
@@ -75,6 +87,10 @@ class Client:
             raise EntityTypeNotImplemented(entity_id)
 
         return f"{base}/{entity_id}{entity_endpoint}"
+
+    def wikibase_entity_url(self, entity_id, entity_endpoint):
+        endpoint = self.wikibase_entity_endpoint(entity_id, entity_endpoint)
+        return self.wikibase_url(endpoint)
 
     def wikibase_request_wrapper(self, method, endpoint, body):
         kwargs = {
@@ -129,6 +145,14 @@ class Client:
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
+    def get_labels(self, entity_id):
+        """
+        Returns all labels for an entity: a dictionary with the language
+        code as the keys.
+        """
+        url = self.wikibase_entity_url(entity_id, "/labels")
+        return self.get(url).json()
+
     def get_statements(self, entity_id):
         """
         Returns all statements for an entity in the form of a dictionary.
@@ -136,8 +160,7 @@ class Client:
         The key is the property id, and the value is an array with
         the statement objects.
         """
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
-        url = self.wikibase_url(endpoint)
+        url = self.wikibase_entity_url(entity_id, "/statements")
         return self.get(url).json()
 
     # ---
