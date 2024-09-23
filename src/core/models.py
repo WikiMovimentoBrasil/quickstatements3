@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from django.db import models
 from django.utils.translation import gettext as _
@@ -54,7 +55,7 @@ class Batch(models.Model):
         Sets the batch status to BLOCKED when a command fails.
         """
         # Ignore when not INITIAL
-        if self.status != Batch.STATUS_INITIAL:
+        if not self.is_initial:
             return
 
         self._start()
@@ -74,6 +75,11 @@ class Batch(models.Model):
         last_id = None
 
         for command in self.commands():
+            self.refresh_from_db()
+            if self.is_stopped:
+                # The status changed, so we have to stop
+                return
+
             command.update_last_id(last_id)
             command.run(client)
             if command.is_error_status():
@@ -86,18 +92,28 @@ class Batch(models.Model):
 
     def _start(self):
         logger.debug(f"[{self}] running...")
+        self.message = f"Batch started processing at {datetime.now()}"
         self.status = self.STATUS_RUNNING
         self.save()
 
     def _finish(self):
         logger.info(f"[{self}] finished")
+        self.message = f"Batch finished processing at {datetime.now()}"
         self.status = self.STATUS_DONE
         self.save()
 
     def stop(self):
         logger.debug(f"[{self}] stop...")
+        self.message = f"Batch stopped processing by owner at {datetime.now()}"
         self.status = self.STATUS_STOPPED
         self.save()
+
+    def restart(self):
+        if self.is_stopped:
+            logger.debug(f"[{self}] restarting...")
+            self.message = f"Batch restarted by owner {datetime.now()}"
+            self.status = self.STATUS_INITIAL
+            self.save()
 
     def block_no_token(self):
         logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
@@ -113,6 +129,14 @@ class Batch(models.Model):
     @property 
     def is_running(self):
         return self.status == Batch.STATUS_RUNNING
+
+    @property 
+    def is_stopped(self):
+        return self.status == Batch.STATUS_STOPPED
+
+    @property 
+    def is_initial(self):
+        return self.status == Batch.STATUS_INITIAL
 
 
 class BatchCommand(models.Model):
