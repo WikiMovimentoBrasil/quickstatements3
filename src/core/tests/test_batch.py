@@ -6,6 +6,81 @@ from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 
 
+class TestBatch(TestCase):
+    def test_batch_is_running(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertTrue(batch.is_running)
+
+    def test_batch_is_stopped(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertTrue(batch.is_stopped)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+
+    def test_batch_is_initial(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertTrue(batch.is_initial)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+
+    def test_batch_stop(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_stopped)
+        batch.stop()
+        self.assertTrue(batch.is_stopped)
+        self.assertTrue(batch.message.startswith("Batch stopped processing by owner at"))
+
+    def test_batch_restart(self):
+        batch = Batch.objects.create(name="teste", status=Batch.STATUS_BLOCKED)
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        batch.restart()
+        self.assertTrue(batch.is_initial)      
+        self.assertTrue(batch.message.startswith("Batch restarted by owner"))  
+
+
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
         v1 = V1CommandParser()
