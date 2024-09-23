@@ -2,12 +2,50 @@ import os
 import requests
 import logging
 
+from web.models import Token
+
 from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
+from .exceptions import NoToken
+from .exceptions import InvalidPropertyDataType
 
 logger = logging.getLogger("qsts3")
+
+
+def cache_with_first_arg(cache_name):
+    """
+    Returns a decorator that caches the value in a dictionary cache with `cache_name`,
+    using as key the first argument of the method.
+
+    If there is not first argument or first keyword argument, it uses a generic key.
+    """
+
+    def decorator(method):
+        def wrapper(self, *args, **kwargs):
+            if not hasattr(self, cache_name):
+                setattr(self, cache_name, {})
+
+            if len(args) >= 1:
+                key = args[0]
+            elif len(kwargs) >= 1:
+                key = next(iter(kwargs.values()))
+            else:
+                key = "key"
+
+            cache = getattr(self, cache_name)
+
+            if cache.get(key) is not None:
+                return cache.get(key)
+            else:
+                value = method(self, *args, **kwargs)
+                cache[key] = value
+                return value
+
+        return wrapper
+
+    return decorator
 
 
 class Client:
@@ -20,13 +58,35 @@ class Client:
 
     def __init__(self, token):
         self.token = token
+        self.data_type_cache = {}
+        self.labels_cache = {}
 
     def __str__(self):
         return "API Client with token [redacted]"
 
-    @staticmethod
-    def from_token(token):
-        return Client(token)
+    # ---
+    # Constructors
+    # ---
+
+    @classmethod
+    def from_token(cls, token):
+        return cls(token)
+
+    @classmethod
+    def from_user(cls, user):
+        return cls.from_username(user.username)
+
+    @classmethod
+    def from_username(cls, username):
+        try:
+            token = Token.objects.get(user__username=username).value
+            return cls.from_token(token)
+        except Token.DoesNotExist:
+            raise NoToken(username)
+
+    # ---
+    # Utilities
+    # ----
 
     def headers(self):
         return {
@@ -76,6 +136,10 @@ class Client:
 
         return f"{base}/{entity_id}{entity_endpoint}"
 
+    def wikibase_entity_url(self, entity_id, entity_endpoint):
+        endpoint = self.wikibase_entity_endpoint(entity_id, entity_endpoint)
+        return self.wikibase_url(endpoint)
+
     def wikibase_request_wrapper(self, method, endpoint, body):
         kwargs = {
             "json": body,
@@ -111,23 +175,46 @@ class Client:
     # ---
     # Wikibase GET/reading
     # ---
+    @cache_with_first_arg("data_type_cache")
     def get_property_data_type(self, property_id):
         """
         Returns the expected data type of the property.
 
         Returns the data type as a string.
+
+        Uses a dictionary attribute for caching.
         """
         endpoint = f"/entities/properties/{property_id}"
         url = self.wikibase_url(endpoint)
 
-        # TODO: add caching
         res = self.get(url).json()
 
         try:
-            data_type = res["data_type"]
-            return data_type
+            return res["data_type"]
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
+
+    def verify_data_type(self, property_id, data_type):
+        """
+        Verifies if the data type of the property with `property_id` matches `data_type`.
+
+        If not, raises `InvalidPropertyDataType`.
+
+        Data types "somevalue" and "novalue" are allowed for every property.
+        """
+        if data_type not in ["somevalue", "novalue"]:
+            needed = self.get_property_data_type(property_id)
+            if needed != data_type:
+                raise InvalidPropertyDataType(property_id, data_type, needed)
+
+    @cache_with_first_arg("label_cache")
+    def get_labels(self, entity_id):
+        """
+        Returns all labels for an entity: a dictionary with the language
+        code as the keys.
+        """
+        url = self.wikibase_entity_url(entity_id, "/labels")
+        return self.get(url).json()
 
     def get_statements(self, entity_id):
         """
@@ -136,8 +223,7 @@ class Client:
         The key is the property id, and the value is an array with
         the statement objects.
         """
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
-        url = self.wikibase_url(endpoint)
+        url = self.wikibase_entity_url(entity_id, "/statements")
         return self.get(url).json()
 
     # ---
@@ -153,6 +239,7 @@ class Client:
 
     def add_label(self, entity_id, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
+        self.label_cache = {}
         return self.wikibase_patch(endpoint, body)
 
     def add_description(self, entity_id, body):

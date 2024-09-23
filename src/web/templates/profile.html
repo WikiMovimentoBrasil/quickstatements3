@@ -8,6 +8,19 @@
 <p><a href="{% url 'last_batches_by_user' user=user.username %}">Your last batches</a></p>
 <p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
 
+<h2> Preferences </h2>
+
+<form method="POST">
+  {% csrf_token %}
+  <label for="language">Preferred language</label>
+  <select name="language" required>
+    {% for code, name in language_choices %}
+    <option {% if code == language %}selected{% endif %} value="{{ code }}"> {{ code }}: {{ name }} </option>
+    {% endfor %}
+  </select>
+  <input type="submit" value="Update">
+</form>
+
 {% else %}
 
 <h1> You're not logged in. </h1>

@@ -1,6 +1,5 @@
 from django.test import TestCase
 
-from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
 

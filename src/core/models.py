@@ -3,7 +3,11 @@ import logging
 from django.db import models
 from django.utils.translation import gettext as _
 
-from api.exceptions import ApiException
+from .client import Client
+from .commands import ApiCommandBuilder
+from .exceptions import ApiException
+from .exceptions import InvalidPropertyDataType
+from .exceptions import NoToken
 
 logger = logging.getLogger("qsts3")
    
@@ -51,38 +55,51 @@ class Batch(models.Model):
         if self.status != Batch.STATUS_INITIAL:
             return
 
-        self._update_status_to_running()
-        logger.debug(f"[{self}] running...")
+        self._start()
+
+        try:
+            client = Client.from_username(self.user)
+        except NoToken:
+            return self.block_no_token()
+
+        # TODO: if self.verify_data_types_before_running
+        for command in self.commands():
+            try:
+                command.verify_data_types(client)
+            except InvalidPropertyDataType:
+                return self.block_by(command)
 
         last_id = None
 
         for command in self.commands():
             command.update_last_id(last_id)
-            command.run()
+            command.run(client)
             if command.is_error_status():
-                self._update_status_to_blocked()
-                logger.warn(f"[{self}] blocked by {command}")
-                return
+                return self.block_by(command)
 
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
-        self._update_status_to_done()
-        logger.info(f"[{self}] finished")
+        self._finish()
 
-    def _send_to_api(self):
-        from api.commands import ApiCommandBuilder
-        ApiCommandBuilder(self).build_and_send()
-
-    def _update_status_to_running(self):
+    def _start(self):
+        logger.debug(f"[{self}] running...")
         self.status = self.STATUS_RUNNING
         self.save()
 
-    def _update_status_to_done(self):
+    def _finish(self):
+        logger.info(f"[{self}] finished")
         self.status = self.STATUS_DONE
         self.save()
 
-    def _update_status_to_blocked(self):
+    def block_no_token(self):
+        logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
+        self.message = "We don't have an API token for the user"
+        self.status = self.STATUS_BLOCKED
+        self.save()
+
+    def block_by(self, command):
+        logger.warn(f"[{self}] blocked by {command}")
         self.status = self.STATUS_BLOCKED
         self.save()
 
@@ -125,6 +142,7 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    data_type_verified = models.BooleanField(default=False)
     response_json = models.JSONField(default=dict)
 
     def __str__(self):
@@ -172,8 +190,58 @@ class BatchCommand(models.Model):
         return self.json.get("property", "") 
 
     @property
+    def type(self):
+        return self.json.get("type", "").upper()
+
+    @property
     def value(self):
         return self.json.get("value", {}).get("value", "")
+
+    @property
+    def data_type(self):
+        return self.json.get("value", {}).get("type", "")
+
+    def qualifiers(self):
+        return self.json.get("qualifiers", [])
+
+    def references(self):
+        return self.json.get("references", [])
+
+    def reference_parts(self):
+        parts = []
+        for ref in self.references():
+            parts.extend(ref)
+        return parts
+
+    def is_add(self):
+        return self.action == BatchCommand.ACTION_ADD
+
+    def is_add_statement(self):
+        return self.is_add() and self.what == "STATEMENT"
+
+    def is_add_label_description_alias(self):
+        return self.is_add() and self.what in ["DESCRIPTION", "LABEL", "ALIAS"]
+
+    def is_add_sitelink(self):
+        return self.is_add() and self.what == "SITELINK"
+
+    def is_create(self):
+        return self.action == BatchCommand.ACTION_CREATE
+
+    def is_create_item(self):
+        return self.is_create() and self.type == "ITEM"
+
+    def is_create_property(self):
+        return self.is_create() and self.type == "PROPERTY"
+
+    def is_remove(self):
+        return self.action == BatchCommand.ACTION_REMOVE
+
+    def is_remove_statement_by_id(self):
+        return self.is_remove() and self.what == "STATEMENT" and "id" in self.json.keys()
+
+    def is_remove_statement_by_value(self):
+        return self.is_remove() and self.what == "STATEMENT" and "id" not in self.json.keys()
 
     def is_add_or_remove_command(self):
         return self.action in [BatchCommand.ACTION_ADD, BatchCommand.ACTION_REMOVE]
@@ -206,7 +274,7 @@ class BatchCommand(models.Model):
             self.set_entity_id(last_id)
             self.save()
 
-    def run(self):
+    def run(self, client: Client):
         """
         Sends the command to the Wikidata API. This method should not fail.
         """
@@ -214,35 +282,103 @@ class BatchCommand(models.Model):
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
-        self._update_status_to_running()
-        logger.debug(f"[{self}] running...")
+        self._start()
 
         try:
-            self.response_json = self._send_to_api()
-            self._update_status_to_done()
-            logger.info(f"[{self}] finished")
+            self.send_to_api(client)
+            self._finish()
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
-            logger.error(f"[{self}] error: {message}")
-            self.message = message
-            self._update_status_to_error()
+            self._error(message)
 
-    def _send_to_api(self):
-        from api.commands import ApiCommandBuilder
-        return ApiCommandBuilder(self).build_and_send()
+    def send_to_api(self, client: Client):
+        self.verify_data_types(client)
+        self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
-    def _update_status_to_running(self):
+    def _start(self):
+        logger.debug(f"[{self}] running...")
         self.status = BatchCommand.STATUS_RUNNING
         self.save()
 
-    def _update_status_to_done(self):
+    def _finish(self):
+        logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
         self.save()
 
-    def _update_status_to_error(self):
+    def _error(self, message):
+        logger.error(f"[{self}] error: {message}")
+        self.message = message
         self.status = BatchCommand.STATUS_ERROR
         self.save()
 
+    def get_label(self, client: Client, preferred_language="en"):
+        """
+        Obtains the label for the entity of this command.
+
+        If there is no initial entity, like in a CREATE command, it will return None.
+
+        Using the entity's entity id, will obtain the labels from the API.
+
+        The prefered language will be used at first. If there is no label for the
+        preferred language, it will use the english label.
+        """
+        id = self.entity_id()
+
+        if id is None or id == "LAST":
+            return id
+
+        labels = client.get_labels(id)
+
+        preferred = labels.get(preferred_language)
+
+        if not preferred and preferred_language != "en":
+            return labels.get("en")
+        else:
+            return preferred
+
+    def verify_data_types(self, client: Client):
+        """
+        Checks if the supplied data type is allowed by the property's required data type.
+
+        Makes that check for the statement and for qualifiers and references.
+
+        It sets the status to ERROR if the data type is invalid, updates the message,
+        and raises InvalidPropertyDataType.
+
+        Only makes sense in commands that require data type verification
+        (see self._should_verify_data_types)
+
+        # Raises
+
+        - InvalidPropertyDataType: when the data type is not valid.
+        """
+        if self.should_verify_data_types():
+            try:
+                client.verify_data_type(self.prop, self.data_type)
+                for q in self.qualifiers():
+                    client.verify_data_type(q["property"], q["value"]["type"])
+                for p in self.reference_parts():
+                    client.verify_data_type(p["property"], p["value"]["type"])
+            except InvalidPropertyDataType as e:
+                self._error(e.message)
+                raise e
+
+        self.data_type_verified = True
+        self.save()
+
+    def should_verify_data_types(self):
+        """
+        Checks if this command needs data type verification.
+
+        1) It needs to be not verified yet, of course.
+
+        2) It needs if it is of the following types/actions:
+
+        - Statement addition
+        """
+        is_not_verified_yet = not self.data_type_verified
+        is_needed_actions = self.is_add_statement()
+        return is_not_verified_yet and is_needed_actions
 
     class Meta:
         verbose_name = _("Batch Command")

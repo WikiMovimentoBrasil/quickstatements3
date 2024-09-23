@@ -8,6 +8,7 @@ from core.models import BatchCommand
 
 class V1CommandParser(BaseParser):
 
+    CREATE_PROPERTY_ALLOWED_DATATYPES = ["commonsMedia", "globe-coordinate", "wikibase-item", "wikibase-property", "string", "monolingualtext", "external-id", "quantity", "time", "url", "math", "geo-shape", "musical-notation", "tabular-data", "wikibase-lexeme", "wikibase-form", "wikibase-sense"]
     WHAT = {"L": "label", "D": "description", "A": "alias", "S": "sitelink"}
 
     def parse_create(self, elements):
@@ -16,6 +17,16 @@ class V1CommandParser(BaseParser):
             raise ParserException("CREATE command can have only 1 column")
         else:
             return {"action": "create", "type": "item"}
+
+    def parse_create_property(self, elements):
+        llen = len(elements)
+        if llen != 2:
+            raise ParserException("CREATE PROPERTY command must have 2 columns")
+        else:
+            datatype = elements[1]
+            if datatype not in self.CREATE_PROPERTY_ALLOWED_DATATYPES:
+                raise ParserException(f"CREATE PROPERTY datatype allowed values: {self.CREATE_PROPERTY_ALLOWED_DATATYPES}")
+            return {"action": "create", "type": "property", "data": datatype}
 
     def parse_merge(self, elements):
         llen = len(elements)
@@ -34,10 +45,22 @@ class V1CommandParser(BaseParser):
             except ValueError:
                 raise ParserException(f"MERGE items wrong format item1=[{item1}] item2=[{item2}]")
 
+    def parse_statement_by_id(self, elements):
+        llen = len(elements)
+        if llen != 2:
+            raise ParserException("remove statement by ID command must have 2 columns")
+        else:
+            command = elements[0]
+            action = "remove" if command[0] == "-" else "add"
+            _id = elements[1].strip()
+            if len(_id.split("$")) != 2:
+                raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
+            return {'action': action , 'what': 'statement' , 'id': _id}
+
     def parse_statement(self, elements, first_command):
         llen = len(elements)
         if llen < 3:
-            raise ParserException(f"STATEMENT must contain at least entity, property and value")
+            raise ParserException("STATEMENT must contain at least entity, property and value")
 
         if first_command[0] == "-":
             action = "remove"
@@ -139,8 +162,12 @@ class V1CommandParser(BaseParser):
 
         if first_command == "CREATE":
             data = self.parse_create(elements)
+        elif first_command == "CREATE_PROPERTY":
+            data = self.parse_create_property(elements)
         elif first_command == "MERGE":
             data = self.parse_merge(elements)
+        elif first_command == "STATEMENT" or first_command == "-STATEMENT":
+            data = self.parse_statement_by_id(elements)
         else:
             data = self.parse_statement(elements, first_command)
 

@@ -12,12 +12,15 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from core.client import Client
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from .utils import user_from_token, clear_tokens
+from .models import Preferences
+from .languages import LANGUAGE_CHOICES
 
 
 PAGE_SIZE = 30
@@ -56,7 +59,7 @@ def last_batches(request):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
     paginator = Paginator(Batch.objects.all().order_by("-modified"), PAGE_SIZE)
     return render(request, "batches.html", {"page": paginator.page(page)})
@@ -73,7 +76,7 @@ def last_batches_by_user(request, user):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
     paginator = Paginator(Batch.objects.filter(user=user).order_by("-modified"), PAGE_SIZE)
     # we need to use `username` since `user` is always supplied by django templates
@@ -109,10 +112,19 @@ def batch_commands(request, pk):
     """
     try:
         page = int(request.GET.get("page", 1))
-    except:
+    except (TypeError, ValueError):
         page = 1
+
     paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)
-    return render(request, "batch_commands.html", {"page": paginator.page(page), "batch_pk": pk})
+    page = paginator.page(page)
+
+    if request.user.is_authenticated:
+        client = Client.from_user(request.user)
+        language = Preferences.objects.get_language(request.user, "en")
+        for command in page.object_list:
+            command.display_label = command.get_label(client, language)
+
+    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
 
 
 @require_http_methods(
@@ -262,4 +274,13 @@ def login_dev(request):
 
 
 def profile(request):
-    return render(request, "profile.html")
+    data = {}
+    if request.user.is_authenticated:
+        data["language_choices"] = LANGUAGE_CHOICES
+        user = request.user
+        if request.method == "POST":
+            prefs, _ = Preferences.objects.get_or_create(user=user)
+            prefs.language = request.POST["language"]
+            prefs.save()
+        data["language"] = Preferences.objects.get_language(user, "en")
+    return render(request, "profile.html", data)
