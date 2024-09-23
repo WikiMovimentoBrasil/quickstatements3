@@ -116,7 +116,7 @@ def batch_stop(request, pk):
         current_owner = request.user.is_authenticated and request.user.username == batch.user
         if current_owner:
             batch.stop()
-        return render(request, "batch.html", {"batch": batch, "current_owner": current_owner})
+        return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
