@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import batch
 from .views import batch_commands
+from .views import batch_stop
 from .views import batch_summary
 from .views import home
 from .views import last_batches
@@ -26,6 +27,7 @@ urlpatterns = [
     path("batches/", last_batches, name="last_batches"),
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),
+    path("batch/<int:pk>/stop/", batch_stop, name="batch_stop"),
     path("batch/<int:pk>/summary/", batch_summary, name="batch_summary"),
     path("batch/<int:pk>/commands/", batch_commands, name="batch_commands"),
     path("batch/new/", new_batch, name="new_batch"),
