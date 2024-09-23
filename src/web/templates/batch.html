@@ -115,7 +115,7 @@
 
 <div style="float: right;">
   {% if current_owner and batch.is_running %}
-  <button class="secondary" onclick="showConfirmModal();">Stop execution</button>
+  <button class="secondary" onclick="showModal();">Stop execution</button>
   {% endif %}
 </div>
 
@@ -151,7 +151,7 @@ Loading commands...
       Are you sure you want to stop the current batch processing?
     </p>
     <footer>
-      <button class="secondary">No, continue</button>
+      <button class="secondary" onclick="closeModal()">No, continue</button>
       <button onclick="stop()">Stop processing !</button>
     </footer>
   </article>
@@ -161,8 +161,12 @@ Loading commands...
 
 {% block scripts %}
 <script>
-function showConfirmModal() {
+function showModal() {
     document.getElementById("confirmStop").setAttribute("open", "");
+}
+
+function closeModal() {
+    document.getElementById("confirmStop").removeAttribute("open", "");
 }
 
 function stop() {
