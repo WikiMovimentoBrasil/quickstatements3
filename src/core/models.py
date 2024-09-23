@@ -17,12 +17,14 @@ class Batch(models.Model):
     Represents a BATCH, containing multiple commands
     """
 
+    STATUS_STOPPED = -2
     STATUS_BLOCKED = -1
     STATUS_INITIAL = 0
     STATUS_RUNNING = 1
     STATUS_DONE = 2
 
     STATUS_CHOICES = (
+        (STATUS_STOPPED, _("Stopped")),
         (STATUS_BLOCKED, _("Blocked")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
@@ -92,6 +94,11 @@ class Batch(models.Model):
         self.status = self.STATUS_DONE
         self.save()
 
+    def stop(self):
+        logger.debug(f"[{self}] stop...")
+        self.status = self.STATUS_STOPPED
+        self.save()
+
     def block_no_token(self):
         logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
         self.message = "We don't have an API token for the user"
@@ -102,6 +109,10 @@ class Batch(models.Model):
         logger.warn(f"[{self}] blocked by {command}")
         self.status = self.STATUS_BLOCKED
         self.save()
+
+    @property 
+    def is_running(self):
+        return self.status == Batch.STATUS_RUNNING
 
 
 class BatchCommand(models.Model):
