@@ -18,6 +18,7 @@ from core.models import BatchCommand
 from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
+from core.exceptions import NoToken
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
@@ -145,7 +146,7 @@ def batch_commands(request, pk):
             client = Client.from_user(request.user)
             for command in page.object_list:
                 command.display_label = command.get_label(client, language)
-        except:
+        except NoToken:
             pass
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
