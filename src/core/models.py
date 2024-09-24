@@ -317,13 +317,17 @@ class BatchCommand(models.Model):
 
     def run(self, client: Client):
         """
-        Sends the command to the Wikidata API. This method should not fail.
+        Sends the command to the Wikidata API. This method should not raise exceptions.
         """
         # Ignore when not INITIAL
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
         self._start()
+
+        if self.entity_id() == "LAST":
+            self._error("LAST could not be evaluated.")
+            return
 
         try:
             self.send_to_api(client)

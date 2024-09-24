@@ -28,6 +28,14 @@ class ApiMocker:
         )
 
     @classmethod
+    def create_item_failed_server(cls, mocker):
+        mocker.post(
+            cls.wikibase_url("/entities/items"),
+            json={"error": "my-error-code"},
+            status_code=500,
+        )
+
+    @classmethod
     def add_statement_successful(cls, mocker, item_id):
         mocker.post(
             cls.wikibase_url(f"/entities/items/{item_id}/statements"),

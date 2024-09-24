@@ -17,6 +17,12 @@ class ProcessingTests(TestCase):
         v1 = V1CommandParser()
         return v1.parse("Test", "user", text)
 
+    def parse_with_block_on_errors(self, text):
+        batch = self.parse(text)
+        batch.block_on_errors = True
+        batch.save()
+        return batch
+
     @requests_mock.Mocker()
     def test_batch_success(self, mocker):
         ApiMocker.property_data_type(mocker, "P65", "quantity")
@@ -106,3 +112,43 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[2].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(len(commands), 4)
+
+    @requests_mock.Mocker()
+    def test_dont_block_on_errors_last_id(self, mocker):
+        """
+        Checks that when NOT blocking on errors, if a CREATE
+        fails, all subsequent LAST commands also fail.
+        """
+        ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.add_statement_successful(mocker, "Q1")
+        ApiMocker.create_item_failed_server(mocker)
+        batch = self.parse("CREATE||LAST|P1|1||LAST|P1|1||Q1|P1|1")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertTrue("The server failed to process the request" in commands[0].message)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].message, "LAST could not be evaluated.")
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].message, "LAST could not be evaluated.")
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_block_on_errors_last_id(self, mocker):
+        """
+        Checks that when we DO block on errors, if a CREATE
+        fails, all subsequent LAST commands stay in INITIAL.
+        """
+        ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.add_statement_successful(mocker, "Q1")
+        ApiMocker.create_item_failed_server(mocker)
+        batch = self.parse_with_block_on_errors("CREATE||LAST|P1|1||LAST|P1|1||Q1|P1|1")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertTrue("The server failed to process the request" in commands[0].message)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
