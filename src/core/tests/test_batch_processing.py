@@ -11,13 +11,11 @@ from web.models import Token
 
 
 class ProcessingTests(TestCase):
-    def parse_and_run(self, text):
+    def parse(self, text):
         user = User.objects.create(username="user")
         Token.objects.create(user=user, value="tokenvalue")
         v1 = V1CommandParser()
-        batch = v1.parse("Test", "user", text)
-        batch.run()
-        return batch
+        return v1.parse("Test", "user", text)
 
     @requests_mock.Mocker()
     def test_batch_success(self, mocker):
@@ -25,7 +23,8 @@ class ProcessingTests(TestCase):
         ApiMocker.property_data_type(mocker, "P12", "url")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
-        batch = self.parse_and_run('Q1234|P65|32||Q1234|P12|"""https://myurl.com"""')
+        batch = self.parse('Q1234|P65|32||Q1234|P12|"""https://myurl.com"""')
+        batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
 
         commands = batch.commands()
@@ -37,7 +36,9 @@ class ProcessingTests(TestCase):
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
-        batch = self.parse_and_run('Q1234|P65|32||Q1234|P65|"string"')
+        batch = self.parse('Q1234|P65|32||Q1234|P65|"string"')
+        batch.block_on_errors = True
+        batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
 
         commands = batch.commands()
@@ -58,7 +59,9 @@ class ProcessingTests(TestCase):
         Q1234|P111|6
         Q1234|P111|"string"
         Q1234|P111|8"""
-        batch = self.parse_and_run(raw)
+        batch = self.parse(raw)
+        batch.block_on_errors = True
+        batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
 
         commands = batch.commands()
@@ -72,3 +75,34 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[7].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[8].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(len(commands), 9)
+
+    @requests_mock.Mocker()
+    def test_block_on_errors(self, mocker):
+        ApiMocker.property_data_type(mocker, "P5", "quantity")
+        ApiMocker.add_statement_successful(mocker, "Q1")
+        raw = """Q1|P5|33||Q1|P5|"string"||Q1|P5|45"""
+
+        batch = self.parse(raw)
+        batch.block_on_errors = False
+        batch.save()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(len(commands), 3)
+
+        ApiMocker.add_statement_failed_server(mocker, "Q2")
+        v1 = V1CommandParser()
+        batch = v1.parse("Should block", "user", "Q1|P5|123||Q2|P5|123||Q1|P5|123||Q1|P5|123")
+        batch.block_on_errors = True
+        batch.save()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(len(commands), 4)

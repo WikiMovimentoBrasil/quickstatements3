@@ -182,6 +182,10 @@ def batch_summary(request, pk):
             .annotate(total_commands=Count("batchcommand"))
             .get(pk=pk)
         )
+        show_block_on_errors_notice = (
+            batch.is_initial_or_running
+            and batch.block_on_errors
+        )
 
         return render(
             request,
@@ -197,6 +201,7 @@ def batch_summary(request, pk):
                 "done_percentage": float(100 * batch.done_commands) / batch.total_commands
                 if batch.total_commands
                 else 0,
+                "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )
     except Batch.DoesNotExist:
@@ -230,6 +235,11 @@ def new_batch(request):
                 parser = CSVCommandParser()
             
             batch = parser.parse(batch_name, batch_owner, batch_commands)
+
+            if "block_on_errors" in request.POST:
+                batch.block_on_errors = True
+                batch.save()
+
             return redirect(reverse("batch", args=[batch.pk]))
         except ParserException as p:
             error = p.message

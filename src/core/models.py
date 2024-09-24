@@ -38,6 +38,7 @@ class Batch(models.Model):
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
+    block_on_errors = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -70,7 +71,8 @@ class Batch(models.Model):
             try:
                 command.verify_data_types(client)
             except InvalidPropertyDataType:
-                return self.block_by(command)
+                if self.block_on_errors:
+                    return self.block_by(command)
 
         last_id = None
 
@@ -82,7 +84,7 @@ class Batch(models.Model):
 
             command.update_last_id(last_id)
             command.run(client)
-            if command.is_error_status():
+            if command.is_error_status() and self.block_on_errors:
                 return self.block_by(command)
 
             if command.action == BatchCommand.ACTION_CREATE:
@@ -137,6 +139,10 @@ class Batch(models.Model):
     @property 
     def is_initial(self):
         return self.status == Batch.STATUS_INITIAL
+
+    @property
+    def is_initial_or_running(self):
+        return self.is_initial or self.is_running
 
 
 class BatchCommand(models.Model):
