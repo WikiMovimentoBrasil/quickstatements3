@@ -70,16 +70,16 @@ class ClientTests(TestCase):
         )
 
     @requests_mock.Mocker()
-    def test_get_property_data_type(self, mocker):
+    def test_get_property_value_type(self, mocker):
         ApiMocker.property_data_type(mocker, "P1104", "quantity")
-        data_type = self.api_client().get_property_data_type("P1104")
-        self.assertEqual(data_type, "quantity")
+        value_type = self.api_client().get_property_value_type("P1104")
+        self.assertEqual(value_type, "quantity")
 
     @requests_mock.Mocker()
-    def test_get_property_data_type_error(self, mocker):
+    def test_get_property_value_type_error(self, mocker):
         ApiMocker.property_data_type_not_found(mocker, "P321341234")
         with self.assertRaises(NonexistantPropertyOrNoDataType):
-            self.api_client().get_property_data_type("P321341234")
+            self.api_client().get_property_value_type("P321341234")
 
     @requests_mock.Mocker()
     def test_get_labels(self, mocker):

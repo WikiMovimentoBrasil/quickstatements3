@@ -33,7 +33,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
 
     @requests_mock.Mocker()
-    def test_batch_is_blocked_when_data_type_verification_fails(self, mocker):
+    def test_batch_is_blocked_when_value_type_verification_fails(self, mocker):
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
@@ -45,7 +45,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
 
     @requests_mock.Mocker()
-    def test_successful_data_type_verification_stays_on_initial(self, mocker):
+    def test_successful_value_type_verification_stays_on_initial(self, mocker):
         ApiMocker.property_data_type(mocker, "P111", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 

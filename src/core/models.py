@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from .client import Client
 from .commands import ApiCommandBuilder
 from .exceptions import ApiException
-from .exceptions import InvalidPropertyDataType
+from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
 
 logger = logging.getLogger("qsts3")
@@ -65,11 +65,11 @@ class Batch(models.Model):
         except NoToken:
             return self.block_no_token()
 
-        # TODO: if self.verify_data_types_before_running
+        # TODO: if self.verify_value_types_before_running
         for command in self.commands():
             try:
-                command.verify_data_types(client)
-            except InvalidPropertyDataType:
+                command.verify_value_types(client)
+            except InvalidPropertyValueType:
                 return self.block_by(command)
 
         last_id = None
@@ -177,7 +177,7 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    data_type_verified = models.BooleanField(default=False)
+    value_type_verified = models.BooleanField(default=False)
     response_json = models.JSONField(default=dict)
 
     def __str__(self):
@@ -233,7 +233,7 @@ class BatchCommand(models.Model):
         return self.json.get("value", {}).get("value", "")
 
     @property
-    def data_type(self):
+    def value_type(self):
         return self.json.get("value", {}).get("type", "")
 
     def qualifiers(self):
@@ -327,7 +327,7 @@ class BatchCommand(models.Model):
             self._error(message)
 
     def send_to_api(self, client: Client):
-        self.verify_data_types(client)
+        self.verify_value_types(client)
         self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
     def _start(self):
@@ -371,39 +371,39 @@ class BatchCommand(models.Model):
         else:
             return preferred
 
-    def verify_data_types(self, client: Client):
+    def verify_value_types(self, client: Client):
         """
-        Checks if the supplied data type is allowed by the property's required data type.
+        Checks if the supplied value type is allowed by the property's required value type.
 
         Makes that check for the statement and for qualifiers and references.
 
-        It sets the status to ERROR if the data type is invalid, updates the message,
-        and raises InvalidPropertyDataType.
+        It sets the status to ERROR if the value type is invalid, updates the message,
+        and raises InvalidPropertyValueType.
 
-        Only makes sense in commands that require data type verification
-        (see self._should_verify_data_types)
+        Only makes sense in commands that require value type verification
+        (see self._should_verify_value_types)
 
         # Raises
 
-        - InvalidPropertyDataType: when the data type is not valid.
+        - InvalidPropertyValueType: when the value type is not valid.
         """
-        if self.should_verify_data_types():
+        if self.should_verify_value_types():
             try:
-                client.verify_data_type(self.prop, self.data_type)
+                client.verify_value_type(self.prop, self.value_type)
                 for q in self.qualifiers():
-                    client.verify_data_type(q["property"], q["value"]["type"])
+                    client.verify_value_type(q["property"], q["value"]["type"])
                 for p in self.reference_parts():
-                    client.verify_data_type(p["property"], p["value"]["type"])
-            except InvalidPropertyDataType as e:
+                    client.verify_value_type(p["property"], p["value"]["type"])
+            except InvalidPropertyValueType as e:
                 self._error(e.message)
                 raise e
 
-        self.data_type_verified = True
+        self.value_type_verified = True
         self.save()
 
-    def should_verify_data_types(self):
+    def should_verify_value_types(self):
         """
-        Checks if this command needs data type verification.
+        Checks if this command needs value type verification.
 
         1) It needs to be not verified yet, of course.
 
@@ -411,7 +411,7 @@ class BatchCommand(models.Model):
 
         - Statement addition
         """
-        is_not_verified_yet = not self.data_type_verified
+        is_not_verified_yet = not self.value_type_verified
         is_needed_actions = self.is_add_statement()
         return is_not_verified_yet and is_needed_actions
 

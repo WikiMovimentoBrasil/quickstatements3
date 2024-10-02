@@ -4,14 +4,14 @@ class ApiException(Exception):
         self.message = message
 
 
-class InvalidPropertyDataType(ApiException):
-    def __init__(self, property_id, provided_data_type, needed_data_type):
+class InvalidPropertyValueType(ApiException):
+    def __init__(self, property_id, provided_value_type, needed_value_type):
         self.property_id = property_id
-        self.provided_data_type = provided_data_type
-        self.needed_data_type = needed_data_type
+        self.provided_value_type = provided_value_type
+        self.needed_value_type = needed_value_type
         message = (
-            f"Invalid data type for the property {property_id}: "
-            f"'{provided_data_type}' was provided but it needs '{needed_data_type}'."
+            f"Invalid value type for the property {property_id}: "
+            f"'{provided_value_type}' was provided but it needs '{needed_value_type}'."
         )
         return super().__init__(message)
 

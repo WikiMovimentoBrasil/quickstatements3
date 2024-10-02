@@ -9,7 +9,7 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
-from .exceptions import InvalidPropertyDataType
+from .exceptions import InvalidPropertyValueType
 
 logger = logging.getLogger("qsts3")
 
@@ -58,7 +58,7 @@ class Client:
 
     def __init__(self, token):
         self.token = token
-        self.data_type_cache = {}
+        self.value_type_cache = {}
         self.labels_cache = {}
 
     def __str__(self):
@@ -175,12 +175,12 @@ class Client:
     # ---
     # Wikibase GET/reading
     # ---
-    @cache_with_first_arg("data_type_cache")
-    def get_property_data_type(self, property_id):
+    @cache_with_first_arg("value_type_cache")
+    def get_property_value_type(self, property_id):
         """
-        Returns the expected data type of the property.
+        Returns the expected value type of the property.
 
-        Returns the data type as a string.
+        Returns the value type as a string.
 
         Uses a dictionary attribute for caching.
         """
@@ -190,22 +190,26 @@ class Client:
         res = self.get(url).json()
 
         try:
-            return res["data_type"]
+            data_type = res["data_type"]
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
-    def verify_data_type(self, property_id, data_type):
-        """
-        Verifies if the data type of the property with `property_id` matches `data_type`.
+        # TODO: convert data_type to value_type
+        value_type = data_type
+        return value_type
 
-        If not, raises `InvalidPropertyDataType`.
-
-        Data types "somevalue" and "novalue" are allowed for every property.
+    def verify_value_type(self, property_id, value_type):
         """
-        if data_type not in ["somevalue", "novalue"]:
-            needed = self.get_property_data_type(property_id)
-            if needed != data_type:
-                raise InvalidPropertyDataType(property_id, data_type, needed)
+        Verifies if the value type of the property with `property_id` matches `value_type`.
+
+        If not, raises `InvalidPropertyValueType`.
+
+        Value types "somevalue" and "novalue" are allowed for every property.
+        """
+        if value_type not in ["somevalue", "novalue"]:
+            needed = self.get_property_value_type(property_id)
+            if needed != value_type:
+                raise InvalidPropertyValueType(property_id, value_type, needed)
 
     @cache_with_first_arg("label_cache")
     def get_labels(self, entity_id):
