@@ -1,6 +1,7 @@
 import requests_mock
 
 from django.test import TestCase
+from django.core.cache import cache as django_cache
 
 from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
@@ -9,6 +10,27 @@ from core.exceptions import InvalidPropertyValueType
 
 
 class ApiMocker:
+    WIKIDATA_PROPERTY_DATA_TYPES = {
+        "commonsMedia": "string",
+        "geo-shape": "string",
+        "tabular-data": "string",
+        "url": "string",
+        "external-id": "string",
+        "wikibase-item": "wikibase-entityid",
+        "wikibase-property": "wikibase-entityid",
+        "globe-coordinate": "globecoordinate",
+        "monolingualtext": "monolingualtext",
+        "quantity": "quantity",
+        "string": "string",
+        "time": "time",
+        "musical-notation": "string",
+        "math": "string",
+        "wikibase-lexeme": "wikibase-entityid",
+        "wikibase-form": "wikibase-entityid",
+        "wikibase-sense": "wikibase-entityid",
+        "entity-schema": "wikibase-entityid",
+    }
+
     @classmethod
     def wikibase_url(cls, endpoint):
         return f"{Client.WIKIBASE_URL}{endpoint}"
@@ -69,8 +91,28 @@ class ApiMocker:
             status_code=200,
         )
 
+    @classmethod
+    def property_data_types(cls, mocker, mapper):
+        mocker.get(
+            cls.wikibase_url("/property-data-types"),
+            json=mapper,
+            status_code=200,
+        )
+
+    @classmethod
+    def wikidata_property_data_types(cls, mocker):
+        cls.property_data_types(
+            mocker,
+            cls.WIKIDATA_PROPERTY_DATA_TYPES,
+        )
+
 
 class ClientTests(TestCase):
+    def tearDown(self):
+        # this is needed for the property-data-types to work correctly,
+        # since it uses the cache
+        django_cache.clear()
+
     def api_client(self):
         return Client("TEST_TOKEN")
 
@@ -97,18 +139,21 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_get_property_value_type(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P1104", "quantity")
         value_type = self.api_client().get_property_value_type("P1104")
         self.assertEqual(value_type, "quantity")
 
     @requests_mock.Mocker()
     def test_get_property_value_type_error(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type_not_found(mocker, "P321341234")
         with self.assertRaises(NonexistantPropertyOrNoDataType):
             self.api_client().get_property_value_type("P321341234")
 
     @requests_mock.Mocker()
     def test_no_value_type_for_a_data_type(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P1", "idonotexist")
         with self.assertRaises(KeyError):
             self.api_client().data_type_to_value_type("idonotexist")
@@ -129,6 +174,7 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_verify_value_type(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P1", "commonsMedia")
         ApiMocker.property_data_type(mocker, "P2", "geo-shape")
         ApiMocker.property_data_type(mocker, "P3", "tabular-data")
@@ -190,3 +236,38 @@ class ClientTests(TestCase):
                 if v != correct_value_types[property_id]:
                     with self.assertRaises(InvalidPropertyValueType):
                         client.verify_value_type(property_id, v)
+
+    @requests_mock.Mocker()
+    def test_arbitrary_property_data_types(self, mocker):
+        mapper = {"data1": "value1", "data2": "value2"}
+        ApiMocker.property_data_types(mocker, mapper)
+
+        client = self.api_client()
+        self.assertEqual(client.get_property_data_types(), mapper)
+
+        # ---
+
+        ApiMocker.property_data_type(mocker, "P1", "data1")
+        ApiMocker.property_data_type(mocker, "P2", "data2")
+
+        client.verify_value_type("P1", "value1")
+        client.verify_value_type("P2", "value2")
+
+        # ---
+
+        with self.assertRaises(InvalidPropertyValueType):
+            client.verify_value_type("P1", "value2")
+
+        with self.assertRaises(InvalidPropertyValueType):
+            client.verify_value_type("P2", "value1")
+
+        with self.assertRaises(InvalidPropertyValueType):
+            client.verify_value_type("P2", "abcdef")
+
+        # ---
+
+        # not present in mapper:
+        ApiMocker.property_data_type(mocker, "P3", "data3")
+
+        with self.assertRaises(NoValueTypeForThisDataType):
+            client.verify_value_type("P3", "value3")
