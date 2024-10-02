@@ -256,7 +256,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "LAST", "type": "item"},
                 "property": "P18",
-                "value": {"type": "commonsMedia", "value": "Mona Lisa - the Louvre.jpg"},
+                "value": {"type": "string", "value": "Mona Lisa - the Louvre.jpg"},
                 "what": "statement",
             },
         ]
@@ -275,7 +275,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P625",
                     "value": {
-                        "type": "globe-coordinate",
+                        "type": "globecoordinate",
                         "value": {
                             "globe": "http://www.wikidata.org/entity/Q2",
                             "latitude": "43.26193",
@@ -323,7 +323,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "external-id",
+                        "type": "string",
                         "value": "Sandbox",
                     },
                     "what": "statement",
@@ -339,7 +339,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "external-id",
+                        "type": "string",
                         "value": "Patterns, Predictors, and Outcome",
                     },
                     "what": "statement",
@@ -357,7 +357,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "url",
+                        "type": "string",
                         "value": "https://wiki.com.br",
                     },
                     "what": "statement",
@@ -373,7 +373,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "url",
+                        "type": "string",
                         "value": "http://wiki.com",
                     },
                     "what": "statement",
@@ -391,7 +391,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "commonsMedia",
+                        "type": "string",
                         "value": "Frans Breydel - A merry company.jpg",
                     },
                     "what": "statement",
@@ -410,7 +410,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "commonsMedia",
+                        "type": "string",
                         "value": "'Girl Reading' by Mary Colman Wheeler, El Paso Museum of Art.JPG",
                     },
                     "what": "statement",

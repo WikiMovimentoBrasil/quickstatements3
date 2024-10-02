@@ -212,7 +212,8 @@ class BaseParser(object):
         url_match = re.match(r'^"""(http(s)?:.*)"""$', v)
         if url_match:
             return {
-                "type": "url",
+                # TODO: maybe implement again data_type: url
+                "type": "string",
                 "value": url_match.group(1)
             }
         return None
@@ -228,7 +229,8 @@ class BaseParser(object):
         url_match = re.match(r'^"""(.*\.(?:jpg|JPG|jpeg|JPEG|png|PNG))"""$', v)
         if url_match:
             return {
-                "type": "commonsMedia",
+                # TODO: maybe implement again data_type: commonsMedia
+                "type": "string",
                 "value": url_match.group(1)
             }
         return None
@@ -244,7 +246,8 @@ class BaseParser(object):
         id_match = re.match(r'^"""(.*)"""$', v)
         if id_match:
             return {
-                "type": "external-id",
+                # TODO: maybe implement again data_type: commonsMedia
+                "type": "string",
                 "value": id_match.group(1)
             }
         return None
@@ -291,7 +294,7 @@ class BaseParser(object):
         gps_match = re.match(r"^\@\s*([+-]{0,1}[0-9.]+)\s*\/\s*([+-]{0,1}[0-9.]+)$", v)
         if gps_match:
             return {
-                "type": "globe-coordinate",
+                "type": "globecoordinate",
                 "value": {
                     "latitude": gps_match.group(1),
                     "longitude": gps_match.group(2),

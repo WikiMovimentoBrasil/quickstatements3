@@ -205,14 +205,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""http://google.com"""'),
             {
-                "type": "url",
+                "type": "string",
                 "value": "http://google.com",
             },
         )
         self.assertEqual(
             parser.parse_value('"""https://wikidata.com"""'),
             {
-                "type": "url",
+                "type": "string",
                 "value": "https://wikidata.com",
             },
         )
@@ -222,14 +222,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""Frans Breydel - A merry company.jpg"""'),
             {
-                "type": "commonsMedia",
+                "type": "string",
                 "value": "Frans Breydel - A merry company.jpg",
             },
         )
         self.assertEqual(
             parser.parse_value('"""\'Girl Reading\' by Mary Colman Wheeler, El Paso Museum of Art.JPG"""'),
             {
-                "type": "commonsMedia",
+                "type": "string",
                 "value": "'Girl Reading' by Mary Colman Wheeler, El Paso Museum of Art.JPG",
             },
         )
@@ -239,14 +239,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""Sandbox"""'),
             {
-                "type": "external-id",
+                "type": "string",
                 "value": "Sandbox",
             },
         )
         self.assertEqual(
             parser.parse_value('"""Patterns, Predictors, and Outcome"""'),
             {
-                "type": "external-id",
+                "type": "string",
                 "value": "Patterns, Predictors, and Outcome",
             },
         )
@@ -293,7 +293,7 @@ class TestBaseParser(TestCase):
     def test_parse_value_location(self):
         parser = BaseParser()
         ret = {
-            "type": "globe-coordinate",
+            "type": "globecoordinate",
             "value": {
                 "latitude": "43.26193",
                 "longitude": "10.92708",
