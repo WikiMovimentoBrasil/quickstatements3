@@ -145,7 +145,7 @@ class TestCSVBatch(TestCase):
                 "what": "statement",
                 "entity": {"type": "item", "id": "LAST"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q95074"},
+                "value": {"type": "wikibase-entityid", "value": "Q95074"},
             },
         )
 
@@ -169,7 +169,7 @@ Q4115189,Q5,Q5"""
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -180,7 +180,7 @@ Q4115189,Q5,Q5"""
                 "action": "remove",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -210,7 +210,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -243,7 +243,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123", "type": "lexeme"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -254,7 +254,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123-S1", "type": "sense"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -265,7 +265,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123-F1", "type": "form"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -439,7 +439,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             }
         )
@@ -450,7 +450,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "remove",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q36180"},
+                "value": {"type": "wikibase-entityid", "value": "Q36180"},
                 "what": "statement",
             }
         )
@@ -461,7 +461,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-item", "value": "Q6581097"},
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
                 "what": "statement",
             }
         )
@@ -472,7 +472,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P735",
-                "value": {"type": "wikibase-item", "value": "Q463035"},
+                "value": {"type": "wikibase-entityid", "value": "Q463035"},
                 "what": "statement",
                 "qualifiers": [
                     {
@@ -484,7 +484,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                     [
                         {
                             "property": "P248", 
-                            "value": {"type": "wikibase-item", "value": "Q54919"}
+                            "value": {"type": "wikibase-entityid", "value": "Q54919"}
                         },
                         {
                             "property": "P214",
@@ -494,7 +494,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                     [
                         {
                             "property": "P143", 
-                            "value": {"type": "wikibase-item", "value": "Q328"}
+                            "value": {"type": "wikibase-entityid", "value": "Q328"}
                         }
                     ]
                 ]
