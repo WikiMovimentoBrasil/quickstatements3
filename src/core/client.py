@@ -10,6 +10,7 @@ from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
 from .exceptions import InvalidPropertyValueType
+from .exceptions import NoValueTypeForThisDataType
 
 logger = logging.getLogger("qsts3")
 
@@ -55,6 +56,27 @@ class Client:
         "WIKIBASE_URL",
         "https://www.wikidata.org/w/rest.php/wikibase/v0",
     )
+    # TODO: get this from /property-data-types
+    DATA_TYPE_TO_VALUE_TYPE = {
+        "commonsMedia": "string",
+        "geo-shape": "string",
+        "tabular-data": "string",
+        "url": "string",
+        "external-id": "string",
+        "wikibase-item": "wikibase-entityid",
+        "wikibase-property": "wikibase-entityid",
+        "globe-coordinate": "globecoordinate",
+        "monolingualtext": "monolingualtext",
+        "quantity": "quantity",
+        "string": "string",
+        "time": "time",
+        "musical-notation": "string",
+        "math": "string",
+        "wikibase-lexeme": "wikibase-entityid",
+        "wikibase-form": "wikibase-entityid",
+        "wikibase-sense": "wikibase-entityid",
+        "entity-schema": "wikibase-entityid",
+    }
 
     def __init__(self, token):
         self.token = token
@@ -194,9 +216,22 @@ class Client:
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
-        # TODO: convert data_type to value_type
-        value_type = data_type
+        try:
+            value_type = self.data_type_to_value_type(data_type)
+        except KeyError:
+            raise NoValueTypeForThisDataType(property_id, data_type)
+
         return value_type
+
+    def data_type_to_value_type(self, data_type):
+        """
+        Gets the associated value type for a property's data type.
+
+        # Raises
+
+        - `KeyError` if there is no associated value type.
+        """
+        return self.DATA_TYPE_TO_VALUE_TYPE[data_type]
 
     def verify_value_type(self, property_id, value_type):
         """

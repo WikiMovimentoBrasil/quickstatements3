@@ -4,6 +4,7 @@ from django.test import TestCase
 
 from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
+from core.exceptions import NoValueTypeForThisDataType
 
 
 class ApiMocker:
@@ -80,6 +81,14 @@ class ClientTests(TestCase):
         ApiMocker.property_data_type_not_found(mocker, "P321341234")
         with self.assertRaises(NonexistantPropertyOrNoDataType):
             self.api_client().get_property_value_type("P321341234")
+
+    @requests_mock.Mocker()
+    def test_no_value_type_for_a_data_type(self, mocker):
+        ApiMocker.property_data_type(mocker, "P1", "idonotexist")
+        with self.assertRaises(KeyError):
+            self.api_client().data_type_to_value_type("idonotexist")
+        with self.assertRaises(NoValueTypeForThisDataType):
+            self.api_client().get_property_value_type("P1")
 
     @requests_mock.Mocker()
     def test_get_labels(self, mocker):

@@ -25,6 +25,16 @@ class NonexistantPropertyOrNoDataType(ApiException):
         )
         return super().__init__(message)
 
+class NoValueTypeForThisDataType(ApiException):
+    def __init__(self, property_id, data_type):
+        self.property_id = property_id
+        self.data_type = data_type
+        message = (
+            "There is no value type associated for the "
+            f"data type {data_type} of the property {property_id}."
+        )
+        return super().__init__(message)
+
 
 class NoStatementsForThatProperty(ApiException):
     def __init__(self, entity_id, property_id):
