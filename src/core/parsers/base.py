@@ -58,6 +58,22 @@ class BaseParser(object):
             re.match("^Q\\d+$", value) is not None or re.match("^M\\d+$", value) is not None
         )
 
+    def is_valid_entity_id(self, value):
+        """
+        Returns True if value is a valid entity id
+
+        Item: Q1234
+        Commons: M1234
+        Properties: P1234
+        Lexemes: L1234
+        Forms: L1234-F1234
+        Senses: L1234-S1234
+
+        """
+        return value is not None and (
+            re.match(r"^[QMPL]\d+$", value) is not None or re.match(r"^L\d+\-[FS]\d+$", value) is not None
+        )
+
     def is_valid_label(self, value):
         """
         Returns True if value is a valid label
@@ -130,19 +146,24 @@ class BaseParser(object):
             return {"value": v, "type": v}
         return None
 
-    def parse_value_item(self, v): 
+    def parse_value_entity(self, v):
         """
-        Returns ITEM data if v matches a valid item id:
+        Returns ITEM data if v matches a valid entity id,
+        being an item, a property, a lexeme, a form or a sense.
 
-        Q1234
-        M1234
+        Item: Q1234
+        Commons: M1234
+        Properties: P1234
+        Lexemes: L1234
+        Forms: L1234-F1234
+        Senses: L1234-S1234
 
         Returns None otherwise
         """
         if v == "LAST":
-            return {"type": "wikibase-item", "value": "LAST"}
-        if self.is_valid_item_id(v):
-            return {"type": "wikibase-item", "value": v.upper()}
+            return {"type": "wikibase-entityid", "value": "LAST"}
+        if self.is_valid_entity_id(v):
+            return {"type": "wikibase-entityid", "value": v.upper()}
         return None
 
     def parse_value_string(self, v):
@@ -191,7 +212,8 @@ class BaseParser(object):
         url_match = re.match(r'^"""(http(s)?:.*)"""$', v)
         if url_match:
             return {
-                "type": "url",
+                # TODO: maybe implement again data_type: url
+                "type": "string",
                 "value": url_match.group(1)
             }
         return None
@@ -207,7 +229,8 @@ class BaseParser(object):
         url_match = re.match(r'^"""(.*\.(?:jpg|JPG|jpeg|JPEG|png|PNG))"""$', v)
         if url_match:
             return {
-                "type": "commonsMedia",
+                # TODO: maybe implement again data_type: commonsMedia
+                "type": "string",
                 "value": url_match.group(1)
             }
         return None
@@ -223,7 +246,8 @@ class BaseParser(object):
         id_match = re.match(r'^"""(.*)"""$', v)
         if id_match:
             return {
-                "type": "external-id",
+                # TODO: maybe implement again data_type: commonsMedia
+                "type": "string",
                 "value": id_match.group(1)
             }
         return None
@@ -270,7 +294,7 @@ class BaseParser(object):
         gps_match = re.match(r"^\@\s*([+-]{0,1}[0-9.]+)\s*\/\s*([+-]{0,1}[0-9.]+)$", v)
         if gps_match:
             return {
-                "type": "globe-coordinate",
+                "type": "globecoordinate",
                 "value": {
                     "latitude": gps_match.group(1),
                     "longitude": gps_match.group(2),
@@ -321,13 +345,13 @@ class BaseParser(object):
 
     def parse_value(self, v):
         """
-        Try to detect if v is a valid item id, somevalue, novalue, text, monolingual text, time, location or quantity.
+        Try to detect if v is a valid entity id, somevalue, novalue, text, monolingual text, time, location or quantity.
         Returns None otherwise
         """
         v = v.strip()
         for fn in [
             self.parse_value_somevalue_novalue, 
-            self.parse_value_item,
+            self.parse_value_entity,
             self.parse_value_url,
             self.parse_value_commons_media_file,
             self.parse_value_external_id,

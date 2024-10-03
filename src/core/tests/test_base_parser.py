@@ -4,6 +4,49 @@ from core.parsers.v1 import BaseParser
 
 
 class TestBaseParser(TestCase):
+    def test_entity_valid_id_parser(self):
+        parser = BaseParser()
+        self.assertTrue(parser.is_valid_entity_id("Q1"))
+        self.assertTrue(parser.is_valid_entity_id("Q1234"))
+        self.assertTrue(parser.is_valid_entity_id("Q1234345523535534545455342545"))
+        self.assertTrue(parser.is_valid_entity_id("M1"))
+        self.assertTrue(parser.is_valid_entity_id("M1234"))
+        self.assertTrue(parser.is_valid_entity_id("M1234345523535534545455342545"))
+        self.assertFalse(parser.is_valid_entity_id("1"))
+        self.assertFalse(parser.is_valid_entity_id("12Q1234"))
+        self.assertFalse(parser.is_valid_entity_id("Q1234m"))
+        self.assertFalse(parser.is_valid_entity_id("M1A"))
+        self.assertFalse(parser.is_valid_entity_id("M12A34"))
+        self.assertTrue(parser.is_valid_entity_id("P1"))
+        self.assertTrue(parser.is_valid_entity_id("P1234"))
+        self.assertTrue(parser.is_valid_entity_id("P1234345523535534545455342545"))
+        self.assertFalse(parser.is_valid_entity_id("1"))
+        self.assertFalse(parser.is_valid_entity_id("12P1234"))
+        self.assertFalse(parser.is_valid_entity_id("P1234m"))
+        self.assertFalse(parser.is_valid_entity_id("M1A"))
+        self.assertFalse(parser.is_valid_entity_id("M12A34"))
+        self.assertTrue(parser.is_valid_entity_id("L1"))
+        self.assertTrue(parser.is_valid_entity_id("L1234"))
+        self.assertTrue(parser.is_valid_entity_id("L1234345523535534545455342545"))
+        self.assertFalse(parser.is_valid_entity_id("1"))
+        self.assertFalse(parser.is_valid_entity_id("12P1234"))
+        self.assertFalse(parser.is_valid_entity_id("L1234m"))
+        self.assertFalse(parser.is_valid_entity_id("L1da123121212"))
+        self.assertFalse(parser.is_valid_entity_id("M12A34"))
+        self.assertTrue(parser.is_valid_entity_id("L1-F1"))
+        self.assertTrue(parser.is_valid_entity_id("L1234-F1234"))
+        self.assertFalse(parser.is_valid_entity_id("F1234"))
+        self.assertFalse(parser.is_valid_entity_id("Q1234-F1234"))
+        self.assertFalse(parser.is_valid_entity_id("M1234-F1234"))
+        self.assertFalse(parser.is_valid_entity_id("P1234-F1234"))
+        self.assertTrue(parser.is_valid_entity_id("L1-S1"))
+        self.assertTrue(parser.is_valid_entity_id("L1234-S1234"))
+        self.assertFalse(parser.is_valid_entity_id("S1234"))
+        self.assertFalse(parser.is_valid_entity_id("Q1234-S1234"))
+        self.assertFalse(parser.is_valid_entity_id("M1234-S1234"))
+        self.assertFalse(parser.is_valid_entity_id("P1234-S1234"))
+        self.assertFalse(parser.is_valid_entity_id(None))
+
     def test_item_valid_id_parser(self):
         parser = BaseParser()
         self.assertTrue(parser.is_valid_item_id("Q1"))
@@ -123,9 +166,9 @@ class TestBaseParser(TestCase):
 
     def test_parse_value_item(self):
         parser = BaseParser()
-        self.assertEqual(parser.parse_value("LAST"), {"type": "wikibase-item", "value": "LAST"})
-        self.assertEqual(parser.parse_value("Q1233"), {"type": "wikibase-item", "value": "Q1233"})
-        self.assertEqual(parser.parse_value("M1233"), {"type": "wikibase-item", "value": "M1233"})
+        self.assertEqual(parser.parse_value("LAST"), {"type": "wikibase-entityid", "value": "LAST"})
+        self.assertEqual(parser.parse_value("Q1233"), {"type": "wikibase-entityid", "value": "Q1233"})
+        self.assertEqual(parser.parse_value("M1233"), {"type": "wikibase-entityid", "value": "M1233"})
 
     def test_parse_value_string(self):
         parser = BaseParser()
@@ -162,14 +205,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""http://google.com"""'),
             {
-                "type": "url",
+                "type": "string",
                 "value": "http://google.com",
             },
         )
         self.assertEqual(
             parser.parse_value('"""https://wikidata.com"""'),
             {
-                "type": "url",
+                "type": "string",
                 "value": "https://wikidata.com",
             },
         )
@@ -179,14 +222,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""Frans Breydel - A merry company.jpg"""'),
             {
-                "type": "commonsMedia",
+                "type": "string",
                 "value": "Frans Breydel - A merry company.jpg",
             },
         )
         self.assertEqual(
             parser.parse_value('"""\'Girl Reading\' by Mary Colman Wheeler, El Paso Museum of Art.JPG"""'),
             {
-                "type": "commonsMedia",
+                "type": "string",
                 "value": "'Girl Reading' by Mary Colman Wheeler, El Paso Museum of Art.JPG",
             },
         )
@@ -196,14 +239,14 @@ class TestBaseParser(TestCase):
         self.assertEqual(
             parser.parse_value('"""Sandbox"""'),
             {
-                "type": "external-id",
+                "type": "string",
                 "value": "Sandbox",
             },
         )
         self.assertEqual(
             parser.parse_value('"""Patterns, Predictors, and Outcome"""'),
             {
-                "type": "external-id",
+                "type": "string",
                 "value": "Patterns, Predictors, and Outcome",
             },
         )
@@ -250,7 +293,7 @@ class TestBaseParser(TestCase):
     def test_parse_value_location(self):
         parser = BaseParser()
         ret = {
-            "type": "globe-coordinate",
+            "type": "globecoordinate",
             "value": {
                 "latitude": "43.26193",
                 "longitude": "10.92708",

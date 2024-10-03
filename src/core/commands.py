@@ -8,8 +8,8 @@ def parser_value_to_api_value(parser_value):
     # TODO: refactor parser to use this
     # format for values, instead of having to reprocess them here.
     # Basically, types can be "value", "novalue" and "somevalue",
-    # when working with the API. The data type is not needed.
-    # It is only used when checking with the property's data type,
+    # when working with the API. The value type is not needed.
+    # It is only used when checking with the property's value type,
     # so it's still useful, but it can be saved not in value's type.
     if parser_value["type"] in ["novalue", "somevalue"]:
         return {
@@ -75,7 +75,6 @@ class AddStatement(Utilities):
         self.property_id = j["property"]
 
         self.parser_value = j["value"]
-        self.data_type = self.parser_value["type"]
         self.references = j.get("references", [])
         self.qualifiers = j.get("qualifiers", [])
 
