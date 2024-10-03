@@ -13,4 +13,9 @@
     <b class="status status_running">RUNNING: {{running_count}}</b> 
     <b class="status status_done">DONE: {{done_count}}</b>
     <b class="status status_error">ERRORS: {{error_count}}</b>
+    {% if show_block_on_errors_notice %}
+    <small>
+      This batch will be blocked if a command fails.
+    </small>
+    {% endif %}
 </div>

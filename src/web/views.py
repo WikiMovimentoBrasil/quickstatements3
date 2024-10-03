@@ -18,6 +18,7 @@ from core.models import BatchCommand
 from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
+from core.exceptions import NoToken
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
@@ -145,7 +146,7 @@ def batch_commands(request, pk):
             client = Client.from_user(request.user)
             for command in page.object_list:
                 command.display_label = command.get_label(client, language)
-        except:
+        except NoToken:
             pass
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
@@ -181,6 +182,10 @@ def batch_summary(request, pk):
             .annotate(total_commands=Count("batchcommand"))
             .get(pk=pk)
         )
+        show_block_on_errors_notice = (
+            batch.is_initial_or_running
+            and batch.block_on_errors
+        )
 
         return render(
             request,
@@ -196,6 +201,7 @@ def batch_summary(request, pk):
                 "done_percentage": float(100 * batch.done_commands) / batch.total_commands
                 if batch.total_commands
                 else 0,
+                "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )
     except Batch.DoesNotExist:
@@ -229,6 +235,11 @@ def new_batch(request):
                 parser = CSVCommandParser()
             
             batch = parser.parse(batch_name, batch_owner, batch_commands)
+
+            if "block_on_errors" in request.POST:
+                batch.block_on_errors = True
+                batch.save()
+
             return redirect(reverse("batch", args=[batch.pk]))
         except ParserException as p:
             error = p.message
