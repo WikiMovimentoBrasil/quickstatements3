@@ -1,5 +1,4 @@
 {% extends "layout.html" %}
-
 {% block content %}
 
 {% if user.is_authenticated %}
@@ -7,19 +6,37 @@
 <h1> {{ user.username }} </h1>
 <p><a href="{% url 'last_batches_by_user' user=user.username %}">Your last batches</a></p>
 <p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
+<article>
+    <h2> Preferences </h2>
+    <form method="POST">
+        {% csrf_token %}
+        <label for="language">Preferred language</label>
+        <select name="language" required>
+            {% for code, name in language_choices %}
+            <option {% if code == language %}selected{% endif %} value="{{ code }}"> {{ code }}: {{ name }} </option>
+            {% endfor %}
+        </select>
+        <input type="hidden" name="action" value="update_language">
+        <input type="submit" value="Update preferred language">
+    </form>
+</article>
 
-<h2> Preferences </h2>
+<article>
+    <h2>API TOKEN</h2>
 
-<form method="POST">
-  {% csrf_token %}
-  <label for="language">Preferred language</label>
-  <select name="language" required>
-    {% for code, name in language_choices %}
-    <option {% if code == language %}selected{% endif %} value="{{ code }}"> {{ code }}: {{ name }} </option>
-    {% endfor %}
-  </select>
-  <input type="submit" value="Update">
-</form>
+    <form method="POST">
+        {% csrf_token %}
+        <p>Here, you can generate a token to use when querying batch jobs programatically.</p>
+        <p>
+            You currently have the following token. This token must be kept private:
+            <article style="background: var(--pico-color-grey-100);">
+                <center><h5>{{token}}</h5><center>
+            </article>
+        </p>
+        <input type="hidden" name="action" value="update_token">
+        <input type="submit" value="Update token">
+    </form>
+</article>
 
 {% else %}
 
