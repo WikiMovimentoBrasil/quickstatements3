@@ -101,6 +101,7 @@
 
 {% block content %}
 
+<div style="float: left;">
 <hgroup>
   <h2> Batch #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
   <p><b>{{batch.name}}</b></p>
@@ -110,9 +111,17 @@
     [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">View wikidata</a>]
   </p>
 </hgroup>
+</div>
+
+<div style="float: right;">
+  {% if current_owner and batch.is_running %}
+  <button class="secondary" onclick="showModal();">Stop execution</button>
+  {% endif %}
+</div>
+
 
 <div id="batchProgressDiv" 
-      hx-get="/batch/{{batch.pk}}/summary/"
+      hx-get="{% url 'batch_summary' pk=batch.pk %}"
       hx-trigger="load, every 10s" 
       hx-swap="innerHTML" 
       hx-indicator="#spinner"
@@ -124,12 +133,46 @@
 
 <div class="overflow-auto" 
     id="batchCommandsDiv" 
-    hx-get="/batch/{{batch.pk}}/commands/"
+    hx-get="{% url 'batch_commands' pk=batch.pk %}"
     hx-trigger="load, reload" 
     hx-indicator="#spinner"
     hx-swap="innerHTML">
 Loading commands...
 </div>
 
+<form action="{% url 'batch_stop' pk=batch.pk %}" id="stopbatch" method="POST">
+{% csrf_token %}
+</form>
+
+<dialog id="confirmStop">
+  <article>
+    <h2>Stop batch #{{batch.pk}} processing</h2>
+    <p>
+      Are you sure you want to stop the current batch processing?
+    </p>
+    <footer>
+      <button class="secondary" onclick="closeModal()">No, continue</button>
+      <button onclick="stop()">Stop processing !</button>
+    </footer>
+  </article>
+</dialog>
+
 {% endblock %}
+
+{% block scripts %}
+<script>
+function showModal() {
+    document.getElementById("confirmStop").setAttribute("open", "");
+}
+
+function closeModal() {
+    document.getElementById("confirmStop").removeAttribute("open", "");
+}
+
+function stop() {
+    document.getElementById("stopbatch").submit();
+}
+
+</script>
+{% endblock scripts %}
 
