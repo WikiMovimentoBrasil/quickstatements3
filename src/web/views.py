@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from rest_framework.authtoken.models import Token
 
 from core.client import Client
 from core.models import Batch
@@ -19,6 +20,7 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
+
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
@@ -311,11 +313,22 @@ def login_dev(request):
 def profile(request):
     data = {}
     if request.user.is_authenticated:
-        data["language_choices"] = LANGUAGE_CHOICES
         user = request.user
+        token, created = Token.objects.get_or_create(user=user)
+
         if request.method == "POST":
-            prefs, _ = Preferences.objects.get_or_create(user=user)
-            prefs.language = request.POST["language"]
-            prefs.save()
+            action = request.POST["action"]
+            if action == "update_language":
+                prefs, _ = Preferences.objects.get_or_create(user=user)
+                prefs.language = request.POST["language"]
+                prefs.save()
+            elif action == "update_token":
+                if token: 
+                    token.delete()
+                token = Token.objects.create(user=user)
+
         data["language"] = Preferences.objects.get_language(user, "en")
+        data["language_choices"] = LANGUAGE_CHOICES
+        data["token"] = token.key
+
     return render(request, "profile.html", data)
