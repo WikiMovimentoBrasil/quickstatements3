@@ -92,7 +92,7 @@
 
 <div style="float: right;">
   {% if current_owner %}
-    {% if batch.is_running %}
+    {% if batch.is_initial_or_running %}
     <button class="secondary" onclick="showModal();">Stop execution</button>
     {% endif %}
     {% if batch.is_preview %}
