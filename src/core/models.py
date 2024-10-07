@@ -154,6 +154,10 @@ class Batch(models.Model):
     def is_initial_or_running(self):
         return self.is_initial or self.is_running
 
+    @property
+    def is_preview_initial_or_running(self):
+        return self.is_preview or self.is_initial or self.is_running
+
 
 class BatchCommand(models.Model):
     """

@@ -203,7 +203,7 @@ def batch_summary(request, pk):
             .get(pk=pk)
         )
         show_block_on_errors_notice = (
-            batch.is_initial_or_running
+            batch.is_preview_initial_or_running
             and batch.block_on_errors
         )
 
