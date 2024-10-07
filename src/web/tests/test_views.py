@@ -269,3 +269,31 @@ class ViewsTest(TestCase):
         self.assertFalse(response.context["batch"].is_preview)
         self.assertTrue(response.context["batch"].is_initial)
 
+    def test_create_block_on_errors(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        response = c.get(response.url)
+        self.assertFalse(response.context["batch"].block_on_errors)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+                "block_on_errors": "block_on_errors",
+            },
+        )
+        response = c.get(response.url)
+        self.assertTrue(response.context["batch"].block_on_errors)
+
