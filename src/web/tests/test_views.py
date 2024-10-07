@@ -297,3 +297,30 @@ class ViewsTest(TestCase):
         response = c.get(response.url)
         self.assertTrue(response.context["batch"].block_on_errors)
 
+
+    def test_restart_after_stopped_buttons(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertInRes("Allow batch to run", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        response = c.post(f"/batch/{pk}/stop/")
+        response = c.get(response.url)
+        self.assertInRes("Restart", response)
+
+        response = c.post(f"/batch/{pk}/restart/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+

@@ -4,6 +4,7 @@ from .views import batch
 from .views import batch_commands
 from .views import batch_allow_start
 from .views import batch_stop
+from .views import batch_restart
 from .views import batch_summary
 from .views import home
 from .views import last_batches
@@ -30,6 +31,7 @@ urlpatterns = [
     path("batch/<int:pk>/", batch, name="batch"),
     path("batch/<int:pk>/allow_start/", batch_allow_start, name="batch_allow_start"),
     path("batch/<int:pk>/stop/", batch_stop, name="batch_stop"),
+    path("batch/<int:pk>/restart/", batch_restart, name="batch_restart"),
     path("batch/<int:pk>/summary/", batch_summary, name="batch_summary"),
     path("batch/<int:pk>/commands/", batch_commands, name="batch_commands"),
     path("batch/new/", new_batch, name="new_batch"),

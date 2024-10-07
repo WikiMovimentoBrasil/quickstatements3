@@ -141,6 +141,25 @@ def batch_allow_start(request, pk):
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_restart(request, pk):
+    """
+    Restart a batch that was previously stopped
+    Allows a batch that is in the preview state to start running.
+    """
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner:
+            batch.restart()
+        return redirect(reverse("batch", args=[batch.pk]))
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
 
 @require_http_methods(
     [
