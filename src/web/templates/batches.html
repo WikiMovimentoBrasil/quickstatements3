@@ -7,46 +7,6 @@
   font-size: 13px;  
 }
 
-.status_preview {
-  background-color: var(--pico-color-pumpkin-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-}
-
-.status_initial {
-  background-color: var(--pico-color-slate-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-}
-
-.status_running {
-  background-color: var(--pico-color-blue-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-}
-
-.status_done {
-  background-color: var(--pico-color-green-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-}
-
-.status_error {
-  background-color: var(--pico-color-red-600);
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-} 
-
 .pagination {
   font-size: 14px;
   font-weight: bold;
@@ -92,7 +52,7 @@
         </td>
         {% endif %}
         <td>{{ batch.name }}</td>
-        <td><span class="status_{{ batch.get_status_display | lower }}">{{ batch.get_status_display | upper }}</td>
+        <td><span class="status status_{{ batch.get_status_display | lower }}">{{ batch.get_status_display | upper }}</td>
         <td>{{ batch.modified }}</td>
         <td>
           <a href="{% url 'batch' pk=batch.pk %}">View</a><br>
