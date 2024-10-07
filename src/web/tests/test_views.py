@@ -152,6 +152,7 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My v1 batch")
+        self.assertTrue(batch.is_preview)
         self.assertEqual(batch.batchcommand_set.count(), 3)
 
         # Listing again. Now we have something
@@ -159,6 +160,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
+        self.assertTrue(batch.is_preview)
 
     def test_create_csv_batch_logged_user(self):
         c = Client()
@@ -237,3 +239,33 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{batch.pk}/commands/")
         self.assertEqual(response.status_code, 200)
         self.assertInRes("English label", response)
+
+    def test_allow_start_after_create(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        batch = response.context["batch"]
+        self.assertEqual(batch.name, "My v1 batch")
+        self.assertEqual(batch.batchcommand_set.count(), 3)
+        self.assertTrue(batch.is_preview)
+
+        pk = batch.pk
+
+        response = c.get(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 405)
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["batch"].is_preview)
+        self.assertTrue(response.context["batch"].is_initial)
+

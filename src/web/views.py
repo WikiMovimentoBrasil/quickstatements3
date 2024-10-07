@@ -123,6 +123,24 @@ def batch_stop(request, pk):
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_allow_start(request, pk):
+    """
+    Allows a batch that is in the preview state to start running.
+    """
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner:
+            batch.allow_start()
+        return redirect(reverse("batch", args=[batch.pk]))
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
 
 @require_http_methods(
     [
@@ -237,10 +255,12 @@ def new_batch(request):
                 parser = CSVCommandParser()
             
             batch = parser.parse(batch_name, batch_owner, batch_commands)
+            batch.status = Batch.STATUS_PREVIEW
 
             if "block_on_errors" in request.POST:
                 batch.block_on_errors = True
-                batch.save()
+
+            batch.save()
 
             return redirect(reverse("batch", args=[batch.pk]))
         except ParserException as p:

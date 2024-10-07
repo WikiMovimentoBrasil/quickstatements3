@@ -114,8 +114,16 @@
 </div>
 
 <div style="float: right;">
-  {% if current_owner and batch.is_running %}
-  <button class="secondary" onclick="showModal();">Stop execution</button>
+  {% if current_owner %}
+    {% if batch.is_running %}
+    <button class="secondary" onclick="showModal();">Stop execution</button>
+    {% endif %}
+    {% if batch.is_preview %}
+    <form method="POST" action="{% url 'batch_allow_start' pk=batch.pk %}">
+      {% csrf_token %}
+      <input type="submit" value="Allow batch to run">
+    </form>
+    {% endif %}
   {% endif %}
 </div>
 
