@@ -16,6 +16,9 @@ class TestBatch(TestCase):
         batch.status = Batch.STATUS_STOPPED
         batch.save()
         self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_running)
         batch.status = Batch.STATUS_DONE
         batch.save()
         self.assertFalse(batch.is_running)
@@ -32,12 +35,34 @@ class TestBatch(TestCase):
         batch.status = Batch.STATUS_STOPPED
         batch.save()
         self.assertTrue(batch.is_stopped)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_stopped)
         batch.status = Batch.STATUS_DONE
         batch.save()
         self.assertFalse(batch.is_stopped)
         batch.status = Batch.STATUS_RUNNING
         batch.save()
         self.assertFalse(batch.is_stopped)
+
+    def test_batch_is_preview(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertTrue(batch.is_preview)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_preview)
 
     def test_batch_is_initial(self):
         batch = Batch.objects.create(name="teste")
@@ -46,6 +71,9 @@ class TestBatch(TestCase):
         batch.save()
         self.assertFalse(batch.is_initial)
         batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_PREVIEW
         batch.save()
         self.assertFalse(batch.is_initial)
         batch.status = Batch.STATUS_DONE
@@ -64,6 +92,10 @@ class TestBatch(TestCase):
         self.assertTrue(batch.is_initial_or_running)
 
         batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_PREVIEW
         batch.save()
         self.assertFalse(batch.is_initial_or_running)
 

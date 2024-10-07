@@ -20,6 +20,7 @@ class Batch(models.Model):
 
     STATUS_STOPPED = -2
     STATUS_BLOCKED = -1
+    STATUS_PREVIEW = 0
     STATUS_INITIAL = 1
     STATUS_RUNNING = 2
     STATUS_DONE = 3
@@ -27,6 +28,7 @@ class Batch(models.Model):
     STATUS_CHOICES = (
         (STATUS_STOPPED, _("Stopped")),
         (STATUS_BLOCKED, _("Blocked")),
+        (STATUS_PREVIEW, _("Preview")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
         (STATUS_DONE, _("Done"))
@@ -127,6 +129,10 @@ class Batch(models.Model):
         logger.warn(f"[{self}] blocked by {command}")
         self.status = self.STATUS_BLOCKED
         self.save()
+
+    @property
+    def is_preview(self):
+        return self.status == Batch.STATUS_PREVIEW
 
     @property 
     def is_running(self):
