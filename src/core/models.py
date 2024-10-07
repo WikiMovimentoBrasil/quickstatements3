@@ -20,9 +20,9 @@ class Batch(models.Model):
 
     STATUS_STOPPED = -2
     STATUS_BLOCKED = -1
-    STATUS_INITIAL = 0
-    STATUS_RUNNING = 1
-    STATUS_DONE = 2
+    STATUS_INITIAL = 1
+    STATUS_RUNNING = 2
+    STATUS_DONE = 3
 
     STATUS_CHOICES = (
         (STATUS_STOPPED, _("Stopped")),
