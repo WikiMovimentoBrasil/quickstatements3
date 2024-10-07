@@ -131,6 +131,34 @@ class TestBatch(TestCase):
         batch.save()
         self.assertFalse(batch.is_preview_initial_or_running)
 
+    def test_batch_allow_start(self):
+        batch = Batch.objects.create(name="teste")
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+
+        batch.allow_start()
+        self.assertFalse(batch.is_preview)
+        self.assertTrue(batch.is_initial)
+
+        batch.allow_start()
+        self.assertFalse(batch.is_preview)
+        self.assertTrue(batch.is_initial)
+
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        batch.allow_start()
+        self.assertFalse(batch.is_initial)
+
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        batch.allow_start()
+        self.assertFalse(batch.is_initial)
+
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        batch.allow_start()
+        self.assertTrue(batch.is_initial)
+
     def test_batch_stop(self):
         batch = Batch.objects.create(name="teste")
         self.assertFalse(batch.is_stopped)

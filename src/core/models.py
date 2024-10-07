@@ -107,8 +107,9 @@ class Batch(models.Model):
         self.save()
 
     def allow_start(self):
-        self.status = self.STATUS_INITIAL
-        self.save()
+        if self.is_preview:
+            self.status = self.STATUS_INITIAL
+            self.save()
 
     def stop(self):
         logger.debug(f"[{self}] stop...")
