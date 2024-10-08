@@ -10,6 +10,7 @@ from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
 from .exceptions import InvalidToken
+from .exceptions import UserIsNotAutoconfirmed
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoValueTypeForThisDataType
 
@@ -149,6 +150,12 @@ class Client:
         except KeyError:
             logger.warn(f"Error response: {response}")
             raise InvalidToken()
+
+    def is_autoconfirmed_or_raise(self):
+        is_autoconfirmed = self.get_is_autoconfirmed()
+        if not is_autoconfirmed:
+            raise UserIsNotAutoconfirmed()
+
 
     # ---
     # Wikibase utilities
