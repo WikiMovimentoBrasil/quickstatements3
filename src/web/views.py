@@ -20,6 +20,7 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
+from core.exceptions import InvalidToken
 
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
@@ -301,7 +302,7 @@ def login_dev(request):
         try:
             user = user_from_token(token)
             django_login(request, user)
-        except ValueError as e:
+        except InvalidToken as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 

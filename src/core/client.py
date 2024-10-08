@@ -9,6 +9,7 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
+from .exceptions import InvalidToken
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoValueTypeForThisDataType
 
@@ -137,10 +138,17 @@ class Client:
             username = response["username"]
             return username
         except KeyError:
-            raise ValueError(
-                "The token did not return a valid username.",
-                response,
-            )
+            logger.warn(f"Error response: {response}")
+            raise InvalidToken()
+
+    def get_is_autoconfirmed(self):
+        response = self.get(self.ENDPOINT_PROFILE).json()
+        try:
+            groups = response["groups"]
+            return "autoconfirmed" in groups
+        except KeyError:
+            logger.warn(f"Error response: {response}")
+            raise InvalidToken()
 
     # ---
     # Wikibase utilities

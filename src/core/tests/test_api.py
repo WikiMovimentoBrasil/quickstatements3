@@ -9,6 +9,32 @@ from core.exceptions import InvalidPropertyValueType
 
 
 class ApiMocker:
+    # ---
+    # OAuth
+    # ---
+    @classmethod
+    def oauth_profile_endpoint(cls):
+        return Client.ENDPOINT_PROFILE
+
+    @classmethod
+    def login_success(cls, mocker, username):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"username": username},
+            status_code=200,
+        )
+
+    @classmethod
+    def login_fail(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "access denied"},
+            status_code=401,
+        )
+
+    # ---
+    # Wikibase
+    # ---
     @classmethod
     def wikibase_url(cls, endpoint):
         return f"{Client.WIKIBASE_URL}{endpoint}"

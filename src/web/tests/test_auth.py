@@ -7,6 +7,8 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 
 from ..models import Token
+from core.client import Client
+from core.tests.test_api import ApiMocker
 
 
 class TestCase(DjangoTestCase):
@@ -117,23 +119,14 @@ class LoginDev(TestCase):
 
     @requests_mock.Mocker()
     def test_login_fail(self, mocker):
-        mocker.get(
-            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
-            json={"error": "access denied"},
-            status_code=401,
-        )
+        ApiMocker.login_fail(mocker)
         res = self.post(data={"access_token": "my_invalid_token"})
         self.assertStatus(res, 400)
         self.assertInRes("Your access token is not valid", res)
 
     @requests_mock.Mocker()
     def test_login_success(self, mocker):
-        mocker.get(
-            # TODO: refactor this repeated URL
-            "https://www.mediawiki.org/w/rest.php/oauth2/resource/profile",
-            json={"username": "Maria"},
-            status_code=200,
-        )
+        ApiMocker.login_success(mocker, "Maria")
 
         res = self.post(data={"access_token": "valid_token"})
         self.assertRedirectToUrlName(res, "profile")
@@ -170,4 +163,4 @@ class OAuthRedirect(TestCase):
         location = res.headers["Location"]
         self.assertIsNotNone(os.getenv("OAUTH_CLIENT_ID"))
         self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
-        self.assertIn("mediawiki.org/w/rest.php/oauth2/authorize", location)
+        self.assertIn(f"{Client.BASE_REST_URL}/oauth2/authorize", location)
