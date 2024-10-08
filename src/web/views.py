@@ -34,8 +34,8 @@ oauth.register(
     name="mediawiki",
     client_id=os.getenv("OAUTH_CLIENT_ID"),
     client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
-    access_token_url="https://www.mediawiki.org/w/rest.php/oauth2/access_token",
-    authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
+    access_token_url=f"{Client.BASE_REST_URL}/oauth2/access_token",
+    authorize_url=f"{Client.BASE_REST_URL}/oauth2/authorize",
 )
 
 

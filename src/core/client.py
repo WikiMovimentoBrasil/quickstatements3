@@ -50,12 +50,12 @@ def cache_with_first_arg(cache_name):
 
 
 class Client:
-    BASE_URL = "https://www.mediawiki.org/w/rest.php/"
-    ENDPOINT_PROFILE = f"{BASE_URL}oauth2/resource/profile"
-    WIKIBASE_URL = os.getenv(
-        "WIKIBASE_URL",
-        "https://www.wikidata.org/w/rest.php/wikibase/v0",
+    BASE_REST_URL = os.getenv(
+        "BASE_REST_URL",
+        "https://www.wikidata.org/w/rest.php",
     )
+    ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
+    WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
     # TODO: get this from /property-data-types
     DATA_TYPE_TO_VALUE_TYPE = {
         "commonsMedia": "string",
