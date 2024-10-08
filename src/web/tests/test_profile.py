@@ -91,4 +91,3 @@ class ProfileTest(TestCase):
         self.assertNotEqual(prev_token, new_token)
 
         self.assertEqual(Token.objects.filter(user=user).count(), 1)
-        

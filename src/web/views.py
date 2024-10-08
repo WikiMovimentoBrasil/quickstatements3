@@ -332,4 +332,16 @@ def profile(request):
         data["language_choices"] = LANGUAGE_CHOICES
         data["token"] = token.key
 
+        is_autoconfirmed = False
+        token_failed = False
+
+        try:
+            client = Client.from_user(user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            token_failed = True
+
+        data["is_autoconfirmed"] = is_autoconfirmed
+        data["token_failed"] = token_failed
+
     return render(request, "profile.html", data)
