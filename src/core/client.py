@@ -12,7 +12,6 @@ from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
 from .exceptions import InvalidToken
-from .exceptions import UserIsNotAutoconfirmed
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoValueTypeForThisDataType
 

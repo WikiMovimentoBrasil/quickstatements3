@@ -8,7 +8,6 @@ from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
 from core.exceptions import InvalidToken
-from core.exceptions import UserIsNotAutoconfirmed
 
 
 class ApiMocker:

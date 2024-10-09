@@ -100,12 +100,6 @@ class InvalidToken(ApiException):
         return super().__init__(message)
 
 
-class UserIsNotAutoconfirmed(ApiException):
-    def __init__(self):
-        message = "The user is not an autoconfirmed user."
-        return super().__init__(message)
-
-
 class InternalInvalidState(ApiException):
     def __init__(self, message):
         message = f"There's something wrong in our side: {message}"

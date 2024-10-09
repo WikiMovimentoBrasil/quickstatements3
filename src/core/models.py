@@ -10,7 +10,6 @@ from .exceptions import ApiException
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
 from .exceptions import InvalidToken
-from .exceptions import UserIsNotAutoconfirmed
 
 logger = logging.getLogger("qsts3")
    
