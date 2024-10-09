@@ -294,15 +294,12 @@ class ClientTests(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         client = self.api_client()
         self.assertTrue(client.get_is_autoconfirmed())
-        client.is_autoconfirmed_or_raise()
 
     @requests_mock.Mocker()
     def test_is_not_autoconfirmed(self, mocker):
         ApiMocker.is_not_autoconfirmed(mocker)
         client = self.api_client()
         self.assertFalse(client.get_is_autoconfirmed())
-        with self.assertRaises(UserIsNotAutoconfirmed):
-            client.is_autoconfirmed_or_raise()
 
     @requests_mock.Mocker()
     def test_autoconfirmed_failed(self, mocker):
@@ -310,8 +307,6 @@ class ClientTests(TestCase):
         client = self.api_client()
         with self.assertRaises(InvalidToken):
             client.get_is_autoconfirmed()
-        with self.assertRaises(InvalidToken):
-            client.is_autoconfirmed_or_raise()
 
     @requests_mock.Mocker()
     def test_arbitrary_property_data_types(self, mocker):

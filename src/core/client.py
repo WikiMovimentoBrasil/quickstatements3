@@ -114,29 +114,26 @@ class Client:
     # ---
     # Auth
     # ---
-    def get_username(self):
-        response = self.get(self.ENDPOINT_PROFILE).json()
-        try:
-            username = response["username"]
-            return username
-        except KeyError:
+    def get_profile(self):
+        response = self.get(self.ENDPOINT_PROFILE)
+        if response.status_code != 200:
             logger.warn(f"Error response: {response}")
             raise InvalidToken()
+        return response.json()
+
+    def get_username(self):
+        try:
+            profile = self.get_profile()
+            return profile["username"]
+        except KeyError:
+            raise InvalidToken()
+
+    def get_user_groups(self):
+        profile = self.get_profile()
+        return profile.get("groups", [])
 
     def get_is_autoconfirmed(self):
-        response = self.get(self.ENDPOINT_PROFILE).json()
-        try:
-            groups = response["groups"]
-            return "autoconfirmed" in groups
-        except KeyError:
-            logger.warn(f"Error response: {response}")
-            raise InvalidToken()
-
-    def is_autoconfirmed_or_raise(self):
-        is_autoconfirmed = self.get_is_autoconfirmed()
-        if not is_autoconfirmed:
-            raise UserIsNotAutoconfirmed()
-
+        return "autoconfirmed" in self.get_user_groups()
 
     # ---
     # Wikibase utilities

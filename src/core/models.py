@@ -67,10 +67,10 @@ class Batch(models.Model):
 
         try:
             client = Client.from_username(self.user)
-            client.is_autoconfirmed_or_raise()
+            is_autoconfirmed = client.get_is_autoconfirmed()
         except (NoToken, InvalidToken):
             return self.block_no_token()
-        except UserIsNotAutoconfirmed:
+        if not is_autoconfirmed:
             return self.block_is_not_autoconfirmed()
 
         # TODO: if self.verify_value_types_before_running
