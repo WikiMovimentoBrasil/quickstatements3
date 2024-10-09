@@ -2,6 +2,8 @@ import os
 import requests
 import logging
 
+from django.core.cache import cache as django_cache
+
 from web.models import Token
 
 from .exceptions import EntityTypeNotImplemented
@@ -58,27 +60,6 @@ class Client:
     )
     ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
     WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
-    # TODO: get this from /property-data-types
-    DATA_TYPE_TO_VALUE_TYPE = {
-        "commonsMedia": "string",
-        "geo-shape": "string",
-        "tabular-data": "string",
-        "url": "string",
-        "external-id": "string",
-        "wikibase-item": "wikibase-entityid",
-        "wikibase-property": "wikibase-entityid",
-        "globe-coordinate": "globecoordinate",
-        "monolingualtext": "monolingualtext",
-        "quantity": "quantity",
-        "string": "string",
-        "time": "time",
-        "musical-notation": "string",
-        "math": "string",
-        "wikibase-lexeme": "wikibase-entityid",
-        "wikibase-form": "wikibase-entityid",
-        "wikibase-sense": "wikibase-entityid",
-        "entity-schema": "wikibase-entityid",
-    }
 
     def __init__(self, token):
         self.token = token
@@ -246,7 +227,19 @@ class Client:
 
         - `KeyError` if there is no associated value type.
         """
-        return self.DATA_TYPE_TO_VALUE_TYPE[data_type]
+        key = f"{self.WIKIBASE_URL}/property-data-types"
+
+        # We are caching this so that we don't need to hit it every time.
+        # We are using the global cache (django cache), instead of
+        # local dictionaries like the other caches, because this is
+        # equal to every client and it is unlikely to change between batches.
+        if django_cache.get(key) is not None:
+            mapper = django_cache.get(key)
+        else:
+            mapper = self.get_property_data_types()
+            django_cache.set(key, mapper)
+
+        return mapper[data_type]
 
     def verify_value_type(self, property_id, value_type):
         """
@@ -260,6 +253,14 @@ class Client:
             needed = self.get_property_value_type(property_id)
             if needed != value_type:
                 raise InvalidPropertyValueType(property_id, value_type, needed)
+
+    def get_property_data_types(self):
+        """
+        Returns a mapper of data types to value types
+        from the Wikibase API.
+        """
+        url = self.wikibase_url("/property-data-types")
+        return self.get(url).json()
 
     @cache_with_first_arg("label_cache")
     def get_labels(self, entity_id):

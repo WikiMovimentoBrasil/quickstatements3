@@ -26,6 +26,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_batch_success(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.property_data_type(mocker, "P12", "url")
         ApiMocker.add_statement_successful(mocker, "Q1234")
@@ -41,6 +42,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_batch_is_blocked_when_value_type_verification_fails(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
@@ -56,6 +58,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_successful_value_type_verification_stays_on_initial(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P111", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
@@ -88,6 +91,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_all_data_types(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.create_item(mocker, "Q123")
         ApiMocker.add_statement_successful(mocker, "Q123")
         ApiMocker.property_data_type(mocker, "P1", "commonsMedia")
