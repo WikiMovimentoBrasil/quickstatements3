@@ -6,29 +6,6 @@
   font-size: 13px;  
 }
 
-.status {
-  font-size: 12px;
-  padding: 5px;
-  color: #fff;
-  border-radius: 5px;
-}
-
-.status_initial {
-  background-color: var(--pico-color-slate-600);
-}
-
-.status_running {
-  background-color: var(--pico-color-blue-600);
-}
-
-.status_done {
-  background-color: var(--pico-color-green-600);
-}
-
-.status_error {
-  background-color: var(--pico-color-red-600);
-} 
-
 .status_total {
   background-color: var(--pico-color-yellow-600);
 } 
@@ -114,8 +91,20 @@
 </div>
 
 <div style="float: right;">
-  {% if current_owner and batch.is_running %}
-  <button class="secondary" onclick="showModal();">Stop execution</button>
+  {% if current_owner %}
+    {% if batch.is_preview %}
+    <form method="POST" action="{% url 'batch_allow_start' pk=batch.pk %}">
+      {% csrf_token %}
+      <input type="submit" value="Allow batch to run">
+    </form>
+    {% elif batch.is_initial_or_running %}
+    <button class="secondary" onclick="showModal();">Stop execution</button>
+    {% elif batch.is_stopped %}
+    <form method="POST" action="{% url 'batch_restart' pk=batch.pk %}">
+      {% csrf_token %}
+      <input type="submit" value="Restart">
+    </form>
+    {% endif %}
   {% endif %}
 </div>
 
