@@ -22,13 +22,15 @@ class Batch(models.Model):
 
     STATUS_STOPPED = -2
     STATUS_BLOCKED = -1
-    STATUS_INITIAL = 0
-    STATUS_RUNNING = 1
-    STATUS_DONE = 2
+    STATUS_PREVIEW = 0
+    STATUS_INITIAL = 1
+    STATUS_RUNNING = 2
+    STATUS_DONE = 3
 
     STATUS_CHOICES = (
         (STATUS_STOPPED, _("Stopped")),
         (STATUS_BLOCKED, _("Blocked")),
+        (STATUS_PREVIEW, _("Preview")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
         (STATUS_DONE, _("Done"))
@@ -109,6 +111,11 @@ class Batch(models.Model):
         self.status = self.STATUS_DONE
         self.save()
 
+    def allow_start(self):
+        if self.is_preview:
+            self.status = self.STATUS_INITIAL
+            self.save()
+
     def stop(self):
         logger.debug(f"[{self}] stop...")
         self.message = f"Batch stopped processing by owner at {datetime.now()}"
@@ -142,6 +149,10 @@ class Batch(models.Model):
         self.status = self.STATUS_BLOCKED
         self.save()
 
+    @property
+    def is_preview(self):
+        return self.status == Batch.STATUS_PREVIEW
+
     @property 
     def is_running(self):
         return self.status == Batch.STATUS_RUNNING
@@ -157,6 +168,10 @@ class Batch(models.Model):
     @property
     def is_initial_or_running(self):
         return self.is_initial or self.is_running
+
+    @property
+    def is_preview_initial_or_running(self):
+        return self.is_preview or self.is_initial or self.is_running
 
 
 class BatchCommand(models.Model):

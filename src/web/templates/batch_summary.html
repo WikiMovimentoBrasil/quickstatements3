@@ -1,5 +1,7 @@
 <div class="progress" id="batchprogress">
-  <div class="progress-status">BATCH STATUS <b>{{status | upper}}</b></div>
+  <div class="progress-status">BATCH STATUS
+    <b class="status status_{{ status | lower }}">{{status | upper}}</b>
+  </div>
   <div class="progress-meter">
     <div class="progress-done-meter" style="width: {{done_percentage}}%;"></div>
   </div>

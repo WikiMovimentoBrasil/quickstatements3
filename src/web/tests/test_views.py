@@ -152,6 +152,7 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My v1 batch")
+        self.assertTrue(batch.is_preview)
         self.assertEqual(batch.batchcommand_set.count(), 3)
 
         # Listing again. Now we have something
@@ -159,6 +160,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
+        self.assertTrue(batch.is_preview)
 
     def test_create_csv_batch_logged_user(self):
         c = Client()
@@ -270,3 +272,88 @@ class ViewsTest(TestCase):
         self.assertEqual(res.context["is_autoconfirmed"], False)
         self.assertEqual(res.context["token_failed"], True)
         self.assertInRes("We could not verify you are an autoconfirmed user.", res)
+
+    def test_allow_start_after_create(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        batch = response.context["batch"]
+        self.assertEqual(batch.name, "My v1 batch")
+        self.assertEqual(batch.batchcommand_set.count(), 3)
+        self.assertTrue(batch.is_preview)
+
+        pk = batch.pk
+
+        response = c.get(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 405)
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["batch"].is_preview)
+        self.assertTrue(response.context["batch"].is_initial)
+
+    def test_create_block_on_errors(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        response = c.get(response.url)
+        self.assertFalse(response.context["batch"].block_on_errors)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+                "block_on_errors": "block_on_errors",
+            },
+        )
+        response = c.get(response.url)
+        self.assertTrue(response.context["batch"].block_on_errors)
+
+
+    def test_restart_after_stopped_buttons(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertInRes("Allow batch to run", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        response = c.post(f"/batch/{pk}/stop/")
+        response = c.get(response.url)
+        self.assertInRes("Restart", response)
+
+        response = c.post(f"/batch/{pk}/restart/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+
