@@ -300,11 +300,19 @@ def new_batch(request):
 
     else:
         preferred_batch_type = request.session.get("preferred_batch_type", "v1")
+
+        try:
+            client = Client.from_user(request.user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            is_autoconfirmed = False
+
         return render(
             request,
             "new_batch.html",
             {
                 "batch_type": preferred_batch_type,
+                "is_autoconfirmed": is_autoconfirmed,
             }
         )
 

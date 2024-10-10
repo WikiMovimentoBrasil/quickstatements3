@@ -20,6 +20,10 @@ class ViewsTest(TestCase):
         """Checks if a substring is contained in response content"""
         self.assertIn(substring.lower(), str(response.content).lower().strip())
 
+    def assertNotInRes(self, substring, response):
+        """Checks if a substring is not contained in response content"""
+        self.assertNotIn(substring.lower(), str(response.content).lower().strip())
+
     def login_user_and_get_token(self, username):
         """
         Creates an user and a test token.
@@ -272,6 +276,30 @@ class ViewsTest(TestCase):
         self.assertEqual(res.context["is_autoconfirmed"], False)
         self.assertEqual(res.context["token_failed"], True)
         self.assertInRes("We could not verify you are an autoconfirmed user.", res)
+
+    @requests_mock.Mocker()
+    def test_new_batch_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/batch/new/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertInRes("Preview", res)
+        self.assertInRes("Note: only", res)
+        self.assertInRes("autoconfirmed users", res)
+        self.assertInRes("can have their batches run.", res)
+
+    @requests_mock.Mocker()
+    def test_new_batch_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/batch/new/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertInRes("Create", res)
+        self.assertNotInRes("Note: only", res)
+        self.assertNotInRes("autoconfirmed users", res)
+        self.assertNotInRes("can have their batches run.", res)
 
     def test_allow_start_after_create(self):
         c = Client()
