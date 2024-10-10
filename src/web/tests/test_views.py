@@ -330,6 +330,55 @@ class ViewsTest(TestCase):
         self.assertFalse(response.context["batch"].is_preview)
         self.assertTrue(response.context["batch"].is_initial)
 
+    @requests_mock.Mocker()
+    def test_allow_start_after_create_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertInRes("Note: only", res)
+        self.assertInRes("autoconfirmed users", res)
+        self.assertInRes("can have their batches run.", res)
+        self.assertInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+
+    @requests_mock.Mocker()
+    def test_allow_start_after_create_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertInRes("""<input type="submit" value="Allow batch to run">""", res)
+        self.assertNotInRes("Note: only", res)
+        self.assertNotInRes("autoconfirmed users", res)
+        self.assertNotInRes("can have their batches run.", res)
+        self.assertNotInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+
+    @requests_mock.Mocker()
+    def test_batch_does_not_call_autoconfirmed_if_not_in_preview(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        url = res.url
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        batch = res.context["batch"]
+        batch.allow_start()
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], None)
+        batch.stop()
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], None)
+
     def test_create_block_on_errors(self):
         c = Client()
         user = User.objects.create_user(username="john")
