@@ -100,7 +100,14 @@ def batch(request, pk):
     try:
         batch = Batch.objects.get(pk=pk)
         current_owner = request.user.is_authenticated and request.user.username == batch.user
-        return render(request, "batch.html", {"batch": batch, "current_owner": current_owner})
+        is_autoconfirmed = None
+        if current_owner and batch.is_preview:
+            try:
+                client = Client.from_user(request.user)
+                is_autoconfirmed = client.get_is_autoconfirmed()
+            except (NoToken, InvalidToken):
+                is_autoconfirmed = False
+        return render(request, "batch.html", {"batch": batch, "current_owner": current_owner, "is_autoconfirmed": is_autoconfirmed})
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
@@ -300,11 +307,19 @@ def new_batch(request):
 
     else:
         preferred_batch_type = request.session.get("preferred_batch_type", "v1")
+
+        try:
+            client = Client.from_user(request.user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            is_autoconfirmed = False
+
         return render(
             request,
             "new_batch.html",
             {
                 "batch_type": preferred_batch_type,
+                "is_autoconfirmed": is_autoconfirmed,
             }
         )
 

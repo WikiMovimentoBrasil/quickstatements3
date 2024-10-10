@@ -94,8 +94,18 @@
   {% if current_owner %}
     {% if batch.is_preview %}
     <form method="POST" action="{% url 'batch_allow_start' pk=batch.pk %}">
-      {% csrf_token %}
-      <input type="submit" value="Allow batch to run">
+      {% if is_autoconfirmed %}
+        {% csrf_token %}
+        <input type="submit" value="Allow batch to run">
+      {% else %}
+        <input type="submit" value="Allow batch to run" disabled>
+        <small>
+          Note: only
+          <a href="{% url 'profile' %}">autoconfirmed users</a>
+          <br>
+          can have their batches run.
+        </small>
+      {% endif %}
     </form>
     {% elif batch.is_initial_or_running %}
     <button class="secondary" onclick="showModal();">Stop execution</button>

@@ -30,7 +30,16 @@
     <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
       style="height: 400px">{% if commands %}{{commands}}{% endif %}</textarea>
   </fieldset>
-  <input type="submit" value="Execute" />
+  {% if is_autoconfirmed %}
+  <input type="submit" value="Create" />
+  {% else %}
+  <input type="submit" value="Preview" />
+  <small>
+    Note: only
+    <a href="{% url 'profile' %}">autoconfirmed users</a>
+    can have their batches run.
+  </small>
+  {% endif %}
 </form>
 
 {% endblock %}
