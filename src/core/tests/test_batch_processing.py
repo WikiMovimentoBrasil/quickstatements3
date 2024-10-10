@@ -25,6 +25,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_batch_success(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.property_data_type(mocker, "P12", "url")
@@ -40,6 +41,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_batch_is_blocked_when_value_type_verification_fails(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
@@ -55,6 +57,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_successful_value_type_verification_stays_on_initial(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P111", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1234")
@@ -87,6 +90,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_all_data_types(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.create_item(mocker, "Q123")
         ApiMocker.add_statement_successful(mocker, "Q123")
@@ -155,6 +159,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_block_on_errors(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.property_data_type(mocker, "P5", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1")
         raw = """Q1|P5|33||Q1|P5|"string"||Q1|P5|45"""
@@ -190,6 +195,7 @@ class ProcessingTests(TestCase):
         Checks that when NOT blocking on errors, if a CREATE
         fails, all subsequent LAST commands also fail.
         """
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.property_data_type(mocker, "P1", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1")
         ApiMocker.create_item_failed_server(mocker)
@@ -211,6 +217,7 @@ class ProcessingTests(TestCase):
         Checks that when we DO block on errors, if a CREATE
         fails, all subsequent LAST commands stay in INITIAL.
         """
+        ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.property_data_type(mocker, "P1", "quantity")
         ApiMocker.add_statement_successful(mocker, "Q1")
         ApiMocker.create_item_failed_server(mocker)
@@ -223,3 +230,25 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[2].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_block_on_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        batch = self.parse("CREATE||LAST|P1|Q1")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        self.assertEqual(batch.message, "The user is not an autoconfirmed user.")
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_block_no_token(self, mocker):
+        ApiMocker.autoconfirmed_failed(mocker)
+        batch = self.parse("CREATE||LAST|P1|Q1")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        self.assertEqual(batch.message, "We don't have a valid API token for the user")
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)

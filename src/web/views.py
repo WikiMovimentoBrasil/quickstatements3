@@ -20,6 +20,7 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
+from core.exceptions import InvalidToken
 
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
@@ -34,8 +35,8 @@ oauth.register(
     name="mediawiki",
     client_id=os.getenv("OAUTH_CLIENT_ID"),
     client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
-    access_token_url="https://www.mediawiki.org/w/rest.php/oauth2/access_token",
-    authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
+    access_token_url=f"{Client.BASE_REST_URL}/oauth2/access_token",
+    authorize_url=f"{Client.BASE_REST_URL}/oauth2/authorize",
 )
 
 
@@ -340,7 +341,7 @@ def login_dev(request):
         try:
             user = user_from_token(token)
             django_login(request, user)
-        except ValueError as e:
+        except InvalidToken as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
@@ -369,5 +370,17 @@ def profile(request):
         data["language"] = Preferences.objects.get_language(user, "en")
         data["language_choices"] = LANGUAGE_CHOICES
         data["token"] = token.key
+
+        is_autoconfirmed = False
+        token_failed = False
+
+        try:
+            client = Client.from_user(user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            token_failed = True
+
+        data["is_autoconfirmed"] = is_autoconfirmed
+        data["token_failed"] = token_failed
 
     return render(request, "profile.html", data)

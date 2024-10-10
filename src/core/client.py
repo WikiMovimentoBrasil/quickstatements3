@@ -11,6 +11,7 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
+from .exceptions import InvalidToken
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoValueTypeForThisDataType
 
@@ -52,12 +53,12 @@ def cache_with_first_arg(cache_name):
 
 
 class Client:
-    BASE_URL = "https://www.mediawiki.org/w/rest.php/"
-    ENDPOINT_PROFILE = f"{BASE_URL}oauth2/resource/profile"
-    WIKIBASE_URL = os.getenv(
-        "WIKIBASE_URL",
-        "https://www.wikidata.org/w/rest.php/wikibase/v0",
+    BASE_REST_URL = os.getenv(
+        "BASE_REST_URL",
+        "https://www.wikidata.org/w/rest.php",
     )
+    ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
+    WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
 
     def __init__(self, token):
         self.token = token
@@ -112,16 +113,26 @@ class Client:
     # ---
     # Auth
     # ---
+    def get_profile(self):
+        response = self.get(self.ENDPOINT_PROFILE)
+        if response.status_code != 200:
+            logger.warn(f"Error response: {response}")
+            raise InvalidToken()
+        return response.json()
+
     def get_username(self):
-        response = self.get(self.ENDPOINT_PROFILE).json()
         try:
-            username = response["username"]
-            return username
+            profile = self.get_profile()
+            return profile["username"]
         except KeyError:
-            raise ValueError(
-                "The token did not return a valid username.",
-                response,
-            )
+            raise InvalidToken()
+
+    def get_user_groups(self):
+        profile = self.get_profile()
+        return profile.get("groups", [])
+
+    def get_is_autoconfirmed(self):
+        return "autoconfirmed" in self.get_user_groups()
 
     # ---
     # Wikibase utilities

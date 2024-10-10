@@ -7,9 +7,60 @@ from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
+from core.exceptions import InvalidToken
 
 
 class ApiMocker:
+    # ---
+    # OAuth
+    # ---
+    @classmethod
+    def oauth_profile_endpoint(cls):
+        return Client.ENDPOINT_PROFILE
+
+    @classmethod
+    def login_success(cls, mocker, username):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"username": username},
+            status_code=200,
+        )
+
+    @classmethod
+    def login_fail(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "access denied"},
+            status_code=401,
+        )
+
+    @classmethod
+    def is_autoconfirmed(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"groups": ["*", "autoconfirmed"]},
+            status_code=200,
+        )
+
+    @classmethod
+    def is_not_autoconfirmed(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"groups": ["*"]},
+            status_code=200,
+        )
+
+    @classmethod
+    def autoconfirmed_failed(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "access denied"},
+            status_code=401,
+        )
+
+    # ---
+    # Wikibase
+    # ---
     WIKIDATA_PROPERTY_DATA_TYPES = {
         "commonsMedia": "string",
         "geo-shape": "string",
@@ -236,6 +287,25 @@ class ClientTests(TestCase):
                 if v != correct_value_types[property_id]:
                     with self.assertRaises(InvalidPropertyValueType):
                         client.verify_value_type(property_id, v)
+
+    @requests_mock.Mocker()
+    def test_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        client = self.api_client()
+        self.assertTrue(client.get_is_autoconfirmed())
+
+    @requests_mock.Mocker()
+    def test_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        client = self.api_client()
+        self.assertFalse(client.get_is_autoconfirmed())
+
+    @requests_mock.Mocker()
+    def test_autoconfirmed_failed(self, mocker):
+        ApiMocker.autoconfirmed_failed(mocker)
+        client = self.api_client()
+        with self.assertRaises(InvalidToken):
+            client.get_is_autoconfirmed()
 
     @requests_mock.Mocker()
     def test_arbitrary_property_data_types(self, mocker):

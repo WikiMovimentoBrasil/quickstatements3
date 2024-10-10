@@ -9,6 +9,7 @@ from .commands import ApiCommandBuilder
 from .exceptions import ApiException
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
+from .exceptions import InvalidToken
 
 logger = logging.getLogger("qsts3")
    
@@ -65,8 +66,11 @@ class Batch(models.Model):
 
         try:
             client = Client.from_username(self.user)
-        except NoToken:
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
             return self.block_no_token()
+        if not is_autoconfirmed:
+            return self.block_is_not_autoconfirmed()
 
         # TODO: if self.verify_value_types_before_running
         for command in self.commands():
@@ -124,14 +128,23 @@ class Batch(models.Model):
             self.status = self.STATUS_INITIAL
             self.save()
 
+    def block_is_not_autoconfirmed(self):
+        logger.warn(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
+        message = "The user is not an autoconfirmed user."
+        self.block_with_message(message)
+
     def block_no_token(self):
-        logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
-        self.message = "We don't have an API token for the user"
-        self.status = self.STATUS_BLOCKED
-        self.save()
+        logger.error(f"[{self}] blocked, we don't have a valid token for the user {self.user}")
+        message = "We don't have a valid API token for the user"
+        self.block_with_message(message)
 
     def block_by(self, command):
         logger.warn(f"[{self}] blocked by {command}")
+        message = f"blocked by command {command.index}"
+        self.block_with_message(message)
+
+    def block_with_message(self, message):
+        self.message = message
         self.status = self.STATUS_BLOCKED
         self.save()
 

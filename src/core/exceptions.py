@@ -25,6 +25,7 @@ class NonexistantPropertyOrNoDataType(ApiException):
         )
         return super().__init__(message)
 
+
 class NoValueTypeForThisDataType(ApiException):
     def __init__(self, property_id, data_type):
         self.property_id = property_id
@@ -90,6 +91,12 @@ class NoToken(ApiException):
     def __init__(self, username):
         self.username = username
         message = f"We don't have an authentication token for the user '{username}'"
+        return super().__init__(message)
+
+
+class InvalidToken(ApiException):
+    def __init__(self):
+        message = "The token is not valid."
         return super().__init__(message)
 
 

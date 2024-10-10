@@ -6,6 +6,35 @@
 <h1> {{ user.username }} </h1>
 <p><a href="{% url 'last_batches_by_user' user=user.username %}">Your last batches</a></p>
 <p><a href="{% url 'logout' %}"> Click here to log out.</a></p>
+
+<article>
+    <h2>Autoconfirmed status</h2>
+    <p>In order for your batches to run on QuickStatements, you need
+        <a href="https://www.wikidata.org/wiki/Special:MyLanguage/Wikidata:Autoconfirmed_users">
+            autoconfirmed
+        </a>
+    status.</p>
+    <p>
+        {% if is_autoconfirmed %}
+        <article style="background: var(--pico-color-jade-50);">
+            <center>
+                We have successfully verified your autoconfirmed status.
+            <center>
+        </article>
+        {% else %}
+        <article style="background: var(--pico-color-red-100);">
+            <center>
+                {% if token_failed %}
+                We could not verify you are an autoconfirmed user.
+                {% else %}
+                You are not an autoconfirmed user.
+                {% endif %}
+            <center>
+        </article>
+        {% endif %}
+    </p>
+</article>
+
 <article>
     <h2> Preferences </h2>
     <form method="POST">
@@ -22,8 +51,7 @@
 </article>
 
 <article>
-    <h2>API TOKEN</h2>
-
+    <h2>API Token</h2>
     <form method="POST">
         {% csrf_token %}
         <p>Here, you can generate a token to use when querying batch jobs programatically.</p>

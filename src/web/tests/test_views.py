@@ -240,6 +240,39 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertInRes("English label", response)
 
+    @requests_mock.Mocker()
+    def test_profile_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertEqual(res.context["token_failed"], False)
+        self.assertInRes("We have successfully verified your autoconfirmed status", res)
+
+    @requests_mock.Mocker()
+    def test_profile_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertEqual(res.context["token_failed"], False)
+        self.assertInRes("You are not an autoconfirmed user.", res)
+
+    @requests_mock.Mocker()
+    def test_profile_autoconfirmed_failed(self, mocker):
+        ApiMocker.autoconfirmed_failed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertEqual(res.context["token_failed"], True)
+        self.assertInRes("We could not verify you are an autoconfirmed user.", res)
+
     def test_allow_start_after_create(self):
         c = Client()
         user = User.objects.create_user(username="john")
