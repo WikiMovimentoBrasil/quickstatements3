@@ -249,7 +249,7 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("profile.html")
         self.assertEqual(res.context["is_autoconfirmed"], True)
         self.assertEqual(res.context["token_failed"], False)
-        self.assertInRes("We have successfully verified your autoconfirmed status", res)
+        self.assertInRes("We have successfully verified that you are an autoconfirmed user.", res)
 
     @requests_mock.Mocker()
     def test_profile_is_not_autoconfirmed(self, mocker):
