@@ -1,5 +1,7 @@
 <div class="progress" id="batchprogress">
-  <div class="progress-status">BATCH STATUS <b>{{status | upper}}</b></div>
+  <div class="progress-status">BATCH STATUS
+    <b class="status status_{{ status | lower }}">{{status | upper}}</b>
+  </div>
   <div class="progress-meter">
     <div class="progress-done-meter" style="width: {{done_percentage}}%;"></div>
   </div>
@@ -13,4 +15,9 @@
     <b class="status status_running">RUNNING: {{running_count}}</b> 
     <b class="status status_done">DONE: {{done_count}}</b>
     <b class="status status_error">ERRORS: {{error_count}}</b>
+    {% if show_block_on_errors_notice %}
+    <small>
+      This batch will be blocked if a command fails.
+    </small>
+    {% endif %}
 </div>

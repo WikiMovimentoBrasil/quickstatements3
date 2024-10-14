@@ -8,8 +8,8 @@ def parser_value_to_api_value(parser_value):
     # TODO: refactor parser to use this
     # format for values, instead of having to reprocess them here.
     # Basically, types can be "value", "novalue" and "somevalue",
-    # when working with the API. The data type is not needed.
-    # It is only used when checking with the property's data type,
+    # when working with the API. The value type is not needed.
+    # It is only used when checking with the property's value type,
     # so it's still useful, but it can be saved not in value's type.
     if parser_value["type"] in ["novalue", "somevalue"]:
         return {
@@ -75,7 +75,6 @@ class AddStatement(Utilities):
         self.property_id = j["property"]
 
         self.parser_value = j["value"]
-        self.data_type = self.parser_value["type"]
         self.references = j.get("references", [])
         self.qualifiers = j.get("qualifiers", [])
 
@@ -205,12 +204,10 @@ class RemoveStatement(Utilities):
         self.parser_value = j["value"]
         self.api_value = parser_value_to_api_value(self.parser_value)
 
-        self.load_ids_to_delete()
-
-    def load_ids_to_delete(self):
+    def load_ids_to_delete(self, client: Client):
         ids_to_delete = []
 
-        statements = self._get_statements_for_our_property()
+        statements = self._get_statements_for_our_property(client)
 
         for statement in statements:
             id = statement["id"]
@@ -228,9 +225,7 @@ class RemoveStatement(Utilities):
 
         self.ids_to_delete = ids_to_delete
 
-    def _get_statements_for_our_property(self):
-        client = self.client()
-
+    def _get_statements_for_our_property(self, client: Client):
         all_statements = client.get_statements(self.entity_id)
         our_statements = all_statements.get(self.property_id, [])
 
@@ -243,6 +238,7 @@ class RemoveStatement(Utilities):
         return {}
 
     def send(self, client: Client):
+        self.load_ids_to_delete(client)
         full_body = self.full_body()
         responses = []
         for id in self.ids_to_delete:

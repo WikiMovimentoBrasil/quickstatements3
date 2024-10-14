@@ -20,6 +20,10 @@ class ViewsTest(TestCase):
         """Checks if a substring is contained in response content"""
         self.assertIn(substring.lower(), str(response.content).lower().strip())
 
+    def assertNotInRes(self, substring, response):
+        """Checks if a substring is not contained in response content"""
+        self.assertNotIn(substring.lower(), str(response.content).lower().strip())
+
     def login_user_and_get_token(self, username):
         """
         Creates an user and a test token.
@@ -152,6 +156,7 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My v1 batch")
+        self.assertTrue(batch.is_preview)
         self.assertEqual(batch.batchcommand_set.count(), 3)
 
         # Listing again. Now we have something
@@ -159,6 +164,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
+        self.assertTrue(batch.is_preview)
 
     def test_create_csv_batch_logged_user(self):
         c = Client()
@@ -237,3 +243,194 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{batch.pk}/commands/")
         self.assertEqual(response.status_code, 200)
         self.assertInRes("English label", response)
+
+    @requests_mock.Mocker()
+    def test_profile_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertEqual(res.context["token_failed"], False)
+        self.assertInRes("We have successfully verified that you are an autoconfirmed user.", res)
+
+    @requests_mock.Mocker()
+    def test_profile_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertEqual(res.context["token_failed"], False)
+        self.assertInRes("You are not an autoconfirmed user.", res)
+
+    @requests_mock.Mocker()
+    def test_profile_autoconfirmed_failed(self, mocker):
+        ApiMocker.autoconfirmed_failed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed("profile.html")
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertEqual(res.context["token_failed"], True)
+        self.assertInRes("We could not verify you are an autoconfirmed user.", res)
+
+    @requests_mock.Mocker()
+    def test_new_batch_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/batch/new/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertInRes("Preview", res)
+        self.assertInRes("Note: only", res)
+        self.assertInRes("autoconfirmed users", res)
+        self.assertInRes("can have their batches run.", res)
+
+    @requests_mock.Mocker()
+    def test_new_batch_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/batch/new/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertInRes("Create", res)
+        self.assertNotInRes("Note: only", res)
+        self.assertNotInRes("autoconfirmed users", res)
+        self.assertNotInRes("can have their batches run.", res)
+
+    def test_allow_start_after_create(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        batch = response.context["batch"]
+        self.assertEqual(batch.name, "My v1 batch")
+        self.assertEqual(batch.batchcommand_set.count(), 3)
+        self.assertTrue(batch.is_preview)
+
+        pk = batch.pk
+
+        response = c.get(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 405)
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["batch"].is_preview)
+        self.assertTrue(response.context["batch"].is_initial)
+
+    @requests_mock.Mocker()
+    def test_allow_start_after_create_is_not_autoconfirmed(self, mocker):
+        ApiMocker.is_not_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], False)
+        self.assertInRes("Note: only", res)
+        self.assertInRes("autoconfirmed users", res)
+        self.assertInRes("can have their batches run.", res)
+        self.assertInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+
+    @requests_mock.Mocker()
+    def test_allow_start_after_create_is_autoconfirmed(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        self.assertInRes("""<input type="submit" value="Allow batch to run">""", res)
+        self.assertNotInRes("Note: only", res)
+        self.assertNotInRes("autoconfirmed users", res)
+        self.assertNotInRes("can have their batches run.", res)
+        self.assertNotInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+
+    @requests_mock.Mocker()
+    def test_batch_does_not_call_autoconfirmed_if_not_in_preview(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        url = res.url
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], True)
+        batch = res.context["batch"]
+        batch.allow_start()
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], None)
+        batch.stop()
+        res = self.client.get(url)
+        self.assertEqual(res.context["is_autoconfirmed"], None)
+
+    def test_create_block_on_errors(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        response = c.get(response.url)
+        self.assertFalse(response.context["batch"].block_on_errors)
+
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should block",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+                "block_on_errors": "block_on_errors",
+            },
+        )
+        response = c.get(response.url)
+        self.assertTrue(response.context["batch"].block_on_errors)
+
+
+    def test_restart_after_stopped_buttons(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+
+        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
+        self.assertInRes("Allow batch to run", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+
+        response = c.post(f"/batch/{pk}/allow_start/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        response = c.post(f"/batch/{pk}/stop/")
+        response = c.get(response.url)
+        self.assertInRes("Restart", response)
+
+        response = c.post(f"/batch/{pk}/restart/")
+        response = c.get(response.url)
+        self.assertInRes("Stop execution", response)
+

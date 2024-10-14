@@ -2,6 +2,8 @@ import os
 import requests
 import logging
 
+from django.core.cache import cache as django_cache
+
 from web.models import Token
 
 from .exceptions import EntityTypeNotImplemented
@@ -9,7 +11,9 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
-from .exceptions import InvalidPropertyDataType
+from .exceptions import InvalidToken
+from .exceptions import InvalidPropertyValueType
+from .exceptions import NoValueTypeForThisDataType
 
 logger = logging.getLogger("qsts3")
 
@@ -49,16 +53,16 @@ def cache_with_first_arg(cache_name):
 
 
 class Client:
-    BASE_URL = "https://www.mediawiki.org/w/rest.php/"
-    ENDPOINT_PROFILE = f"{BASE_URL}oauth2/resource/profile"
-    WIKIBASE_URL = os.getenv(
-        "WIKIBASE_URL",
-        "https://www.wikidata.org/w/rest.php/wikibase/v0",
+    BASE_REST_URL = os.getenv(
+        "BASE_REST_URL",
+        "https://www.wikidata.org/w/rest.php",
     )
+    ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
+    WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
 
     def __init__(self, token):
         self.token = token
-        self.data_type_cache = {}
+        self.value_type_cache = {}
         self.labels_cache = {}
 
     def __str__(self):
@@ -109,16 +113,26 @@ class Client:
     # ---
     # Auth
     # ---
+    def get_profile(self):
+        response = self.get(self.ENDPOINT_PROFILE)
+        if response.status_code != 200:
+            logger.warn(f"Error response: {response}")
+            raise InvalidToken()
+        return response.json()
+
     def get_username(self):
-        response = self.get(self.ENDPOINT_PROFILE).json()
         try:
-            username = response["username"]
-            return username
+            profile = self.get_profile()
+            return profile["username"]
         except KeyError:
-            raise ValueError(
-                "The token did not return a valid username.",
-                response,
-            )
+            raise InvalidToken()
+
+    def get_user_groups(self):
+        profile = self.get_profile()
+        return profile.get("groups", [])
+
+    def get_is_autoconfirmed(self):
+        return "autoconfirmed" in self.get_user_groups()
 
     # ---
     # Wikibase utilities
@@ -175,12 +189,12 @@ class Client:
     # ---
     # Wikibase GET/reading
     # ---
-    @cache_with_first_arg("data_type_cache")
-    def get_property_data_type(self, property_id):
+    @cache_with_first_arg("value_type_cache")
+    def get_property_value_type(self, property_id):
         """
-        Returns the expected data type of the property.
+        Returns the expected value type of the property.
 
-        Returns the data type as a string.
+        Returns the value type as a string.
 
         Uses a dictionary attribute for caching.
         """
@@ -190,22 +204,59 @@ class Client:
         res = self.get(url).json()
 
         try:
-            return res["data_type"]
+            data_type = res["data_type"]
         except KeyError:
             raise NonexistantPropertyOrNoDataType(property_id)
 
-    def verify_data_type(self, property_id, data_type):
-        """
-        Verifies if the data type of the property with `property_id` matches `data_type`.
+        try:
+            value_type = self.data_type_to_value_type(data_type)
+        except KeyError:
+            raise NoValueTypeForThisDataType(property_id, data_type)
 
-        If not, raises `InvalidPropertyDataType`.
+        return value_type
 
-        Data types "somevalue" and "novalue" are allowed for every property.
+    def data_type_to_value_type(self, data_type):
         """
-        if data_type not in ["somevalue", "novalue"]:
-            needed = self.get_property_data_type(property_id)
-            if needed != data_type:
-                raise InvalidPropertyDataType(property_id, data_type, needed)
+        Gets the associated value type for a property's data type.
+
+        # Raises
+
+        - `KeyError` if there is no associated value type.
+        """
+        key = f"{self.WIKIBASE_URL}/property-data-types"
+
+        # We are caching this so that we don't need to hit it every time.
+        # We are using the global cache (django cache), instead of
+        # local dictionaries like the other caches, because this is
+        # equal to every client and it is unlikely to change between batches.
+        if django_cache.get(key) is not None:
+            mapper = django_cache.get(key)
+        else:
+            mapper = self.get_property_data_types()
+            django_cache.set(key, mapper)
+
+        return mapper[data_type]
+
+    def verify_value_type(self, property_id, value_type):
+        """
+        Verifies if the value type of the property with `property_id` matches `value_type`.
+
+        If not, raises `InvalidPropertyValueType`.
+
+        Value types "somevalue" and "novalue" are allowed for every property.
+        """
+        if value_type not in ["somevalue", "novalue"]:
+            needed = self.get_property_value_type(property_id)
+            if needed != value_type:
+                raise InvalidPropertyValueType(property_id, value_type, needed)
+
+    def get_property_data_types(self):
+        """
+        Returns a mapper of data types to value types
+        from the Wikibase API.
+        """
+        url = self.wikibase_url("/property-data-types")
+        return self.get(url).json()
 
     @cache_with_first_arg("label_cache")
     def get_labels(self, entity_id):

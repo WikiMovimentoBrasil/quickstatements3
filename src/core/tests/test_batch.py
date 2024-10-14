@@ -6,6 +6,185 @@ from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 
 
+class TestBatch(TestCase):
+    def test_batch_is_running(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertTrue(batch.is_running)
+
+    def test_batch_is_stopped(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_running)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertTrue(batch.is_stopped)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+
+    def test_batch_is_preview(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertTrue(batch.is_preview)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_preview)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_preview)
+
+    def test_batch_is_initial(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertTrue(batch.is_initial)
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertFalse(batch.is_stopped)
+
+    def test_batch_is_initial_or_running(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertTrue(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertTrue(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertFalse(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_initial_or_running)
+
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_initial_or_running)
+
+    def test_batch_is_preview_initial_or_running(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertTrue(batch.is_preview_initial_or_running)
+
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        self.assertTrue(batch.is_preview_initial_or_running)
+
+        batch.status = Batch.STATUS_BLOCKED
+        batch.save()
+        self.assertFalse(batch.is_preview_initial_or_running)
+
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        self.assertTrue(batch.is_preview_initial_or_running)
+
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        self.assertFalse(batch.is_preview_initial_or_running)
+
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        self.assertFalse(batch.is_preview_initial_or_running)
+
+    def test_batch_allow_start(self):
+        batch = Batch.objects.create(name="teste")
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+
+        batch.allow_start()
+        self.assertFalse(batch.is_preview)
+        self.assertTrue(batch.is_initial)
+
+        batch.allow_start()
+        self.assertFalse(batch.is_preview)
+        self.assertTrue(batch.is_initial)
+
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        batch.allow_start()
+        self.assertFalse(batch.is_initial)
+
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        batch.allow_start()
+        self.assertFalse(batch.is_initial)
+
+        batch.status = Batch.STATUS_PREVIEW
+        batch.save()
+        batch.allow_start()
+        self.assertTrue(batch.is_initial)
+
+    def test_batch_stop(self):
+        batch = Batch.objects.create(name="teste")
+        self.assertFalse(batch.is_stopped)
+        batch.stop()
+        self.assertTrue(batch.is_stopped)
+        self.assertTrue(batch.message.startswith("Batch stopped processing by owner at"))
+
+    def test_batch_restart(self):
+        batch = Batch.objects.create(name="teste", status=Batch.STATUS_BLOCKED)
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_RUNNING
+        batch.save()
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_DONE
+        batch.save()
+        batch.restart()
+        self.assertFalse(batch.is_initial)
+        batch.status = Batch.STATUS_STOPPED
+        batch.save()
+        batch.restart()
+        self.assertTrue(batch.is_initial)      
+        self.assertTrue(batch.message.startswith("Batch restarted by owner"))  
+
+
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
         v1 = V1CommandParser()
@@ -70,7 +249,7 @@ class TestCSVBatch(TestCase):
                 "what": "statement",
                 "entity": {"type": "item", "id": "LAST"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q95074"},
+                "value": {"type": "wikibase-entityid", "value": "Q95074"},
             },
         )
 
@@ -94,7 +273,7 @@ Q4115189,Q5,Q5"""
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -105,7 +284,7 @@ Q4115189,Q5,Q5"""
                 "action": "remove",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -135,7 +314,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -168,7 +347,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123", "type": "lexeme"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -179,7 +358,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123-S1", "type": "sense"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -190,7 +369,7 @@ L123-F1,Q5"""
                 "action": "add",
                 "entity": {"id": "L123-F1", "type": "form"},
                 "property": "P369",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             },
         )
@@ -364,7 +543,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q5"},
+                "value": {"type": "wikibase-entityid", "value": "Q5"},
                 "what": "statement",
             }
         )
@@ -375,7 +554,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "remove",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q36180"},
+                "value": {"type": "wikibase-entityid", "value": "Q36180"},
                 "what": "statement",
             }
         )
@@ -386,7 +565,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-item", "value": "Q6581097"},
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
                 "what": "statement",
             }
         )
@@ -397,7 +576,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "action": "add",
                 "entity": {"id": "Q4115189", "type": "item"},
                 "property": "P735",
-                "value": {"type": "wikibase-item", "value": "Q463035"},
+                "value": {"type": "wikibase-entityid", "value": "Q463035"},
                 "what": "statement",
                 "qualifiers": [
                     {
@@ -409,7 +588,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                     [
                         {
                             "property": "P248", 
-                            "value": {"type": "wikibase-item", "value": "Q54919"}
+                            "value": {"type": "wikibase-entityid", "value": "Q54919"}
                         },
                         {
                             "property": "P214",
@@ -419,7 +598,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                     [
                         {
                             "property": "P143", 
-                            "value": {"type": "wikibase-item", "value": "Q328"}
+                            "value": {"type": "wikibase-entityid", "value": "Q328"}
                         }
                     ]
                 ]

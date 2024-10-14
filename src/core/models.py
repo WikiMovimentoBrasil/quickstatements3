@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from django.db import models
 from django.utils.translation import gettext as _
@@ -6,8 +7,9 @@ from django.utils.translation import gettext as _
 from .client import Client
 from .commands import ApiCommandBuilder
 from .exceptions import ApiException
-from .exceptions import InvalidPropertyDataType
+from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
+from .exceptions import InvalidToken
 
 logger = logging.getLogger("qsts3")
    
@@ -19,13 +21,15 @@ class Batch(models.Model):
 
     STATUS_STOPPED = -2
     STATUS_BLOCKED = -1
-    STATUS_INITIAL = 0
-    STATUS_RUNNING = 1
-    STATUS_DONE = 2
+    STATUS_PREVIEW = 0
+    STATUS_INITIAL = 1
+    STATUS_RUNNING = 2
+    STATUS_DONE = 3
 
     STATUS_CHOICES = (
         (STATUS_STOPPED, _("Stopped")),
         (STATUS_BLOCKED, _("Blocked")),
+        (STATUS_PREVIEW, _("Preview")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
         (STATUS_DONE, _("Done"))
@@ -37,6 +41,7 @@ class Batch(models.Model):
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
+    block_on_errors = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -54,29 +59,38 @@ class Batch(models.Model):
         Sets the batch status to BLOCKED when a command fails.
         """
         # Ignore when not INITIAL
-        if self.status != Batch.STATUS_INITIAL:
+        if not self.is_initial:
             return
 
         self._start()
 
         try:
             client = Client.from_username(self.user)
-        except NoToken:
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
             return self.block_no_token()
+        if not is_autoconfirmed:
+            return self.block_is_not_autoconfirmed()
 
-        # TODO: if self.verify_data_types_before_running
+        # TODO: if self.verify_value_types_before_running
         for command in self.commands():
             try:
-                command.verify_data_types(client)
-            except InvalidPropertyDataType:
-                return self.block_by(command)
+                command.verify_value_types(client)
+            except InvalidPropertyValueType:
+                if self.block_on_errors:
+                    return self.block_by(command)
 
         last_id = None
 
         for command in self.commands():
+            self.refresh_from_db()
+            if self.is_stopped:
+                # The status changed, so we have to stop
+                return
+
             command.update_last_id(last_id)
             command.run(client)
-            if command.is_error_status():
+            if command.is_error_status() and self.block_on_errors:
                 return self.block_by(command)
 
             if command.action == BatchCommand.ACTION_CREATE:
@@ -86,33 +100,82 @@ class Batch(models.Model):
 
     def _start(self):
         logger.debug(f"[{self}] running...")
+        self.message = f"Batch started processing at {datetime.now()}"
         self.status = self.STATUS_RUNNING
         self.save()
 
     def _finish(self):
         logger.info(f"[{self}] finished")
+        self.message = f"Batch finished processing at {datetime.now()}"
         self.status = self.STATUS_DONE
-        self.save()
-
-    def stop(self):
-        logger.debug(f"[{self}] stop...")
-        self.status = self.STATUS_STOPPED
         self.save()
 
     def block_no_token(self):
         logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
         self.message = "We don't have an API token for the user"
         self.status = self.STATUS_BLOCKED
+
+    def allow_start(self):
+        if self.is_preview:
+            self.status = self.STATUS_INITIAL
+            self.save()
+
+    def stop(self):
+        logger.debug(f"[{self}] stop...")
+        self.message = f"Batch stopped processing by owner at {datetime.now()}"
+        self.status = self.STATUS_STOPPED
         self.save()
+
+    def restart(self):
+        if self.is_stopped:
+            logger.debug(f"[{self}] restarting...")
+            self.message = f"Batch restarted by owner {datetime.now()}"
+            self.status = self.STATUS_INITIAL
+            self.save()
+
+    def block_is_not_autoconfirmed(self):
+        logger.warn(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
+        message = "The user is not an autoconfirmed user."
+        self.block_with_message(message)
+
+    def block_no_token(self):
+        logger.error(f"[{self}] blocked, we don't have a valid token for the user {self.user}")
+        message = "We don't have a valid API token for the user"
+        self.block_with_message(message)
 
     def block_by(self, command):
         logger.warn(f"[{self}] blocked by {command}")
+        message = f"blocked by command {command.index}"
+        self.block_with_message(message)
+
+    def block_with_message(self, message):
+        self.message = message
         self.status = self.STATUS_BLOCKED
         self.save()
+
+    @property
+    def is_preview(self):
+        return self.status == Batch.STATUS_PREVIEW
 
     @property 
     def is_running(self):
         return self.status == Batch.STATUS_RUNNING
+
+    @property 
+    def is_stopped(self):
+        return self.status == Batch.STATUS_STOPPED
+
+    @property 
+    def is_initial(self):
+        return self.status == Batch.STATUS_INITIAL
+
+    @property
+    def is_initial_or_running(self):
+        return self.is_initial or self.is_running
+
+    @property
+    def is_preview_initial_or_running(self):
+        return self.is_preview or self.is_initial or self.is_running
 
 
 class BatchCommand(models.Model):
@@ -153,7 +216,7 @@ class BatchCommand(models.Model):
     message = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    data_type_verified = models.BooleanField(default=False)
+    value_type_verified = models.BooleanField(default=False)
     response_json = models.JSONField(default=dict)
 
     def __str__(self):
@@ -209,7 +272,7 @@ class BatchCommand(models.Model):
         return self.json.get("value", {}).get("value", "")
 
     @property
-    def data_type(self):
+    def value_type(self):
         return self.json.get("value", {}).get("type", "")
 
     def qualifiers(self):
@@ -287,13 +350,17 @@ class BatchCommand(models.Model):
 
     def run(self, client: Client):
         """
-        Sends the command to the Wikidata API. This method should not fail.
+        Sends the command to the Wikidata API. This method should not raise exceptions.
         """
         # Ignore when not INITIAL
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
         self._start()
+
+        if self.entity_id() == "LAST":
+            self._error("LAST could not be evaluated.")
+            return
 
         try:
             self.send_to_api(client)
@@ -303,7 +370,7 @@ class BatchCommand(models.Model):
             self._error(message)
 
     def send_to_api(self, client: Client):
-        self.verify_data_types(client)
+        self.verify_value_types(client)
         self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
     def _start(self):
@@ -347,39 +414,39 @@ class BatchCommand(models.Model):
         else:
             return preferred
 
-    def verify_data_types(self, client: Client):
+    def verify_value_types(self, client: Client):
         """
-        Checks if the supplied data type is allowed by the property's required data type.
+        Checks if the supplied value type is allowed by the property's required value type.
 
         Makes that check for the statement and for qualifiers and references.
 
-        It sets the status to ERROR if the data type is invalid, updates the message,
-        and raises InvalidPropertyDataType.
+        It sets the status to ERROR if the value type is invalid, updates the message,
+        and raises InvalidPropertyValueType.
 
-        Only makes sense in commands that require data type verification
-        (see self._should_verify_data_types)
+        Only makes sense in commands that require value type verification
+        (see self._should_verify_value_types)
 
         # Raises
 
-        - InvalidPropertyDataType: when the data type is not valid.
+        - InvalidPropertyValueType: when the value type is not valid.
         """
-        if self.should_verify_data_types():
+        if self.should_verify_value_types():
             try:
-                client.verify_data_type(self.prop, self.data_type)
+                client.verify_value_type(self.prop, self.value_type)
                 for q in self.qualifiers():
-                    client.verify_data_type(q["property"], q["value"]["type"])
+                    client.verify_value_type(q["property"], q["value"]["type"])
                 for p in self.reference_parts():
-                    client.verify_data_type(p["property"], p["value"]["type"])
-            except InvalidPropertyDataType as e:
+                    client.verify_value_type(p["property"], p["value"]["type"])
+            except InvalidPropertyValueType as e:
                 self._error(e.message)
                 raise e
 
-        self.data_type_verified = True
+        self.value_type_verified = True
         self.save()
 
-    def should_verify_data_types(self):
+    def should_verify_value_types(self):
         """
-        Checks if this command needs data type verification.
+        Checks if this command needs value type verification.
 
         1) It needs to be not verified yet, of course.
 
@@ -387,7 +454,7 @@ class BatchCommand(models.Model):
 
         - Statement addition
         """
-        is_not_verified_yet = not self.data_type_verified
+        is_not_verified_yet = not self.value_type_verified
         is_needed_actions = self.is_add_statement()
         return is_not_verified_yet and is_needed_actions
 

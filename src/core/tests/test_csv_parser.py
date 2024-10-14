@@ -64,14 +64,14 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P31",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
                 {
                     "action": "remove",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P31",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
             ],
@@ -85,7 +85,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P369",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
             ],
@@ -127,7 +127,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "L123", "type": "lexeme"},
                     "property": "P369",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
             ],
@@ -140,7 +140,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "L123-S1", "type": "sense"},
                     "property": "P369",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
             ],
@@ -153,7 +153,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "L123-F1", "type": "form"},
                     "property": "P369",
-                    "value": {"type": "wikibase-item", "value": "Q5"},
+                    "value": {"type": "wikibase-entityid", "value": "Q5"},
                     "what": "statement",
                 },
             ],
@@ -171,12 +171,12 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "Q22124656", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-item", "value": "Q6581097"},
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "references": [
                     [
-                        {"property": "P143", "value": {"type": "wikibase-item", "value": "Q24731821"}},
+                        {"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
                         {
                             "property": "P813",
                             "value": {
@@ -210,7 +210,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "Q22124656", "type": "item"},
                 "property": "P21",
-                "value": {"type": "wikibase-item", "value": "Q6581097"},
+                "value": {"type": "wikibase-entityid", "value": "Q6581097"},
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "qualifiers": [
@@ -235,7 +235,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "LAST", "type": "item"},
                 "property": "P31",
-                "value": {"type": "wikibase-item", "value": "Q3305213"},
+                "value": {"type": "wikibase-entityid", "value": "Q3305213"},
                 "what": "statement",
             },
             {
@@ -256,7 +256,7 @@ class TestCSVParser(TestCase):
                 "action": "add",
                 "entity": {"id": "LAST", "type": "item"},
                 "property": "P18",
-                "value": {"type": "commonsMedia", "value": "Mona Lisa - the Louvre.jpg"},
+                "value": {"type": "string", "value": "Mona Lisa - the Louvre.jpg"},
                 "what": "statement",
             },
         ]
@@ -275,7 +275,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P625",
                     "value": {
-                        "type": "globe-coordinate",
+                        "type": "globecoordinate",
                         "value": {
                             "globe": "http://www.wikidata.org/entity/Q2",
                             "latitude": "43.26193",
@@ -323,7 +323,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "external-id",
+                        "type": "string",
                         "value": "Sandbox",
                     },
                     "what": "statement",
@@ -339,7 +339,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "external-id",
+                        "type": "string",
                         "value": "Patterns, Predictors, and Outcome",
                     },
                     "what": "statement",
@@ -357,7 +357,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "url",
+                        "type": "string",
                         "value": "https://wiki.com.br",
                     },
                     "what": "statement",
@@ -373,7 +373,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "url",
+                        "type": "string",
                         "value": "http://wiki.com",
                     },
                     "what": "statement",
@@ -391,7 +391,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "commonsMedia",
+                        "type": "string",
                         "value": "Frans Breydel - A merry company.jpg",
                     },
                     "what": "statement",
@@ -410,7 +410,7 @@ class TestCSVParser(TestCase):
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P370",
                     "value": {
-                        "type": "commonsMedia",
+                        "type": "string",
                         "value": "'Girl Reading' by Mary Colman Wheeler, El Paso Museum of Art.JPG",
                     },
                     "what": "statement",
@@ -629,7 +629,7 @@ class TestCSVParser(TestCase):
                     "what": "statement",
                     "entity": {"type": "item", "id": "LAST"},
                     "property": "P31",
-                    "value": {"type": "wikibase-item", "value": "Q95074"},
+                    "value": {"type": "wikibase-entityid", "value": "Q95074"},
                 },
             ],
         )

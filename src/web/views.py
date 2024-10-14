@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from rest_framework.authtoken.models import Token
 
 from core.client import Client
 from core.models import Batch
@@ -18,6 +19,9 @@ from core.models import BatchCommand
 from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
+from core.exceptions import NoToken
+from core.exceptions import InvalidToken
+
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
@@ -31,8 +35,8 @@ oauth.register(
     name="mediawiki",
     client_id=os.getenv("OAUTH_CLIENT_ID"),
     client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
-    access_token_url="https://www.mediawiki.org/w/rest.php/oauth2/access_token",
-    authorize_url="https://www.mediawiki.org/w/rest.php/oauth2/authorize",
+    access_token_url=f"{Client.BASE_REST_URL}/oauth2/access_token",
+    authorize_url=f"{Client.BASE_REST_URL}/oauth2/authorize",
 )
 
 
@@ -95,7 +99,72 @@ def batch(request, pk):
     """
     try:
         batch = Batch.objects.get(pk=pk)
-        return render(request, "batch.html", {"batch": batch})
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        is_autoconfirmed = None
+        if current_owner and batch.is_preview:
+            try:
+                client = Client.from_user(request.user)
+                is_autoconfirmed = client.get_is_autoconfirmed()
+            except (NoToken, InvalidToken):
+                is_autoconfirmed = False
+        return render(request, "batch.html", {"batch": batch, "current_owner": current_owner, "is_autoconfirmed": is_autoconfirmed})
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
+
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_stop(request, pk):
+    """
+    Base call for a batch. Returns the main page, that will load 2 fragments: commands and summary
+    Used for ajax calls
+    """
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner:
+            batch.stop()
+        return redirect(reverse("batch", args=[batch.pk]))
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_allow_start(request, pk):
+    """
+    Allows a batch that is in the preview state to start running.
+    """
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner:
+            batch.allow_start()
+        return redirect(reverse("batch", args=[batch.pk]))
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_restart(request, pk):
+    """
+    Restart a batch that was previously stopped
+    Allows a batch that is in the preview state to start running.
+    """
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner:
+            batch.restart()
+        return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
@@ -119,10 +188,13 @@ def batch_commands(request, pk):
     page = paginator.page(page)
 
     if request.user.is_authenticated:
-        client = Client.from_user(request.user)
-        language = Preferences.objects.get_language(request.user, "en")
-        for command in page.object_list:
-            command.display_label = command.get_label(client, language)
+        try:
+            language = Preferences.objects.get_language(request.user, "en")
+            client = Client.from_user(request.user)
+            for command in page.object_list:
+                command.display_label = command.get_label(client, language)
+        except NoToken:
+            pass
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
 
@@ -157,6 +229,10 @@ def batch_summary(request, pk):
             .annotate(total_commands=Count("batchcommand"))
             .get(pk=pk)
         )
+        show_block_on_errors_notice = (
+            batch.is_preview_initial_or_running
+            and batch.block_on_errors
+        )
 
         return render(
             request,
@@ -172,6 +248,7 @@ def batch_summary(request, pk):
                 "done_percentage": float(100 * batch.done_commands) / batch.total_commands
                 if batch.total_commands
                 else 0,
+                "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )
     except Batch.DoesNotExist:
@@ -205,6 +282,13 @@ def new_batch(request):
                 parser = CSVCommandParser()
             
             batch = parser.parse(batch_name, batch_owner, batch_commands)
+            batch.status = Batch.STATUS_PREVIEW
+
+            if "block_on_errors" in request.POST:
+                batch.block_on_errors = True
+
+            batch.save()
+
             return redirect(reverse("batch", args=[batch.pk]))
         except ParserException as p:
             error = p.message
@@ -223,11 +307,19 @@ def new_batch(request):
 
     else:
         preferred_batch_type = request.session.get("preferred_batch_type", "v1")
+
+        try:
+            client = Client.from_user(request.user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            is_autoconfirmed = False
+
         return render(
             request,
             "new_batch.html",
             {
                 "batch_type": preferred_batch_type,
+                "is_autoconfirmed": is_autoconfirmed,
             }
         )
 
@@ -264,7 +356,7 @@ def login_dev(request):
         try:
             user = user_from_token(token)
             django_login(request, user)
-        except ValueError as e:
+        except InvalidToken as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
@@ -276,11 +368,34 @@ def login_dev(request):
 def profile(request):
     data = {}
     if request.user.is_authenticated:
-        data["language_choices"] = LANGUAGE_CHOICES
         user = request.user
+        token, created = Token.objects.get_or_create(user=user)
+
         if request.method == "POST":
-            prefs, _ = Preferences.objects.get_or_create(user=user)
-            prefs.language = request.POST["language"]
-            prefs.save()
+            action = request.POST["action"]
+            if action == "update_language":
+                prefs, _ = Preferences.objects.get_or_create(user=user)
+                prefs.language = request.POST["language"]
+                prefs.save()
+            elif action == "update_token":
+                if token: 
+                    token.delete()
+                token = Token.objects.create(user=user)
+
         data["language"] = Preferences.objects.get_language(user, "en")
+        data["language_choices"] = LANGUAGE_CHOICES
+        data["token"] = token.key
+
+        is_autoconfirmed = False
+        token_failed = False
+
+        try:
+            client = Client.from_user(user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except (NoToken, InvalidToken):
+            token_failed = True
+
+        data["is_autoconfirmed"] = is_autoconfirmed
+        data["token_failed"] = token_failed
+
     return render(request, "profile.html", data)

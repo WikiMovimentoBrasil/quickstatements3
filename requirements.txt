@@ -1,4 +1,4 @@
-Django==5.0.8
+Django==5.0.9
 uwsgi==2.0.26
 requests==2.32.3
 requests-mock==1.10.0

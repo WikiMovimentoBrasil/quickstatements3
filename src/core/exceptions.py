@@ -4,14 +4,14 @@ class ApiException(Exception):
         self.message = message
 
 
-class InvalidPropertyDataType(ApiException):
-    def __init__(self, property_id, provided_data_type, needed_data_type):
+class InvalidPropertyValueType(ApiException):
+    def __init__(self, property_id, provided_value_type, needed_value_type):
         self.property_id = property_id
-        self.provided_data_type = provided_data_type
-        self.needed_data_type = needed_data_type
+        self.provided_value_type = provided_value_type
+        self.needed_value_type = needed_value_type
         message = (
-            f"Invalid data type for the property {property_id}: "
-            f"'{provided_data_type}' was provided but it needs '{needed_data_type}'."
+            f"Invalid value type for the property {property_id}: "
+            f"'{provided_value_type}' was provided but it needs '{needed_value_type}'."
         )
         return super().__init__(message)
 
@@ -22,6 +22,17 @@ class NonexistantPropertyOrNoDataType(ApiException):
         message = (
             f"The property {property_id} does not exist or "
             "does not have a data type."
+        )
+        return super().__init__(message)
+
+
+class NoValueTypeForThisDataType(ApiException):
+    def __init__(self, property_id, data_type):
+        self.property_id = property_id
+        self.data_type = data_type
+        message = (
+            "There is no value type associated for the "
+            f"data type {data_type} of the property {property_id}."
         )
         return super().__init__(message)
 
@@ -80,6 +91,12 @@ class NoToken(ApiException):
     def __init__(self, username):
         self.username = username
         message = f"We don't have an authentication token for the user '{username}'"
+        return super().__init__(message)
+
+
+class InvalidToken(ApiException):
+    def __init__(self):
+        message = "The token is not valid."
         return super().__init__(message)
 
 
