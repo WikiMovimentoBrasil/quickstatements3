@@ -60,6 +60,26 @@
     </tbody>
   </table>
 
+  <div style="text-align: right; font-size: 10px; margin-bottom: 24px;">
+    {% if only_errors %}
+    SHOWING ONLY ERRORS - 
+    <a  style="cursor: pointer;"
+        hx-get="{% url 'batch_commands' pk=batch_pk %}" 
+        hx-target="#batchCommandsDiv" 
+        hx-swap="innerHTML">
+        SHOW ALL
+    </a>
+    {% else %}
+    SHOWING ALL - 
+    <a  style="cursor: pointer;"
+        hx-get="{% url 'batch_commands' pk=batch_pk %}?show_errors=1" 
+        hx-target="#batchCommandsDiv" 
+        hx-swap="innerHTML">
+        SHOW ONLY ERRORS
+    </a>
+    {% endif %}
+  </div>
+
   {% if page.has_other_pages %}
   <div style="display: inline-block; width: 100%;">
       
@@ -67,7 +87,7 @@
       
         {% if page.has_previous %}
         <span class="pagination prev-page">
-          <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page=1" 
+          <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page=1{% if only_errors %}&show_errors=1{% endif %}" 
               hx-target="#batchCommandsDiv" 
               hx-swap="innerHTML">
             << FIRST
@@ -75,7 +95,7 @@
         </span> 
         
         <span class="pagination prev-page">
-          <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.previous_page_number}}" 
+          <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.previous_page_number}}{% if only_errors %}&show_errors=1{% endif %}" 
               hx-target="#batchCommandsDiv" 
               hx-swap="innerHTML">
             < PREVIOUS
@@ -95,7 +115,7 @@
     
       {% if page.has_next %}
       <span class="pagination next-page">
-        <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.next_page_number}}" 
+        <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.next_page_number}}{% if only_errors %}&show_errors=1{% endif %}" 
           hx-target="#batchCommandsDiv" 
           hx-swap="innerHTML">
             NEXT >
@@ -103,7 +123,7 @@
       </span> 
         
       <span class="pagination next-page">
-        <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.paginator.num_pages}}" 
+        <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.paginator.num_pages}}{% if only_errors %}&show_errors=1{% endif %}" 
             hx-target="#batchCommandsDiv" 
             hx-swap="innerHTML">
             LAST>>

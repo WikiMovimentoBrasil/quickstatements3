@@ -107,7 +107,11 @@ def batch(request, pk):
                 is_autoconfirmed = client.get_is_autoconfirmed()
             except (NoToken, InvalidToken):
                 is_autoconfirmed = False
-        return render(request, "batch.html", {"batch": batch, "current_owner": current_owner, "is_autoconfirmed": is_autoconfirmed})
+        return render(
+            request,
+            "batch.html",
+            {"batch": batch, "current_owner": current_owner, "is_autoconfirmed": is_autoconfirmed},
+        )
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
@@ -131,6 +135,7 @@ def batch_stop(request, pk):
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 
+
 @require_http_methods(
     [
         "POST",
@@ -148,6 +153,7 @@ def batch_allow_start(request, pk):
         return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
 
 @require_http_methods(
     [
@@ -184,7 +190,13 @@ def batch_commands(request, pk):
     except (TypeError, ValueError):
         page = 1
 
-    paginator = Paginator(BatchCommand.objects.filter(batch__pk=pk).order_by("index"), PAGE_SIZE)
+    only_errors = int(request.GET.get("show_errors", 0)) == 1
+
+    filters = {"batch__pk": pk}
+    if only_errors:
+        filters["status"] = BatchCommand.STATUS_ERROR
+
+    paginator = Paginator(BatchCommand.objects.filter(**filters).order_by("index"), PAGE_SIZE)
     page = paginator.page(page)
 
     if request.user.is_authenticated:
@@ -196,7 +208,7 @@ def batch_commands(request, pk):
         except NoToken:
             pass
 
-    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk})
+    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors})
 
 
 @require_http_methods(
@@ -229,10 +241,7 @@ def batch_summary(request, pk):
             .annotate(total_commands=Count("batchcommand"))
             .get(pk=pk)
         )
-        show_block_on_errors_notice = (
-            batch.is_preview_initial_or_running
-            and batch.block_on_errors
-        )
+        show_block_on_errors_notice = batch.is_preview_initial_or_running and batch.block_on_errors
 
         return render(
             request,
@@ -280,7 +289,7 @@ def new_batch(request):
                 parser = V1CommandParser()
             else:
                 parser = CSVCommandParser()
-            
+
             batch = parser.parse(batch_name, batch_owner, batch_commands)
             batch.status = Batch.STATUS_PREVIEW
 
@@ -320,7 +329,7 @@ def new_batch(request):
             {
                 "batch_type": preferred_batch_type,
                 "is_autoconfirmed": is_autoconfirmed,
-            }
+            },
         )
 
 
@@ -378,7 +387,7 @@ def profile(request):
                 prefs.language = request.POST["language"]
                 prefs.save()
             elif action == "update_token":
-                if token: 
+                if token:
                     token.delete()
                 token = Token.objects.create(user=user)
 
