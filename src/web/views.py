@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from authlib.integrations.django_client import OAuth
+from authlib.integrations.base_client.errors import MismatchingStateError
 from django.core.paginator import Paginator
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
@@ -369,10 +370,19 @@ def oauth_redirect(request):
 
 
 def oauth_callback(request):
-    token = oauth.mediawiki.authorize_access_token(request)["access_token"]
-    user = user_from_token(token)
-    django_login(request, user)
-    return redirect(reverse("profile"))
+    data = {}
+    try:
+        token = oauth.mediawiki.authorize_access_token(request)["access_token"]
+        user = user_from_token(token)
+        django_login(request, user)
+        return redirect(reverse("profile"))
+    except UnauthorizedToken:
+        data["error"] = "token"
+    except ServerError:
+        data["error"] = "server"
+    except MismatchingStateError:
+        data["error"] = "mismatched_states"
+    return render(request, "login.html", data, status=401)
 
 
 def login_dev(request):

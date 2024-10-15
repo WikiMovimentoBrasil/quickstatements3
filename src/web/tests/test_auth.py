@@ -215,3 +215,14 @@ class OAuthRedirect(TestCase):
         self.assertIsNotNone(os.getenv("OAUTH_CLIENT_ID"))
         self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
         self.assertIn(f"{ApiClient.BASE_REST_URL}/oauth2/authorize", location)
+
+
+class OAuthCallback(TestCase):
+    URL_NAME = "oauth_callback"
+
+    def test_mismatched_states(self):
+        res = self.get()
+        self.assertStatus(res, 401)
+        self.assertInRes("The authentication server is being", res)
+        self.assertInRes("not supposed to be here right now.", res)
+
