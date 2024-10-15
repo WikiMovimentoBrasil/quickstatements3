@@ -7,7 +7,7 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 
 from ..models import Token
-from core.client import Client
+from core.client import Client as ApiClient
 from core.tests.test_api import ApiMocker
 
 
@@ -49,6 +49,10 @@ class TestCase(DjangoTestCase):
         """Checks if a substring is contained in response content"""
         self.assertIn(substring.lower(), str(response.content).lower().strip())
 
+    def assertNotInRes(self, substring, response):
+        """Checks if a substring is not contained in response content"""
+        self.assertNotIn(substring.lower(), str(response.content).lower().strip())
+
     def assertIsAuthenticated(self):
         self.assertTrue(self.get_user().is_authenticated)
 
@@ -76,6 +80,20 @@ class TestCase(DjangoTestCase):
     def get_user(self):
         return auth.get_user(self.client)
 
+    def login_user_and_get_token(self, username):
+        """
+        Creates an user and a test token.
+
+        Returns a tuple with the user object and their API client.
+        """
+        user = User.objects.create_user(username=username)
+        self.client.force_login(user)
+
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        api_client = ApiClient.from_user(user)
+
+        return (user, api_client)
+
 
 class Profile(TestCase):
     URL_NAME = "profile"
@@ -93,6 +111,16 @@ class Profile(TestCase):
         self.assertInRes("John", res)
         self.assertUrlInRes("logout", res)
 
+    @requests_mock.Mocker()
+    def test_logout_and_token_expired(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/auth/profile/")
+        self.assertRedirect(res)
+        self.assertRedirectToUrlName(res, "login")
+        self.assertIsNotAuthenticated()
+        self.assertTrue(self.client.session["token_expired"])
+
 
 class Login(TestCase):
     URL_NAME = "login"
@@ -107,6 +135,29 @@ class Login(TestCase):
         res = self.get()
         self.assertRedirectToUrlName(res, "profile")
         self.assertIsAuthenticated()
+
+    @requests_mock.Mocker()
+    def test_expired_notice_vanishes_after_login_and_logout(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        self.assertIsAuthenticated()
+
+        res = self.client.get("/auth/profile/")
+        self.assertRedirectToUrlName(res, "login")
+        self.assertIsNotAuthenticated()
+
+        res = self.client.get(res.url)
+        self.assertEqual(res.context["token_expired"], True)
+        self.assertInRes("Your Wikimedia authentication has expired.", res)
+        self.assertIsNotAuthenticated()
+
+        self.client.force_login(user)
+        self.client.logout()
+
+        res = self.client.get("/auth/login/")
+        self.assertEqual(res.context["token_expired"], False)
+        self.assertNotInRes("Your Wikimedia authentication has expired.", res)
+        self.assertIsNotAuthenticated()
 
 
 class LoginDev(TestCase):
@@ -163,4 +214,15 @@ class OAuthRedirect(TestCase):
         location = res.headers["Location"]
         self.assertIsNotNone(os.getenv("OAUTH_CLIENT_ID"))
         self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
-        self.assertIn(f"{Client.BASE_REST_URL}/oauth2/authorize", location)
+        self.assertIn(f"{ApiClient.BASE_REST_URL}/oauth2/authorize", location)
+
+
+class OAuthCallback(TestCase):
+    URL_NAME = "oauth_callback"
+
+    def test_mismatched_states(self):
+        res = self.get()
+        self.assertStatus(res, 401)
+        self.assertInRes("The authentication server is being", res)
+        self.assertInRes("not supposed to be here right now.", res)
+

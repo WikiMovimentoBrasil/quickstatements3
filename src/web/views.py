@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from authlib.integrations.django_client import OAuth
+from authlib.integrations.base_client.errors import MismatchingStateError
 from django.core.paginator import Paginator
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
@@ -20,7 +21,8 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
-from core.exceptions import InvalidToken
+from core.exceptions import UnauthorizedToken
+from core.exceptions import ServerError
 
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
@@ -105,7 +107,9 @@ def batch(request, pk):
             try:
                 client = Client.from_user(request.user)
                 is_autoconfirmed = client.get_is_autoconfirmed()
-            except (NoToken, InvalidToken):
+            except UnauthorizedToken:
+                return logout_per_token_expired(request)
+            except (NoToken, ServerError):
                 is_autoconfirmed = False
         return render(
             request,
@@ -205,7 +209,11 @@ def batch_commands(request, pk):
             client = Client.from_user(request.user)
             for command in page.object_list:
                 command.display_label = command.get_label(client, language)
-        except NoToken:
+        except UnauthorizedToken:
+            # logout but do not return 302, since this
+            # is called through HMTX
+            logout_per_token_expired(request)
+        except (NoToken, ServerError):
             pass
 
     return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors})
@@ -320,7 +328,9 @@ def new_batch(request):
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
-        except (NoToken, InvalidToken):
+        except UnauthorizedToken:
+            return logout_per_token_expired(request)
+        except (NoToken, ServerError):
             is_autoconfirmed = False
 
         return render(
@@ -333,11 +343,20 @@ def new_batch(request):
         )
 
 
+def logout_per_token_expired(request):
+    django_logout(request)
+    request.session["token_expired"] = True
+    return redirect(reverse("login"))
+
+
 def login(request):
     if request.user.is_authenticated:
         return redirect("/auth/profile/")
     else:
-        return render(request, "login.html", {})
+        data = {
+            "token_expired": request.session.get("token_expired", False),
+        }
+        return render(request, "login.html", data)
 
 
 def logout(request):
@@ -351,10 +370,19 @@ def oauth_redirect(request):
 
 
 def oauth_callback(request):
-    token = oauth.mediawiki.authorize_access_token(request)["access_token"]
-    user = user_from_token(token)
-    django_login(request, user)
-    return redirect(reverse("profile"))
+    data = {}
+    try:
+        token = oauth.mediawiki.authorize_access_token(request)["access_token"]
+        user = user_from_token(token)
+        django_login(request, user)
+        return redirect(reverse("profile"))
+    except UnauthorizedToken:
+        data["error"] = "token"
+    except ServerError:
+        data["error"] = "server"
+    except MismatchingStateError:
+        data["error"] = "mismatched_states"
+    return render(request, "login.html", data, status=401)
 
 
 def login_dev(request):
@@ -365,7 +393,7 @@ def login_dev(request):
         try:
             user = user_from_token(token)
             django_login(request, user)
-        except InvalidToken as e:
+        except (NoToken, UnauthorizedToken, ServerError) as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
@@ -378,8 +406,25 @@ def profile(request):
     data = {}
     if request.user.is_authenticated:
         user = request.user
-        token, created = Token.objects.get_or_create(user=user)
 
+        # Wikimedia API
+        is_autoconfirmed = False
+        token_failed = False
+        try:
+            client = Client.from_user(user)
+            is_autoconfirmed = client.get_is_autoconfirmed()
+        except UnauthorizedToken:
+            return logout_per_token_expired(request)
+        except (NoToken, ServerError):
+            token_failed = True
+
+        data["is_autoconfirmed"] = is_autoconfirmed
+        data["token_failed"] = token_failed
+
+        # TOKEN
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # POSTing
         if request.method == "POST":
             action = request.POST["action"]
             if action == "update_language":
@@ -391,20 +436,9 @@ def profile(request):
                     token.delete()
                 token = Token.objects.create(user=user)
 
-        data["language"] = Preferences.objects.get_language(user, "en")
-        data["language_choices"] = LANGUAGE_CHOICES
         data["token"] = token.key
 
-        is_autoconfirmed = False
-        token_failed = False
-
-        try:
-            client = Client.from_user(user)
-            is_autoconfirmed = client.get_is_autoconfirmed()
-        except (NoToken, InvalidToken):
-            token_failed = True
-
-        data["is_autoconfirmed"] = is_autoconfirmed
-        data["token_failed"] = token_failed
+        data["language"] = Preferences.objects.get_language(user, "en")
+        data["language_choices"] = LANGUAGE_CHOICES
 
     return render(request, "profile.html", data)

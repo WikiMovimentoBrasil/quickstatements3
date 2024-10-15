@@ -94,9 +94,9 @@ class NoToken(ApiException):
         return super().__init__(message)
 
 
-class InvalidToken(ApiException):
+class UnauthorizedToken(ApiException):
     def __init__(self):
-        message = "The token is not valid."
+        message = "The token authorization failed."
         return super().__init__(message)
 
 

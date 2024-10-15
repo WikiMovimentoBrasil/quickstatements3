@@ -9,7 +9,8 @@ from .commands import ApiCommandBuilder
 from .exceptions import ApiException
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
-from .exceptions import InvalidToken
+from .exceptions import UnauthorizedToken
+from .exceptions import ServerError
 
 logger = logging.getLogger("qsts3")
    
@@ -67,7 +68,7 @@ class Batch(models.Model):
         try:
             client = Client.from_username(self.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
-        except (NoToken, InvalidToken):
+        except (NoToken, UnauthorizedToken, ServerError):
             return self.block_no_token()
         if not is_autoconfirmed:
             return self.block_is_not_autoconfirmed()
@@ -109,11 +110,6 @@ class Batch(models.Model):
         self.message = f"Batch finished processing at {datetime.now()}"
         self.status = self.STATUS_DONE
         self.save()
-
-    def block_no_token(self):
-        logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
-        self.message = "We don't have an API token for the user"
-        self.status = self.STATUS_BLOCKED
 
     def allow_start(self):
         if self.is_preview:
