@@ -110,6 +110,11 @@ class Batch(models.Model):
         self.status = self.STATUS_DONE
         self.save()
 
+    def block_no_token(self):
+        logger.error(f"[{self}] blocked, we don't have a token for the user {self.user}")
+        self.message = "We don't have an API token for the user"
+        self.status = self.STATUS_BLOCKED
+
     def allow_start(self):
         if self.is_preview:
             self.status = self.STATUS_INITIAL

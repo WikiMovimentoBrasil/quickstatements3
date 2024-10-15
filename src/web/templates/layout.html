@@ -12,7 +12,7 @@
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css">
   <script src="{% static 'htmx.v2.0.0.min.js' %}"></script>
-  <title>QuickStatements 3.0</title>
+  <title>{% block pagetitle %}{% endblock%}</title>
   <style>
     /* automatically add the spinner */
     img.htmx-indicator {
@@ -45,10 +45,14 @@
     }
 
     .status_blocked {
-      background-color: var(--pico-color-red-600);
+      background-color: var(--pico-color-violet-600);
     }
 
     .status_stopped {
+      background-color: var(--pico-color-zinc-950);
+    }
+
+    .status_error {
       background-color: var(--pico-color-red-600);
     }
 
