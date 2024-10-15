@@ -10,6 +10,7 @@ from web.models import Token
 from web.models import Preferences
 
 from core.models import Batch
+from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
 
 
@@ -106,6 +107,36 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch_commands.html")
         self.assertEqual(response.context["batch_pk"], batch.pk)
+        self.assertEqual(response.context["only_errors"], False)
+
+    def test_batch_command_filters(self):
+        batch = Batch.objects.create(name="My new batch", user="mgalves80")
+        b1 = BatchCommand.objects.create(
+            batch=batch, index=0, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+        )
+        b2 = BatchCommand.objects.create(
+            batch=batch, index=1, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+        )
+        b3 = BatchCommand.objects.create(
+            batch=batch, index=2, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+        )
+        b4 = BatchCommand.objects.create(
+            batch=batch, index=4, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+        )
+
+        c = Client()
+        response = c.get(f"/batch/{batch.pk}/commands/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch_commands.html")
+        self.assertEqual(response.context["batch_pk"], batch.pk)
+        self.assertEqual(response.context["only_errors"], False)
+        self.assertEqual(list(response.context["page"].object_list), [b1, b2, b3, b4])
+        response = c.get(f"/batch/{batch.pk}/commands/?show_errors=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch_commands.html")
+        self.assertEqual(response.context["batch_pk"], batch.pk)
+        self.assertEqual(response.context["only_errors"], True)
+        self.assertEqual(list(response.context["page"].object_list), [b2, b4])
 
     def test_existing_batches(self):
         b1 = Batch.objects.create(name="My new batch", user="mgalves80")
@@ -406,7 +437,6 @@ class ViewsTest(TestCase):
         )
         response = c.get(response.url)
         self.assertTrue(response.context["batch"].block_on_errors)
-
 
     def test_restart_after_stopped_buttons(self):
         c = Client()
