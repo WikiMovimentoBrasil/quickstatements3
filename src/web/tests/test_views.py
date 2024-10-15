@@ -299,7 +299,7 @@ class ViewsTest(TestCase):
 
     @requests_mock.Mocker()
     def test_profile_autoconfirmed_failed(self, mocker):
-        ApiMocker.autoconfirmed_failed(mocker)
+        ApiMocker.autoconfirmed_failed_server(mocker)
         user, api_client = self.login_user_and_get_token("user")
         res = self.client.get("/auth/profile/")
         self.assertEqual(res.status_code, 200)

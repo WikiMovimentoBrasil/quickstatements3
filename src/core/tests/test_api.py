@@ -51,11 +51,11 @@ class ApiMocker:
         )
 
     @classmethod
-    def autoconfirmed_failed(cls, mocker):
+    def autoconfirmed_failed_server(cls, mocker):
         mocker.get(
             cls.oauth_profile_endpoint(),
-            json={"error": "access denied"},
-            status_code=401,
+            json={"error": "server error"},
+            status_code=500,
         )
 
     # ---
@@ -302,7 +302,7 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_autoconfirmed_failed(self, mocker):
-        ApiMocker.autoconfirmed_failed(mocker)
+        ApiMocker.autoconfirmed_failed_server(mocker)
         client = self.api_client()
         with self.assertRaises(InvalidToken):
             client.get_is_autoconfirmed()

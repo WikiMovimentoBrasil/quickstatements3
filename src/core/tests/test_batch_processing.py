@@ -244,7 +244,7 @@ class ProcessingTests(TestCase):
 
     @requests_mock.Mocker()
     def test_block_no_token(self, mocker):
-        ApiMocker.autoconfirmed_failed(mocker)
+        ApiMocker.autoconfirmed_failed_server(mocker)
         batch = self.parse("CREATE||LAST|P1|Q1")
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
