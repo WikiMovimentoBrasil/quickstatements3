@@ -1,8 +1,10 @@
 import requests_mock
 
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user
 from django.test import TestCase
 from django.test import Client
+from django.urls import reverse
 
 from core.tests.test_api import ApiMocker
 from core.client import Client as ApiClient
@@ -24,6 +26,28 @@ class ViewsTest(TestCase):
     def assertNotInRes(self, substring, response):
         """Checks if a substring is not contained in response content"""
         self.assertNotIn(substring.lower(), str(response.content).lower().strip())
+
+    def assertRedirect(self, response):
+        """Asserts the response is a redirect response"""
+        self.assertEqual(response.status_code, 302)
+
+    def assertRedirectToPath(self, response, path):
+        """Asserts the response is a redirect to the specificed path"""
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], path)
+
+    def assertRedirectToUrlName(self, response, url_name):
+        """Asserts the response is a redirect to the specificed URL"""
+        self.assertRedirectToPath(response, reverse(url_name))
+
+    def get_user(self):
+        return get_user(self.client)
+
+    def assertIsAuthenticated(self):
+        self.assertTrue(self.get_user().is_authenticated)
+
+    def assertIsNotAuthenticated(self):
+        self.assertFalse(self.get_user().is_authenticated)
 
     def login_user_and_get_token(self, username):
         """
@@ -332,6 +356,15 @@ class ViewsTest(TestCase):
         self.assertNotInRes("autoconfirmed users", res)
         self.assertNotInRes("can have their batches run.", res)
 
+    @requests_mock.Mocker()
+    def test_new_batch_token_expired(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.get("/batch/new/")
+        self.assertRedirectToUrlName(res, "login")
+        self.assertIsNotAuthenticated()
+        self.assertTrue(self.client.session["token_expired"])
+
     def test_allow_start_after_create(self):
         c = Client()
         user = User.objects.create_user(username="john")
@@ -391,6 +424,17 @@ class ViewsTest(TestCase):
         self.assertNotInRes("autoconfirmed users", res)
         self.assertNotInRes("can have their batches run.", res)
         self.assertNotInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+
+    @requests_mock.Mocker()
+    def test_allow_start_after_create_token_expired(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertRedirectToUrlName(res, "login")
+        self.assertIsNotAuthenticated()
+        self.assertTrue(self.client.session["token_expired"])
 
     @requests_mock.Mocker()
     def test_batch_does_not_call_autoconfirmed_if_not_in_preview(self, mocker):

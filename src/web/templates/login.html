@@ -6,6 +6,14 @@
 
 <h1> Login </h1>
 
+{% if token_expired %}
+<p>
+  Your Wikimedia authentication has expired.
+  This is completely normal and it happens for security reasons.
+  Please, log in again.
+<p>
+{% endif %}
+
 <form action="{% url 'oauth_redirect' %}">
   <input type="submit" value="Sign in with Wikimedia account">
 </form>
