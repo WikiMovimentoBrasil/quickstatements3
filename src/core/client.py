@@ -11,7 +11,7 @@ from .exceptions import NonexistantPropertyOrNoDataType
 from .exceptions import UserError
 from .exceptions import ServerError
 from .exceptions import NoToken
-from .exceptions import InvalidToken
+from .exceptions import UnauthorizedToken
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoValueTypeForThisDataType
 
@@ -103,11 +103,14 @@ class Client:
         return requests.get(url, headers=self.headers())
 
     def raise_for_status(self, response):
-        j = response.json()
         status = response.status_code
+        if status == 401:
+            raise UnauthorizedToken()
         if 400 <= status <= 499:
+            j = response.json()
             raise UserError(j.get("code"), j.get("message"))
         if 500 <= status <= 599:
+            j = response.json()
             raise ServerError(j)
 
     # ---
@@ -115,9 +118,7 @@ class Client:
     # ---
     def get_profile(self):
         response = self.get(self.ENDPOINT_PROFILE)
-        if response.status_code != 200:
-            logger.warn(f"Error response: {response}")
-            raise InvalidToken()
+        self.raise_for_status(response)
         return response.json()
 
     def get_username(self):
@@ -125,7 +126,7 @@ class Client:
             profile = self.get_profile()
             return profile["username"]
         except KeyError:
-            raise InvalidToken()
+            raise ServerError(profile)
 
     def get_user_groups(self):
         profile = self.get_profile()

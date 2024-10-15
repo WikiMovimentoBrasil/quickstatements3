@@ -20,7 +20,8 @@ from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
 from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
-from core.exceptions import InvalidToken
+from core.exceptions import UnauthorizedToken
+from core.exceptions import ServerError
 
 from .utils import user_from_token, clear_tokens
 from .models import Preferences
@@ -105,7 +106,7 @@ def batch(request, pk):
             try:
                 client = Client.from_user(request.user)
                 is_autoconfirmed = client.get_is_autoconfirmed()
-            except (NoToken, InvalidToken):
+            except (NoToken, ServerError, UnauthorizedToken):
                 is_autoconfirmed = False
         return render(
             request,
@@ -320,7 +321,7 @@ def new_batch(request):
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
-        except (NoToken, InvalidToken):
+        except (NoToken, UnauthorizedToken, ServerError):
             is_autoconfirmed = False
 
         return render(
@@ -365,7 +366,7 @@ def login_dev(request):
         try:
             user = user_from_token(token)
             django_login(request, user)
-        except InvalidToken as e:
+        except (NoToken, UnauthorizedToken, ServerError) as e:
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
@@ -401,7 +402,7 @@ def profile(request):
         try:
             client = Client.from_user(user)
             is_autoconfirmed = client.get_is_autoconfirmed()
-        except (NoToken, InvalidToken):
+        except (NoToken, UnauthorizedToken, ServerError):
             token_failed = True
 
         data["is_autoconfirmed"] = is_autoconfirmed

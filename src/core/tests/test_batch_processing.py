@@ -243,8 +243,19 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
 
     @requests_mock.Mocker()
-    def test_block_no_token(self, mocker):
+    def test_block_no_token_server_failed(self, mocker):
         ApiMocker.autoconfirmed_failed_server(mocker)
+        batch = self.parse("CREATE||LAST|P1|Q1")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        self.assertEqual(batch.message, "We don't have a valid API token for the user")
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_block_no_token_unauthorized(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
         batch = self.parse("CREATE||LAST|P1|Q1")
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
