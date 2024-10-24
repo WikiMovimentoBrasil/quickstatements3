@@ -3,6 +3,7 @@ import requests
 import logging
 
 from django.core.cache import cache as django_cache
+from django.contrib.auth.models import User
 
 from web.models import Token
 
@@ -60,7 +61,7 @@ class Client:
     ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
     WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
 
-    def __init__(self, token):
+    def __init__(self, token: Token):
         self.token = token
         self.value_type_cache = {}
         self.labels_cache = {}
@@ -73,17 +74,17 @@ class Client:
     # ---
 
     @classmethod
-    def from_token(cls, token):
+    def from_token(cls, token: Token):
         return cls(token)
 
     @classmethod
-    def from_user(cls, user):
+    def from_user(cls, user: User):
         return cls.from_username(user.username)
 
     @classmethod
-    def from_username(cls, username):
+    def from_username(cls, username: str):
         try:
-            token = Token.objects.get(user__username=username).value
+            token = Token.objects.get(user__username=username)
             return cls.from_token(token)
         except Token.DoesNotExist:
             raise NoToken(username)
@@ -94,7 +95,7 @@ class Client:
 
     def headers(self):
         return {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {self.token.value}",
             "Content-Type": "application/json",
         }
 

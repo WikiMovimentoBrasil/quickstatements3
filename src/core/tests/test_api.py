@@ -1,7 +1,10 @@
 import requests_mock
 
 from django.test import TestCase
+from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
+
+from web.models import Token
 
 from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
@@ -182,7 +185,12 @@ class ClientTests(TestCase):
         django_cache.clear()
 
     def api_client(self):
-        return Client("TEST_TOKEN")
+        user, _ = User.objects.get_or_create(username="test_token_user")
+        token, _ = Token.objects.get_or_create(
+            user=user,
+            value="TEST_TOKEN",
+        )
+        return Client.from_token(token)
 
     def wikibase_url(self, endpoint):
         return f"{Client.WIKIBASE_URL}{endpoint}"

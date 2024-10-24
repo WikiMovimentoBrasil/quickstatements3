@@ -24,7 +24,9 @@ from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
 from core.exceptions import ServerError
 
-from .utils import user_from_token, clear_tokens
+from .utils import user_from_access_token
+from .utils import user_from_full_token
+from .utils import clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
 
@@ -372,11 +374,11 @@ def oauth_redirect(request):
 def oauth_callback(request):
     data = {}
     try:
-        token = oauth.mediawiki.authorize_access_token(request)["access_token"]
-        user = user_from_token(token)
+        full_token = oauth.mediawiki.authorize_access_token(request)
+        user = user_from_full_token(full_token)
         django_login(request, user)
         return redirect(reverse("profile"))
-    except UnauthorizedToken:
+    except (UnauthorizedToken, KeyError):
         data["error"] = "token"
     except ServerError:
         data["error"] = "server"
@@ -388,10 +390,10 @@ def oauth_callback(request):
 def login_dev(request):
     if request.method == "POST":
         # obtain dev token
-        token = request.POST["access_token"]
+        access_token = request.POST["access_token"]
 
         try:
-            user = user_from_token(token)
+            user = user_from_access_token(access_token)
             django_login(request, user)
         except (NoToken, UnauthorizedToken, ServerError) as e:
             data = {"error": e}
