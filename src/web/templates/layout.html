@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static %}
 
 <!DOCTYPE HTML>
@@ -67,16 +68,16 @@
     <nav>
       <ul>
         <li><a href="{% url 'home' %}"><strong>QuickStatements 3.0</strong></a></li>
-        <li><a href="{% url 'new_batch' %}">New batch</a></li>
-        <li><a href="{% url 'last_batches' %}">Last batches</a></li>
+        <li><a href="{% url 'new_batch' %}">{% translate "New batch" %}</a></li>
+        <li><a href="{% url 'last_batches' %}">{% translate "Last batches" %}</a></li>
         <li><a href="https://github.com/WikiMovimentoBrasil/quickstatements3">Git</a></li>
       </ul>
       <ul>
         {% if user.is_anonymous %}
-        <li><a href="{% url 'login' %}">Login</a></li>
+        <li><a href="{% url 'login' %}">{% translate "Login" %}</a></li>
         {% else %}
-        <li><a href="{% url 'profile' %}">User:{{user}}</a></li>
-        <li><a href="{% url 'last_batches_by_user' user=user %}">Your last batches</a></li>
+        <li><a href="{% url 'profile' %}">{% translate "User" %}:{{user}}</a></li>
+        <li><a href="{% url 'last_batches_by_user' user=user %}">{% translate "Your last batches" %}</a></li>
         {% endif %}
       </ul>
     </nav>

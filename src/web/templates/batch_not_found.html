@@ -1,15 +1,16 @@
 {% extends "layout.html" %}
+{% load i18n %}
 
 {% block content %}
 
 <p>
-  Batch <code>#{{ pk }}</code> not found.
+  {% blocktranslate %}Batch <code>#{{ pk }}</code> not found.{% endblocktranslate %}
 </p>
 
 <form id="batchForm">
   <fieldset role="group">
-    <input id="batchInput" type="text" placeholder="Batch ID" oninput="updateBatchForm()" />
-    <input type="submit" value="See batch details" />
+    <input id="batchInput" type="text" placeholder="{% translate 'Batch ID' %}" oninput="updateBatchForm()" />
+    <input type="submit" value="{% translate 'See batch details' %}" />
   </fieldset>
 </form>
 
