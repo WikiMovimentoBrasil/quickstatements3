@@ -2,7 +2,7 @@ FROM python:3.12
 LABEL maintainer="Miguel Galves <mgalves@gmail.com>"
 
 # We need sudo and nginx to run
-RUN apt-get update && apt-get -y install sudo nginx emacs
+RUN apt-get update && apt-get -y install sudo nginx emacs gettext
 
 # Creating our local user and group
 RUN groupadd nginx
