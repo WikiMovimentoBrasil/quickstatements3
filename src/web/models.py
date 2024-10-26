@@ -10,12 +10,16 @@ from django.utils.translation import gettext as _
 from .languages import LANGUAGE_CHOICES
 
 
+def unix_timestamp_to_datetime(expires_at_oauth: int):
+    return datetime.fromtimestamp(expires_at_oauth, UTC)
+
+
 class TokenManager(models.Manager):
     def create_from_full_token(self, user, full_token):
         access_token = full_token["access_token"]
         refresh_token = full_token["refresh_token"]
         unix_timestamp = full_token["expires_at"]
-        expires_at = self.unix_timestamp_to_datetime(unix_timestamp)
+        expires_at = unix_timestamp_to_datetime(unix_timestamp)
 
         return self.create(
             user=user,
@@ -23,9 +27,6 @@ class TokenManager(models.Manager):
             refresh_token=refresh_token,
             expires_at=expires_at,
         )
-
-    def unix_timestamp_to_datetime(self, expires_at_oauth: int):
-        return datetime.fromtimestamp(expires_at_oauth, UTC)
 
 
 class Token(models.Model):
@@ -64,6 +65,13 @@ class Token(models.Model):
             return False
         soon = now() + timedelta(minutes=buffer_minutes)
         return self.expires_at <= soon
+
+    def update_from_full_token(self, full_token):
+        self.value = full_token["access_token"]
+        self.refresh_token = full_token["refresh_token"]
+        unix_timestamp = full_token["expires_at"]
+        self.expires_at = unix_timestamp_to_datetime(unix_timestamp)
+        self.save()
 
 
 class PreferencesManager(models.Manager):

@@ -4,8 +4,10 @@ import logging
 
 from django.core.cache import cache as django_cache
 from django.contrib.auth.models import User
+from requests.exceptions import HTTPError
 
 from web.models import Token
+from web.oauth import oauth
 
 from .exceptions import EntityTypeNotImplemented
 from .exceptions import NonexistantPropertyOrNoDataType
@@ -90,6 +92,26 @@ class Client:
             raise NoToken(username)
 
     # ---
+    # OAuth Token
+    # ---
+    def refresh_token_if_needed(self):
+        if self.token.is_expired() and self.token.refresh_token:
+            self.refresh_token()
+
+    def refresh_token(self):
+        logger.debug(f"[{self.token}] Refreshing OAuth token...")
+
+        try:
+            new_token = oauth.mediawiki.fetch_access_token(
+                grant_type="refresh_token",
+                refresh_token=self.token.refresh_token,
+            )
+        except HTTPError:
+            raise UnauthorizedToken()
+
+        self.token.update_from_full_token(new_token)
+
+    # ---
     # Utilities
     # ----
 
@@ -101,7 +123,10 @@ class Client:
 
     def get(self, url):
         logger.debug(f"Sending GET request at {url}")
-        return requests.get(url, headers=self.headers())
+        self.refresh_token_if_needed()
+        response = requests.get(url, headers=self.headers())
+        self.raise_for_status(response)
+        return response
 
     def raise_for_status(self, response):
         status = response.status_code
@@ -118,9 +143,7 @@ class Client:
     # Auth
     # ---
     def get_profile(self):
-        response = self.get(self.ENDPOINT_PROFILE)
-        self.raise_for_status(response)
-        return response.json()
+        return self.get(self.ENDPOINT_PROFILE).json()
 
     def get_username(self):
         try:
@@ -164,6 +187,8 @@ class Client:
 
         url = self.wikibase_url(endpoint)
 
+        self.refresh_token_if_needed()
+
         logger.debug(f"{method} request at {url} | sending with body {body}")
 
         if method == "POST":
@@ -203,11 +228,10 @@ class Client:
         endpoint = f"/entities/properties/{property_id}"
         url = self.wikibase_url(endpoint)
 
-        res = self.get(url).json()
-
         try:
+            res = self.get(url).json()
             data_type = res["data_type"]
-        except KeyError:
+        except (KeyError, UserError):
             raise NonexistantPropertyOrNoDataType(property_id)
 
         try:

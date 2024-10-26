@@ -1,8 +1,10 @@
 import requests_mock
+from datetime import timedelta
 
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
+from django.utils.timezone import now
 
 from web.models import Token
 
@@ -21,6 +23,26 @@ class ApiMocker:
     @classmethod
     def oauth_profile_endpoint(cls):
         return Client.ENDPOINT_PROFILE
+
+    @classmethod
+    def oauth_token_endpoint(cls):
+        return f"{Client.BASE_REST_URL}/oauth2/access_token"
+
+    @classmethod
+    def access_token(cls, mocker, full_token):
+        mocker.post(
+            cls.oauth_token_endpoint(),
+            json=full_token,
+            status_code=200,
+        )
+
+    @classmethod
+    def access_token_fails(cls, mocker):
+        mocker.post(
+            cls.oauth_token_endpoint(),
+            json={"error": "error"},
+            status_code=500,
+        )
 
     @classmethod
     def login_success(cls, mocker, username):
@@ -176,6 +198,96 @@ class ApiMocker:
             mocker,
             cls.WIKIDATA_PROPERTY_DATA_TYPES,
         )
+
+
+class OAuthClientTests(TestCase):
+    @requests_mock.Mocker()
+    def test_refresh_expired_token(self, mocker):
+        # Replacing microseconds to zero for ease of use when comparing
+        # because microseconds aren't saved in the database.
+        old_expires = now().replace(microsecond=0)
+        new_expires = (now() + timedelta(hours=1)).replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token(
+            mocker,
+            {
+                "refresh_token": "new_refresh",
+                "access_token": "new_access",
+                "expires_at": new_expires.timestamp(),
+            },
+        )
+        old_token = {
+            "access_token": "old_access",
+            "refresh_token": "old_refresh",
+            "expires_at": old_expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, old_token)
+        client = Client.from_token(t)
+        self.assertTrue(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "old_access")
+        self.assertEqual(client.token.refresh_token, "old_refresh")
+        self.assertEqual(client.token.expires_at, old_expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertEqual(client.token, t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "new_access")
+        self.assertEqual(client.token.refresh_token, "new_refresh")
+        self.assertEqual(client.token.expires_at, new_expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertEqual(client.token, t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "new_access")
+        self.assertEqual(client.token.refresh_token, "new_refresh")
+        self.assertEqual(client.token.expires_at, new_expires)
+
+    @requests_mock.Mocker()
+    def test_dont_refresh_token(self, mocker):
+        expires = (now() + timedelta(hours=2)).replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token_fails(mocker)
+        token = {
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_at": expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, token)
+        client = Client.from_token(t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "access")
+        self.assertEqual(client.token.refresh_token, "refresh")
+        self.assertEqual(client.token.expires_at, expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "access")
+        self.assertEqual(client.token.refresh_token, "refresh")
+        self.assertEqual(client.token.expires_at, expires)
+
+    @requests_mock.Mocker()
+    def test_failed_to_refresh_raises_unauthorized_token(self, mocker):
+        expires = now().replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token_fails(mocker)
+        old_token = {
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_at": expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, old_token)
+        client = Client.from_token(t)
+        self.assertTrue(client.token.is_expired())
+        with self.assertRaises(UnauthorizedToken):
+            client.get_username()
 
 
 class ClientTests(TestCase):
