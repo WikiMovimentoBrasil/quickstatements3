@@ -7,7 +7,8 @@ from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
-from core.exceptions import InvalidToken
+from core.exceptions import UnauthorizedToken
+from core.exceptions import ServerError
 
 
 class ApiMocker:
@@ -35,6 +36,14 @@ class ApiMocker:
         )
 
     @classmethod
+    def login_failed_server(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "server error"},
+            status_code=500,
+        )
+
+    @classmethod
     def is_autoconfirmed(cls, mocker):
         mocker.get(
             cls.oauth_profile_endpoint(),
@@ -51,11 +60,19 @@ class ApiMocker:
         )
 
     @classmethod
-    def autoconfirmed_failed(cls, mocker):
+    def autoconfirmed_failed_unauthorized(cls, mocker):
         mocker.get(
             cls.oauth_profile_endpoint(),
-            json={"error": "access denied"},
+            json={"error": "unauthorized"},
             status_code=401,
+        )
+
+    @classmethod
+    def autoconfirmed_failed_server(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "server error"},
+            status_code=500,
         )
 
     # ---
@@ -302,9 +319,48 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_autoconfirmed_failed(self, mocker):
-        ApiMocker.autoconfirmed_failed(mocker)
+        ApiMocker.autoconfirmed_failed_server(mocker)
         client = self.api_client()
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(ServerError):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_autoconfirmed_unauthorized(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        client = self.api_client()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_login(self, mocker):
+        ApiMocker.login_success(mocker, "username")
+        client = self.api_client()
+        self.assertEqual(client.get_username(), "username")
+
+    @requests_mock.Mocker()
+    def test_login_unauthorized(self, mocker):
+        ApiMocker.login_fail(mocker)
+        client = self.api_client()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_profile()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_username()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_user_groups()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_login_failed_server(self, mocker):
+        ApiMocker.login_failed_server(mocker)
+        client = self.api_client()
+        with self.assertRaises(ServerError):
+            client.get_profile()
+        with self.assertRaises(ServerError):
+            client.get_username()
+        with self.assertRaises(ServerError):
+            client.get_user_groups()
+        with self.assertRaises(ServerError):
             client.get_is_autoconfirmed()
 
     @requests_mock.Mocker()
