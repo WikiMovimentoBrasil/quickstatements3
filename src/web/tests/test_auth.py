@@ -7,6 +7,8 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 
 from ..models import Token
+from ..utils import user_from_access_token
+from ..utils import user_from_full_token
 from core.client import Client as ApiClient
 from core.tests.test_api import ApiMocker
 
@@ -159,6 +161,22 @@ class Login(TestCase):
         self.assertNotInRes("Your Wikimedia authentication has expired.", res)
         self.assertIsNotAuthenticated()
 
+    @requests_mock.Mocker()
+    def test_user_from_full_token(self, mocker):
+        ApiMocker.login_success(mocker, "Maria")
+        full_token = {
+            "access_token": "access_token",
+            "refresh_token": "refresh_token",
+            "expires_at": 1729809078,
+        }
+        user = user_from_full_token(full_token)
+        token = Token.objects.get(user=user)
+        self.assertEqual(user.username, "Maria")
+        self.assertEqual(token.value, "access_token")
+        self.assertEqual(token.refresh_token, "refresh_token")
+        self.assertEqual(token.expires_at.year, 2024)
+        self.assertEqual(token.expires_at.hour, 22)
+
 
 class LoginDev(TestCase):
     URL_NAME = "login_dev"
@@ -174,6 +192,14 @@ class LoginDev(TestCase):
         res = self.post(data={"access_token": "my_invalid_token"})
         self.assertStatus(res, 400)
         self.assertInRes("Your access token is not valid", res)
+
+    @requests_mock.Mocker()
+    def test_user_from_access_token(self, mocker):
+        ApiMocker.login_success(mocker, "Maria")
+        user = user_from_access_token("valid_token")
+        token = Token.objects.get(user=user)
+        self.assertEqual(user.username, "Maria")
+        self.assertEqual(token.value, "valid_token")
 
     @requests_mock.Mocker()
     def test_login_success(self, mocker):

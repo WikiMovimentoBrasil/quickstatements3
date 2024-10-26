@@ -1,8 +1,5 @@
-import os
-
 from datetime import datetime
 
-from authlib.integrations.django_client import OAuth
 from authlib.integrations.base_client.errors import MismatchingStateError
 from django.core.paginator import Paginator
 from django.contrib.auth import login as django_login
@@ -24,7 +21,10 @@ from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
 from core.exceptions import ServerError
 
-from .utils import user_from_token, clear_tokens
+from .oauth import oauth
+from .utils import user_from_access_token
+from .utils import user_from_full_token
+from .utils import clear_tokens
 from .models import Preferences
 from .languages import LANGUAGE_CHOICES
 
@@ -32,14 +32,6 @@ from .languages import LANGUAGE_CHOICES
 PAGE_SIZE = 30
 
 
-oauth = OAuth()
-oauth.register(
-    name="mediawiki",
-    client_id=os.getenv("OAUTH_CLIENT_ID"),
-    client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
-    access_token_url=f"{Client.BASE_REST_URL}/oauth2/access_token",
-    authorize_url=f"{Client.BASE_REST_URL}/oauth2/authorize",
-)
 
 
 @require_http_methods(
@@ -372,11 +364,11 @@ def oauth_redirect(request):
 def oauth_callback(request):
     data = {}
     try:
-        token = oauth.mediawiki.authorize_access_token(request)["access_token"]
-        user = user_from_token(token)
+        full_token = oauth.mediawiki.authorize_access_token(request)
+        user = user_from_full_token(full_token)
         django_login(request, user)
         return redirect(reverse("profile"))
-    except UnauthorizedToken:
+    except (UnauthorizedToken, KeyError):
         data["error"] = "token"
     except ServerError:
         data["error"] = "server"
@@ -388,10 +380,10 @@ def oauth_callback(request):
 def login_dev(request):
     if request.method == "POST":
         # obtain dev token
-        token = request.POST["access_token"]
+        access_token = request.POST["access_token"]
 
         try:
-            user = user_from_token(token)
+            user = user_from_access_token(access_token)
             django_login(request, user)
         except (NoToken, UnauthorizedToken, ServerError) as e:
             data = {"error": e}
