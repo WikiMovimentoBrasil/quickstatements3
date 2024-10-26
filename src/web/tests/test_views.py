@@ -202,7 +202,9 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("new_batch.html")
 
-        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        response = c.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
         self.assertEqual(response.status_code, 302)
 
         # Lets view the new batch
@@ -256,12 +258,14 @@ class ViewsTest(TestCase):
 
     def test_create_batch_anonymous_user(self):
         c = Client()
-       
+
         response = c.get("/batch/new/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
 
-        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        response = c.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
 
@@ -370,7 +374,9 @@ class ViewsTest(TestCase):
         user = User.objects.create_user(username="john")
         c.force_login(user)
 
-        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        response = c.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
         self.assertEqual(response.status_code, 302)
 
         response = c.get(response.url)
@@ -487,7 +493,9 @@ class ViewsTest(TestCase):
         user = User.objects.create_user(username="john")
         c.force_login(user)
 
-        response = c.post("/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"})
+        response = c.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
         self.assertEqual(response.status_code, 302)
 
         response = c.get(response.url)
@@ -507,4 +515,3 @@ class ViewsTest(TestCase):
         response = c.post(f"/batch/{pk}/restart/")
         response = c.get(response.url)
         self.assertInRes("Stop execution", response)
-
