@@ -10,8 +10,6 @@
 {% if user.is_authenticated %}
 
 <h1> {{ user.username }} </h1>
-<p><a href="{% url 'last_batches_by_user' user=user.username %}">{% translate "Your last batches" %}</a></p>
-<p><a href="{% url 'logout' %}">{% translate "Click here to log out." %}</a></p>
 
 <article>
     <h2>{% translate "Autoconfirmed status" %}</h2>
@@ -70,6 +68,10 @@
         <input type="hidden" name="action" value="update_token">
         <input type="submit" value="{% translate 'Update token' %}">
     </form>
+</article>
+
+<article>
+<p><a href="{% url 'logout' %}">{% translate "Click here to log out." %}</a></p>
 </article>
 
 {% else %}

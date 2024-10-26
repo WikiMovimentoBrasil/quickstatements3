@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from authlib.integrations.django_client import OAuth
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
@@ -10,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import translation
 from django.views.decorators.http import require_http_methods
 from rest_framework.authtoken.models import Token
 
@@ -386,6 +388,7 @@ def profile(request):
                 prefs, _ = Preferences.objects.get_or_create(user=user)
                 prefs.language = request.POST["language"]
                 prefs.save()
+
             elif action == "update_token":
                 if token:
                     token.delete()
@@ -407,4 +410,10 @@ def profile(request):
         data["is_autoconfirmed"] = is_autoconfirmed
         data["token_failed"] = token_failed
 
-    return render(request, "profile.html", data)
+    translation.activate(data["language"])
+    request.LANGUAGE_CODE = translation.get_language()
+
+    response = render(request, "profile.html", data)
+    response.set_cookie(settings.LANGUAGE_COOKIE_NAME, data["language"])
+
+    return response
