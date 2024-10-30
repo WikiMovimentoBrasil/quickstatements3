@@ -204,9 +204,8 @@ class RemoveStatement(Utilities):
         self.parser_value = j["value"]
         self.api_value = parser_value_to_api_value(self.parser_value)
 
-    def load_ids_to_delete(self, client: Client):
-        ids_to_delete = []
-
+    def load_id_to_delete(self, client: Client):
+        id_to_delete = None
         statements = self._get_statements_for_our_property(client)
 
         for statement in statements:
@@ -214,16 +213,17 @@ class RemoveStatement(Utilities):
             api_value = statement["value"]
 
             if api_value == self.api_value:
-                ids_to_delete.append(id)
+                id_to_delete = id
+                break
 
-        if len(ids_to_delete) == 0:
+        if id_to_delete is None:
             raise NoStatementsWithThatValue(
                 self.entity_id,
                 self.property_id,
                 self.parser_value["value"],
             )
 
-        self.ids_to_delete = ids_to_delete
+        self.id_to_delete = id_to_delete
 
     def _get_statements_for_our_property(self, client: Client):
         all_statements = client.get_statements(self.entity_id)
@@ -238,13 +238,10 @@ class RemoveStatement(Utilities):
         return {}
 
     def send(self, client: Client):
-        self.load_ids_to_delete(client)
+        self.load_id_to_delete(client)
         full_body = self.full_body()
-        responses = []
-        for id in self.ids_to_delete:
-            res = client.delete_statement(id, full_body)
-            responses.append(res)
-        return responses
+        res = client.delete_statement(self.id_to_delete, full_body)
+        return res
 
 
 class RemoveStatementById(Utilities):
