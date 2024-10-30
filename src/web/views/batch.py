@@ -1,13 +1,11 @@
 from datetime import datetime
 
-from authlib.integrations.base_client.errors import MismatchingStateError
 from django.core.paginator import Paginator
-from django.contrib.auth import login as django_login
-from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import translation
 from django.views.decorators.http import require_http_methods
 from rest_framework.authtoken.models import Token
 
@@ -21,64 +19,13 @@ from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
 from core.exceptions import ServerError
 
-from .oauth import oauth
-from .utils import user_from_access_token
-from .utils import user_from_full_token
-from .utils import clear_tokens
-from .models import Preferences
-from .languages import LANGUAGE_CHOICES
+from web.models import Preferences
+from web.languages import LANGUAGE_CHOICES
+
+from .auth import logout_per_token_expired
 
 
 PAGE_SIZE = 30
-
-
-
-
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
-def home(request):
-    """
-    Main page for this tool
-    """
-    return render(request, "index.html")
-
-
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
-def last_batches(request):
-    """
-    List last PAGE_SIZE batches modified
-    """
-    try:
-        page = int(request.GET.get("page", 1))
-    except (TypeError, ValueError):
-        page = 1
-    paginator = Paginator(Batch.objects.all().order_by("-modified"), PAGE_SIZE)
-    return render(request, "batches.html", {"page": paginator.page(page)})
-
-
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
-def last_batches_by_user(request, user):
-    """
-    List last PAGE_SIZE batches modified created by user
-    """
-    try:
-        page = int(request.GET.get("page", 1))
-    except (TypeError, ValueError):
-        page = 1
-    paginator = Paginator(Batch.objects.filter(user=user).order_by("-modified"), PAGE_SIZE)
-    # we need to use `username` since `user` is always supplied by django templates
-    return render(request, "batches.html", {"username": user, "page": paginator.page(page)})
 
 
 @require_http_methods(
@@ -333,104 +280,3 @@ def new_batch(request):
                 "is_autoconfirmed": is_autoconfirmed,
             },
         )
-
-
-def logout_per_token_expired(request):
-    django_logout(request)
-    request.session["token_expired"] = True
-    return redirect(reverse("login"))
-
-
-def login(request):
-    if request.user.is_authenticated:
-        return redirect("/auth/profile/")
-    else:
-        data = {
-            "token_expired": request.session.get("token_expired", False),
-        }
-        return render(request, "login.html", data)
-
-
-def logout(request):
-    clear_tokens(request.user)
-    django_logout(request)
-    return redirect("/")
-
-
-def oauth_redirect(request):
-    return oauth.mediawiki.authorize_redirect(request)
-
-
-def oauth_callback(request):
-    data = {}
-    try:
-        full_token = oauth.mediawiki.authorize_access_token(request)
-        user = user_from_full_token(full_token)
-        django_login(request, user)
-        return redirect(reverse("profile"))
-    except (UnauthorizedToken, KeyError):
-        data["error"] = "token"
-    except ServerError:
-        data["error"] = "server"
-    except MismatchingStateError:
-        data["error"] = "mismatched_states"
-    return render(request, "login.html", data, status=401)
-
-
-def login_dev(request):
-    if request.method == "POST":
-        # obtain dev token
-        access_token = request.POST["access_token"]
-
-        try:
-            user = user_from_access_token(access_token)
-            django_login(request, user)
-        except (NoToken, UnauthorizedToken, ServerError) as e:
-            data = {"error": e}
-            return render(request, "login_dev.html", data, status=400)
-
-        return redirect("/auth/profile/")
-    else:
-        return render(request, "login_dev.html", {})
-
-
-def profile(request):
-    data = {}
-    if request.user.is_authenticated:
-        user = request.user
-
-        # Wikimedia API
-        is_autoconfirmed = False
-        token_failed = False
-        try:
-            client = Client.from_user(user)
-            is_autoconfirmed = client.get_is_autoconfirmed()
-        except UnauthorizedToken:
-            return logout_per_token_expired(request)
-        except (NoToken, ServerError):
-            token_failed = True
-
-        data["is_autoconfirmed"] = is_autoconfirmed
-        data["token_failed"] = token_failed
-
-        # TOKEN
-        token, created = Token.objects.get_or_create(user=user)
-        
-        # POSTing
-        if request.method == "POST":
-            action = request.POST["action"]
-            if action == "update_language":
-                prefs, _ = Preferences.objects.get_or_create(user=user)
-                prefs.language = request.POST["language"]
-                prefs.save()
-            elif action == "update_token":
-                if token:
-                    token.delete()
-                token = Token.objects.create(user=user)
-
-        data["token"] = token.key
-
-        data["language"] = Preferences.objects.get_language(user, "en")
-        data["language_choices"] = LANGUAGE_CHOICES
-
-    return render(request, "profile.html", data)

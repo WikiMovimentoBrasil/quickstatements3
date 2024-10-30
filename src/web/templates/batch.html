@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
+{% load i18n %}
 
-{% block pagetitle %}QuickStatements 3.0 - Batch #{{ batch.pk }}{% endblock%}
+{% block pagetitle %}QuickStatements 3.0 - {% translate "Batch" %} #{{ batch.pk }}{% endblock%}
 
 {% block css %}
 
@@ -82,12 +83,12 @@
 
 <div style="float: left;">
 <hgroup>
-  <h2> Batch #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
+  <h2> {% translate "Batch" %} #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
   <p><b>{{batch.name}}</b></p>
   <p>
-    Created by {{ batch.user }}
-    [<a href="{% url 'last_batches_by_user' user=batch.user %}">View batches</a>]</a>
-    [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">View wikidata</a>]
+    {% translate 'Created by' %} {{ batch.user }}
+    [<a href="{% url 'last_batches_by_user' user=batch.user %}">{% translate "View batches" %}</a>]</a>
+    [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">{% translate "View wikidata" %}</a>]
   </p>
 </hgroup>
 </div>
@@ -102,15 +103,12 @@
       {% else %}
         <input type="submit" value="Allow batch to run" disabled>
         <small>
-          Note: only
-          <a href="{% url 'profile' %}">autoconfirmed users</a>
-          <br>
-          can have their batches run.
+          {% translate "Note: only autoconfirmed users can run batches." %}
         </small>
       {% endif %}
     </form>
     {% elif batch.is_initial_or_running %}
-    <button class="secondary" onclick="showModal();">Stop execution</button>
+    <button class="secondary" onclick="showModal();">{% translate "Stop execution" %}</button>
     {% elif batch.is_stopped %}
     <form method="POST" action="{% url 'batch_restart' pk=batch.pk %}">
       {% csrf_token %}
@@ -127,10 +125,10 @@
       hx-swap="innerHTML" 
       hx-indicator="#spinner"
       style="margin: 20px 0; font-size: 14px;">
-      Loading summary...
+      {% translate "Loading summary..." %}
 </div>
 
-<h4>Commands</h4>
+<h4>{% translate "Commands" %}</h4>
 
 <div class="overflow-auto" 
     id="batchCommandsDiv" 
@@ -138,7 +136,7 @@
     hx-trigger="load, reload" 
     hx-indicator="#spinner"
     hx-swap="innerHTML">
-Loading commands...
+{% translate "Loading commands..." %}
 </div>
 
 <form action="{% url 'batch_stop' pk=batch.pk %}" id="stopbatch" method="POST">
@@ -147,13 +145,13 @@ Loading commands...
 
 <dialog id="confirmStop">
   <article>
-    <h2>Stop batch #{{batch.pk}} processing</h2>
+    <h2>{% blocktranslate %}Stop batch #{{batch.pk}} processing{% endblocktranslate %}</h2>
     <p>
-      Are you sure you want to stop the current batch processing?
+      {% translate "Are you sure you want to stop the current batch processing?" %}
     </p>
     <footer>
-      <button class="secondary" onclick="closeModal()">No, continue</button>
-      <button onclick="stop()">Stop processing !</button>
+      <button class="secondary" onclick="closeModal()">{% translate "No, continue" %}</button>
+      <button onclick="stop()">{% translate "Stop processing" %}</button>
     </footer>
   </article>
 </dialog>

@@ -1,28 +1,33 @@
 {% extends "layout.html" %}
+{% load i18n %}
 
-{% block pagetitle %}QuickStatements 3.0 - Login{% endblock%}
+{% block pagetitle %}{% translate "QuickStatements 3.0 - Login" %}{% endblock%}
 
 
 {% block content %}
 
-<h2> Developer access </h2>
+<h2>{% translate "Developer access" %}</h2>
 
-<p> Submit your access token below. </p>
+<p>{% translate "Submit your access token below." %}</p>
 
 <form method="POST">
   <fieldset class="grid">
     {% csrf_token %}
-    <input type="password" name="access_token" aria-label="Access Token" placeholder="Access Token">
+    <input 
+        type="password" 
+        name="access_token" 
+        aria-label="{% translate 'Access Token' %}" 
+        placeholder="{% translate 'Access Token' %}">
     <input
       type="submit"
-      value="Log in"
+      value="{% translate 'Log in' %}"
     />
   </fieldset>
 </form>
 
 {% if error %}
 <small>
-  <p style="color: red;">Your access token is not valid: {{ error }}</p>
+  <p style="color: red;">{% translate "Your access token is not valid:" %} {{ error }}</p>
 </small>
 {% endif %}
 

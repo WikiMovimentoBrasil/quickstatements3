@@ -1,10 +1,11 @@
 {% extends "layout.html" %}
+{% load i18n %}
 
-{% block pagetitle %}QuickStatements 3.0 - New batch{% endblock%}
+{% block pagetitle %}{% translate "QuickStatements 3.0 - New batch" %}{% endblock%}
 
 {% block content %}
 
-<h2> New batch </h2>
+<h2> {% translate "New batch" %} </h2>
 
 {% if error %}
 <article class="pico-background-red-600">{{error}}</article>
@@ -13,7 +14,7 @@
 <form method="POST">
   {% csrf_token %}
   <fieldset>
-    <label for="batch_type">Command format</label>
+    <label for="batch_type">{% translate "Command format" %}</label>
     
     <select name="type" id="batch_type">
       <option value="v1" {% if batch_type == "v1" %}selected{% endif %}>V1</option>
@@ -21,15 +22,15 @@
     </select>
     
     <input type="text" name="name" aria-label="batch name" 
-      placeholder="Custom batch name..." 
+      placeholder="{% translate 'Custom batch name...' %}" 
       {% if name %}value="{{name}}" {% endif %}>
 
     <label>
       <input type="checkbox" name="block_on_errors" role="switch" >
-      Block batch if a command fails
+      {% translate "Block batch if a command fails" %}
     </label>
     
-    <textarea name="commands" aria-label="commands" placeholder="Enter your commands here..."
+    <textarea name="commands" aria-label="commands" placeholder="{% translate 'Enter your commands here...' %}"
       style="height: 400px">{% if commands %}{{commands}}{% endif %}</textarea>
   </fieldset>
   {% if is_autoconfirmed %}
@@ -37,9 +38,7 @@
   {% else %}
   <input type="submit" value="Preview" />
   <small>
-    Note: only
-    <a href="{% url 'profile' %}">autoconfirmed users</a>
-    can have their batches run.
+    {% translate "Note: only autoconfirmed users can run batches." %}
   </small>
   {% endif %}
 </form>

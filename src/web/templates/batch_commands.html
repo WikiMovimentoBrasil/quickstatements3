@@ -1,3 +1,4 @@
+{% load i18n %}
   <table class="commands striped">
     <tbody>
       {% for command in page.object_list %}
@@ -34,7 +35,7 @@
 
           <td>
             {% if command.is_merge_command %}
-            STATEMENT
+            {% translate "STATEMENT" %}
             {% else %}
             {{command.what}}
             {% endif %}
@@ -62,20 +63,20 @@
 
   <div style="text-align: right; font-size: 10px; margin-bottom: 24px;">
     {% if only_errors %}
-    SHOWING ONLY ERRORS - 
+    {% translate "SHOWING ONLY ERRORS" %} - 
     <a  style="cursor: pointer;"
         hx-get="{% url 'batch_commands' pk=batch_pk %}" 
         hx-target="#batchCommandsDiv" 
         hx-swap="innerHTML">
-        SHOW ALL
+        {% translate "SHOW ALL" %}
     </a>
     {% else %}
-    SHOWING ALL - 
+    {% translate "SHOWING ALL" %} - 
     <a  style="cursor: pointer;"
         hx-get="{% url 'batch_commands' pk=batch_pk %}?show_errors=1" 
         hx-target="#batchCommandsDiv" 
         hx-swap="innerHTML">
-        SHOW ONLY ERRORS
+        {% translate "SHOW ONLY ERRORS" %}
     </a>
     {% endif %}
   </div>
@@ -90,7 +91,7 @@
           <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page=1{% if only_errors %}&show_errors=1{% endif %}" 
               hx-target="#batchCommandsDiv" 
               hx-swap="innerHTML">
-            << FIRST
+            << {% translate "FIRST" %}
           </a>
         </span> 
         
@@ -98,7 +99,7 @@
           <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.previous_page_number}}{% if only_errors %}&show_errors=1{% endif %}" 
               hx-target="#batchCommandsDiv" 
               hx-swap="innerHTML">
-            < PREVIOUS
+            < {% translate "PREVIOUS" %}
           </a>
         </span> 
         {% endif%}
@@ -107,7 +108,7 @@
 
     <div style="display: inline-block; text-align: center; width: 30%;">
         <span class="pagination current-page">
-          Pg. {{page.number}} of {{page.paginator.num_pages}}
+          {% blocktranslate %}Pg. {{page.number}} of {{page.paginator.num_pages}}{% endblocktranslate %}
         </span> 
     </div>
 
@@ -118,7 +119,7 @@
         <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.next_page_number}}{% if only_errors %}&show_errors=1{% endif %}" 
           hx-target="#batchCommandsDiv" 
           hx-swap="innerHTML">
-            NEXT >
+            {% translate "NEXT" %} >
         </a>
       </span> 
         
@@ -126,7 +127,7 @@
         <a hx-get="{% url 'batch_commands' pk=batch_pk %}?page={{page.paginator.num_pages}}{% if only_errors %}&show_errors=1{% endif %}" 
             hx-target="#batchCommandsDiv" 
             hx-swap="innerHTML">
-            LAST>>
+            {% translate "LAST" %}>>
         </a>
       </span> 
       {% endif%}
