@@ -1,13 +1,19 @@
 import requests_mock
+from datetime import timedelta
 
 from django.test import TestCase
+from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
+from django.utils.timezone import now
+
+from web.models import Token
 
 from core.client import Client
 from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
-from core.exceptions import InvalidToken
+from core.exceptions import UnauthorizedToken
+from core.exceptions import ServerError
 
 
 class ApiMocker:
@@ -17,6 +23,26 @@ class ApiMocker:
     @classmethod
     def oauth_profile_endpoint(cls):
         return Client.ENDPOINT_PROFILE
+
+    @classmethod
+    def oauth_token_endpoint(cls):
+        return f"{Client.BASE_REST_URL}/oauth2/access_token"
+
+    @classmethod
+    def access_token(cls, mocker, full_token):
+        mocker.post(
+            cls.oauth_token_endpoint(),
+            json=full_token,
+            status_code=200,
+        )
+
+    @classmethod
+    def access_token_fails(cls, mocker):
+        mocker.post(
+            cls.oauth_token_endpoint(),
+            json={"error": "error"},
+            status_code=500,
+        )
 
     @classmethod
     def login_success(cls, mocker, username):
@@ -32,6 +58,14 @@ class ApiMocker:
             cls.oauth_profile_endpoint(),
             json={"error": "access denied"},
             status_code=401,
+        )
+
+    @classmethod
+    def login_failed_server(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "server error"},
+            status_code=500,
         )
 
     @classmethod
@@ -51,11 +85,19 @@ class ApiMocker:
         )
 
     @classmethod
-    def autoconfirmed_failed(cls, mocker):
+    def autoconfirmed_failed_unauthorized(cls, mocker):
         mocker.get(
             cls.oauth_profile_endpoint(),
-            json={"error": "access denied"},
+            json={"error": "unauthorized"},
             status_code=401,
+        )
+
+    @classmethod
+    def autoconfirmed_failed_server(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"error": "server error"},
+            status_code=500,
         )
 
     # ---
@@ -158,6 +200,96 @@ class ApiMocker:
         )
 
 
+class OAuthClientTests(TestCase):
+    @requests_mock.Mocker()
+    def test_refresh_expired_token(self, mocker):
+        # Replacing microseconds to zero for ease of use when comparing
+        # because microseconds aren't saved in the database.
+        old_expires = now().replace(microsecond=0)
+        new_expires = (now() + timedelta(hours=1)).replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token(
+            mocker,
+            {
+                "refresh_token": "new_refresh",
+                "access_token": "new_access",
+                "expires_at": new_expires.timestamp(),
+            },
+        )
+        old_token = {
+            "access_token": "old_access",
+            "refresh_token": "old_refresh",
+            "expires_at": old_expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, old_token)
+        client = Client.from_token(t)
+        self.assertTrue(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "old_access")
+        self.assertEqual(client.token.refresh_token, "old_refresh")
+        self.assertEqual(client.token.expires_at, old_expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertEqual(client.token, t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "new_access")
+        self.assertEqual(client.token.refresh_token, "new_refresh")
+        self.assertEqual(client.token.expires_at, new_expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertEqual(client.token, t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "new_access")
+        self.assertEqual(client.token.refresh_token, "new_refresh")
+        self.assertEqual(client.token.expires_at, new_expires)
+
+    @requests_mock.Mocker()
+    def test_dont_refresh_token(self, mocker):
+        expires = (now() + timedelta(hours=2)).replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token_fails(mocker)
+        token = {
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_at": expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, token)
+        client = Client.from_token(t)
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "access")
+        self.assertEqual(client.token.refresh_token, "refresh")
+        self.assertEqual(client.token.expires_at, expires)
+        username = client.get_username()
+        self.assertEqual(username, "WikiUser")
+        self.assertFalse(client.token.is_expired())
+        self.assertEqual(client.token.user.id, user.id)
+        self.assertEqual(client.token.value, "access")
+        self.assertEqual(client.token.refresh_token, "refresh")
+        self.assertEqual(client.token.expires_at, expires)
+
+    @requests_mock.Mocker()
+    def test_failed_to_refresh_raises_unauthorized_token(self, mocker):
+        expires = now().replace(microsecond=0)
+        ApiMocker.login_success(mocker, "WikiUser")
+        ApiMocker.access_token_fails(mocker)
+        old_token = {
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_at": expires.timestamp(),
+        }
+        user = User.objects.create(username="u")
+        t = Token.objects.create_from_full_token(user, old_token)
+        client = Client.from_token(t)
+        self.assertTrue(client.token.is_expired())
+        with self.assertRaises(UnauthorizedToken):
+            client.get_username()
+
+
 class ClientTests(TestCase):
     def tearDown(self):
         # this is needed for the property-data-types to work correctly,
@@ -165,7 +297,12 @@ class ClientTests(TestCase):
         django_cache.clear()
 
     def api_client(self):
-        return Client("TEST_TOKEN")
+        user, _ = User.objects.get_or_create(username="test_token_user")
+        token, _ = Token.objects.get_or_create(
+            user=user,
+            value="TEST_TOKEN",
+        )
+        return Client.from_token(token)
 
     def wikibase_url(self, endpoint):
         return f"{Client.WIKIBASE_URL}{endpoint}"
@@ -302,9 +439,48 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_autoconfirmed_failed(self, mocker):
-        ApiMocker.autoconfirmed_failed(mocker)
+        ApiMocker.autoconfirmed_failed_server(mocker)
         client = self.api_client()
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(ServerError):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_autoconfirmed_unauthorized(self, mocker):
+        ApiMocker.autoconfirmed_failed_unauthorized(mocker)
+        client = self.api_client()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_login(self, mocker):
+        ApiMocker.login_success(mocker, "username")
+        client = self.api_client()
+        self.assertEqual(client.get_username(), "username")
+
+    @requests_mock.Mocker()
+    def test_login_unauthorized(self, mocker):
+        ApiMocker.login_fail(mocker)
+        client = self.api_client()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_profile()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_username()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_user_groups()
+        with self.assertRaises(UnauthorizedToken):
+            client.get_is_autoconfirmed()
+
+    @requests_mock.Mocker()
+    def test_login_failed_server(self, mocker):
+        ApiMocker.login_failed_server(mocker)
+        client = self.api_client()
+        with self.assertRaises(ServerError):
+            client.get_profile()
+        with self.assertRaises(ServerError):
+            client.get_username()
+        with self.assertRaises(ServerError):
+            client.get_user_groups()
+        with self.assertRaises(ServerError):
             client.get_is_autoconfirmed()
 
     @requests_mock.Mocker()

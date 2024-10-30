@@ -7,6 +7,29 @@
 
 <h1>{% translate "Login" context "LOGIN PAGE TITLE" %}</h1>
 
+{% if token_expired %}
+<p>
+  Your Wikimedia authentication has expired.
+  This is completely normal and it happens for security reasons.
+  Please, log in again.
+<p>
+{% endif %}
+
+{% if error %}
+<p style="color: var(--pico-color-red-500);">
+  {% if error == "authorization" %}
+    Authentication with your Wikimedia account failed.
+  {% elif error == "server" %}
+    The Wikimedia server was not able to process your authentication.
+  {% elif error == "mismatched_states" %}
+    The authentication server is being
+    intercepted, misused, or
+    you're not supposed to be here right now.
+  {% endif %}
+  Please, try again.
+</p>
+{% endif %}
+
 <form action="{% url 'oauth_redirect' %}">
   <input type="submit" value="{% translate 'Sign in with Wikimedia account' %}">
 </form>

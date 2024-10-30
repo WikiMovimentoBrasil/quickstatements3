@@ -8,7 +8,6 @@ def language_cookie_middleware(get_response):
     def middleware(request):
         language = None
 
-        print(request.COOKIES)
         if request.user.is_authenticated and settings.LANGUAGE_COOKIE_NAME not in request.COOKIES:
             language = Preferences.objects.get_language(request.user, "en")
             translation.activate(language)
