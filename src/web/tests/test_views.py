@@ -380,7 +380,7 @@ class ViewsTest(TestCase):
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/batch/new/preview")
+        self.assertEqual(response.url, "/batch/new/preview/")
 
         response = c.get(response.url)
         self.assertEqual(response.status_code, 200)
