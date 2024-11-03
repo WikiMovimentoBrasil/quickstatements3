@@ -118,7 +118,7 @@
     <b class="status status_total">{% translate "TOTAL" %}: {{total_count}}</b>
     <b class="status status_initial">{% translate "INITIAL" %}: {{init_count}}</b>
     <b class="status status_error">{% translate "ERRORS" %}: {{error_count}}</b>
-    {% if show_block_on_errors_notice %}
+    {% if batch.block_on_errors %}
     <small>
       {% translate "This batch will be blocked if a command fails." %}
     </small>
