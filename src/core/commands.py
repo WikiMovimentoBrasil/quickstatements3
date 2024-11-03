@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from .client import Client
 from .exceptions import ApiNotImplemented
 from .exceptions import NoStatementsForThatProperty
@@ -63,7 +65,13 @@ class Utilities:
         """
         Returns the command's summary if it has one
         """
-        return self.command.json.get("summary", "")
+        # Our regex for EditGroups:
+        # ".*\[\[:toollabs:TOOLFORGE_TOOL_NAME/batch/(\d+)\|.*"
+        tool = settings.TOOLFORGE_TOOL_NAME
+        batch_id = self.command.batch.id
+        editgroups_info = f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]] "
+        user_comment = self.command.json.get("summary", "")
+        return editgroups_info + user_comment
 
 
 class AddStatement(Utilities):

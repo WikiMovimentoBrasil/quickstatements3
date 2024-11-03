@@ -181,3 +181,6 @@ LANGUAGES = [
 ]
 
 LANGUAGE_CODE = "en"
+
+# To use with EditGroups integration
+TOOLFORGE_TOOL_NAME = os.getenv("TOOLFORGE_TOOL_NAME", "qs-dev")
