@@ -55,7 +55,7 @@ def preview_batch(request):
             else:
                 init_count += 1
 
-        is_autoconfirmed = False
+        is_autoconfirmed = None
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
@@ -202,6 +202,7 @@ def batch_allow_start(request):
     try:
         preview_batch = request.session.get("preview_batch")
         if preview_batch:
+
             batch = list(serializers.deserialize("json", preview_batch))[0].object
 
             preview_batch_commands = request.session.get("preview_commands", "[]")
@@ -209,6 +210,10 @@ def batch_allow_start(request):
                 batch.add_preview_command(batch_command.object)
             batch.save_batch_and_preview_commands()
             batch.allow_start()
+
+            del request.session["preview_batch"]
+            del request.session["preview_commands"]
+
             return redirect(reverse("batch", args=[batch.pk]))
         else:
             return redirect(reverse("new_batch"))
