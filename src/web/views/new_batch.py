@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import translation
 from django.views.decorators.http import require_http_methods
+from django.utils.translation import gettext as _
 from rest_framework.authtoken.models import Token
 
 from core.client import Client
@@ -190,15 +191,30 @@ def new_batch(request):
         )
 
 
-@require_http_methods(
-    [
-        "POST",
-    ]
-)
+@require_http_methods(["POST", "GET"])
 def batch_allow_start(request):
     """
     Saves and allow a batch that is in the preview state to start running.
     """
+    is_autoconfirmed = False
+    try:
+        client = Client.from_user(request.user)
+        is_autoconfirmed = client.get_is_autoconfirmed()
+    except UnauthorizedToken:
+        return logout_per_token_expired(request)
+    except (NoToken, ServerError):
+        is_autoconfirmed = False
+
+    if not is_autoconfirmed:
+        return render(
+            request,
+            "new_batch.html",
+            {
+                "is_autoconfirmed": is_autoconfirmed,
+                "error": _("User is not autoconfirmed. Only autoconfirmed users can run batches."),
+            },
+        )
+
     try:
         preview_batch = request.session.get("preview_batch")
         if preview_batch:
