@@ -210,10 +210,15 @@ class ViewsTest(TestCase):
         # Lets view the new batch
         response = c.get(response.url)
         self.assertEqual(response.status_code, 200)
+
+        response = c.post(f"/batch/new/preview/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = c.get(response.url)
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My v1 batch")
-        self.assertTrue(batch.is_preview)
+        self.assertTrue(batch.is_initial)
         self.assertEqual(batch.batchcommand_set.count(), 3)
 
         # Listing again. Now we have something
@@ -221,7 +226,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
-        self.assertTrue(batch.is_preview)
+        self.assertTrue(batch.is_initial)
 
     def test_create_csv_batch_logged_user(self):
         c = Client()
@@ -275,6 +280,7 @@ class ViewsTest(TestCase):
 
         parser = V1CommandParser()
         batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
+        batch.save_batch_and_preview_commands()
 
         labels = {
             "en": "English label",
@@ -374,21 +380,16 @@ class ViewsTest(TestCase):
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/batch/new/preview")
 
         response = c.get(response.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed("batch.html")
-        batch = response.context["batch"]
-        self.assertEqual(batch.name, "My v1 batch")
-        self.assertEqual(batch.batchcommand_set.count(), 3)
-        self.assertTrue(batch.is_preview)
+        self.assertTemplateUsed("preview_batch.html")
 
-        pk = batch.pk
-
-        response = c.get(f"/batch/{pk}/allow_start/")
+        response = c.get(f"/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 405)
 
-        response = c.post(f"/batch/{pk}/allow_start/")
+        response = c.post(f"/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 302)
 
         response = c.get(response.url)
@@ -444,12 +445,16 @@ class ViewsTest(TestCase):
         url = res.url
         res = self.client.get(url)
         self.assertEqual(res.context["is_autoconfirmed"], True)
-        batch = res.context["batch"]
+        response = self.client.post(f"/batch/new/preview/allow_start/")
+        batch_url = response.url
+        response = self.client.get(batch_url)
+        batch = response.context["batch"]
+        pk = batch.pk
         batch.allow_start()
-        res = self.client.get(url)
+        res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
         batch.stop()
-        res = self.client.get(url)
+        res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
 
     def test_create_block_on_errors(self):
@@ -493,12 +498,12 @@ class ViewsTest(TestCase):
         response = c.get(response.url)
         self.assertInRes("Allow batch to run", response)
 
-        batch = response.context["batch"]
-        pk = batch.pk
-
-        response = c.post(f"/batch/{pk}/allow_start/")
+        response = c.post(f"/batch/new/preview/allow_start/")
         response = c.get(response.url)
         self.assertInRes("Stop execution", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
 
         response = c.post(f"/batch/{pk}/stop/")
         response = c.get(response.url)

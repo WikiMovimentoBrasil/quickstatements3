@@ -15,12 +15,14 @@ class ProcessingTests(TestCase):
         user = User.objects.create(username="user")
         Token.objects.create(user=user, value="tokenvalue")
         v1 = V1CommandParser()
-        return v1.parse("Test", "user", text)
+        batch = v1.parse("Test", "user", text)
+        batch.save_batch_and_preview_commands()
+        return batch
 
     def parse_with_block_on_errors(self, text):
         batch = self.parse(text)
         batch.block_on_errors = True
-        batch.save()
+        batch.save_batch_and_preview_commands()
         return batch
 
     @requests_mock.Mocker()
@@ -166,7 +168,7 @@ class ProcessingTests(TestCase):
 
         batch = self.parse(raw)
         batch.block_on_errors = False
-        batch.save()
+        batch.save_batch_and_preview_commands()
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
@@ -179,7 +181,7 @@ class ProcessingTests(TestCase):
         v1 = V1CommandParser()
         batch = v1.parse("Should block", "user", "Q1|P5|123||Q2|P5|123||Q1|P5|123||Q1|P5|123")
         batch.block_on_errors = True
-        batch.save()
+        batch.save_batch_and_preview_commands()
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
         commands = batch.commands()

@@ -87,7 +87,7 @@ class CSVCommandParser(BaseParser):
                     # NEW STATEMENT STARTING...
 
                     current_summary = None
-                    
+
                     if _type == "property":
                         # We have a property based statement
                         current_property = header_value
@@ -162,7 +162,7 @@ class CSVCommandParser(BaseParser):
             else:
                 commands = self.parse_line(row, header)
                 for command in commands:
-                    status = BatchCommand.STATUS_INITIAL
+                    status = Batch.STATUS_PREVIEW
                     if command["action"] == "add":
                         action = BatchCommand.ACTION_ADD
                     elif command["action"] == "remove":

@@ -82,25 +82,6 @@ def preview_batch(request):
 
 @require_http_methods(
     [
-        "POST",
-    ]
-)
-def batch_allow_start(request, pk):
-    """
-    Allows a batch that is in the preview state to start running.
-    """
-    try:
-        batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
-        if current_owner:
-            batch.allow_start()
-        return redirect(reverse("batch", args=[batch.pk]))
-    except Batch.DoesNotExist:
-        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
-
-
-@require_http_methods(
-    [
         "GET",
     ]
 )
@@ -167,10 +148,8 @@ def new_batch(request):
                 batch.block_on_errors = True
                 batch.save()
 
-            from django.core import serializers
-
             serialized_batch = serializers.serialize("json", [batch])
-            serialized_commands = serializers.serialize("json", batch.command_list)
+            serialized_commands = serializers.serialize("json", batch.get_preview_commands())
 
             request.session["preview_batch"] = serialized_batch
             request.session["preview_commands"] = serialized_commands
@@ -210,3 +189,30 @@ def new_batch(request):
                 "is_autoconfirmed": is_autoconfirmed,
             },
         )
+
+
+@require_http_methods(
+    [
+        "POST",
+    ]
+)
+def batch_allow_start(request):
+    """
+    Saves and allow a batch that is in the preview state to start running.
+    """
+    try:
+        preview_batch = request.session.get("preview_batch")
+        if preview_batch:
+            batch = list(serializers.deserialize("json", preview_batch))[0].object
+
+            preview_batch_commands = request.session.get("preview_commands", "[]")
+            for batch_command in serializers.deserialize("json", preview_batch_commands):
+                batch.add_preview_command(batch_command.object)
+            batch.save_batch_and_preview_commands()
+            batch.allow_start()
+            return redirect(reverse("batch", args=[batch.pk]))
+        else:
+            return redirect(reverse("new_batch"))
+
+    except Exception as e:
+        return render(request, "batch_not_found.html", status=404)

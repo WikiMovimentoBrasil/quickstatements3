@@ -198,11 +198,8 @@ class V1CommandParser(BaseParser):
     def parse(self, batch_name, batch_owner, raw_commands):
         batch = Batch(name=batch_name, user=batch_owner)
         batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
-        commands = []
-        batch.total_count = 0
-        batch.error_count = 0
+
         for index, raw_command in enumerate(batch_commands.split("\n")):
-            batch.total_count += 1
             try:
                 status = Batch.STATUS_PREVIEW
                 command = self.parse_command(raw_command)
@@ -216,7 +213,6 @@ class V1CommandParser(BaseParser):
                     action = BatchCommand.ACTION_MERGE
                 message = None
             except ParserException as e:
-                batch.error_count += 1
                 status = BatchCommand.STATUS_ERROR
                 command = {}
                 message = e.message
@@ -225,8 +221,6 @@ class V1CommandParser(BaseParser):
             bc = BatchCommand(
                 batch=batch, index=index, action=action, json=command, raw=raw_command, status=status, message=message
             )
-            commands.append(bc)
-
-        batch.command_list = commands
+            batch.add_preview_command(bc)
 
         return batch

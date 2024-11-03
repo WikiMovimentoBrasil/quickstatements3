@@ -173,6 +173,28 @@ class Batch(models.Model):
     def is_preview_initial_or_running(self):
         return self.is_preview or self.is_initial or self.is_running
 
+    def add_preview_command(self, preview_command) -> bool:
+        if not hasattr(self, "_preview_commands"):
+            self._preview_commands = []
+        if preview_command is not None and type(preview_command) == BatchCommand:
+            self._preview_commands.append(preview_command)
+            return True
+        return False
+
+    def get_preview_commands(self) -> list:
+        if hasattr(self, "_preview_commands"):
+            return self._preview_commands
+        else:
+            return []
+
+    def save_batch_and_preview_commands(self):
+        if not self.pk:
+            super(Batch, self).save()
+        if hasattr(self, "_preview_commands"):
+            for batch_command in self._preview_commands:
+                batch_command.batch = self
+                batch_command.save()
+
 
 class BatchCommand(models.Model):
     """
@@ -326,7 +348,6 @@ class BatchCommand(models.Model):
         return self.what == "SITELINK"
 
     def is_error_status(self):
-        print("TO AQUI tb")
         return self.status == BatchCommand.STATUS_ERROR
 
     def response_id(self):
