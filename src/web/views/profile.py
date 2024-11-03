@@ -2,6 +2,7 @@ from datetime import datetime
 
 from authlib.integrations.base_client.errors import MismatchingStateError
 from django.shortcuts import render
+from django.conf import settings
 from rest_framework.authtoken.models import Token
 
 from core.client import Client
@@ -48,6 +49,10 @@ def profile(request):
                 prefs, _ = Preferences.objects.get_or_create(user=user)
                 prefs.language = request.POST["language"]
                 prefs.save()
+                from django.utils import translation
+
+                translation.activate(prefs.language)
+                request.LANGUAGE_CODE = translation.get_language()
             elif action == "update_token":
                 if token:
                     token.delete()
