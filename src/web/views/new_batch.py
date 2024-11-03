@@ -55,7 +55,7 @@ def preview_batch(request):
             else:
                 init_count += 1
 
-        is_autoconfirmed = None
+        is_autoconfirmed = False
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
@@ -146,7 +146,6 @@ def new_batch(request):
 
             if "block_on_errors" in request.POST:
                 batch.block_on_errors = True
-                batch.save()
 
             serialized_batch = serializers.serialize("json", [batch])
             serialized_commands = serializers.serialize("json", batch.get_preview_commands())
