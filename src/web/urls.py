@@ -7,14 +7,16 @@ from .views.auth import oauth_redirect
 from .views.auth import oauth_callback
 from .views.batch import batch
 from .views.batch import batch_commands
-from .views.batch import batch_allow_start
 from .views.batch import batch_stop
 from .views.batch import batch_restart
 from .views.batch import batch_summary
-from .views.batch import new_batch
 from .views.batches import home
 from .views.batches import last_batches
 from .views.batches import last_batches_by_user
+from .views.new_batch import batch_allow_start
+from .views.new_batch import new_batch
+from .views.new_batch import preview_batch
+from .views.new_batch import preview_batch_commands
 from .views.profile import profile
 
 
@@ -30,10 +32,12 @@ urlpatterns = [
     path("batches/<str:user>/", last_batches_by_user, name="last_batches_by_user"),
     path("batch/<int:pk>/", batch, name="batch"),
     path("batch/preview/", batch, name="batch_preview"),
-    path("batch/<int:pk>/allow_start/", batch_allow_start, name="batch_allow_start"),
     path("batch/<int:pk>/stop/", batch_stop, name="batch_stop"),
     path("batch/<int:pk>/restart/", batch_restart, name="batch_restart"),
     path("batch/<int:pk>/summary/", batch_summary, name="batch_summary"),
     path("batch/<int:pk>/commands/", batch_commands, name="batch_commands"),
     path("batch/new/", new_batch, name="new_batch"),
+    path("batch/new/preview", preview_batch, name="preview_batch"),
+    path("batch/new/preview/commands", preview_batch_commands, name="preview_batch_commands"),
+    path("batch/new/preview/allow_start/", batch_allow_start, name="batch_allow_start"),
 ]
