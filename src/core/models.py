@@ -188,6 +188,7 @@ class Batch(models.Model):
             return []
 
     def save_batch_and_preview_commands(self):
+        self.status = self.STATUS_INITIAL
         if not self.pk:
             super(Batch, self).save()
         if hasattr(self, "_preview_commands"):
