@@ -13,7 +13,7 @@ from .exceptions import UnauthorizedToken
 from .exceptions import ServerError
 
 logger = logging.getLogger("qsts3")
-   
+
 
 class Batch(models.Model):
     """
@@ -33,7 +33,7 @@ class Batch(models.Model):
         (STATUS_PREVIEW, _("Preview")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
-        (STATUS_DONE, _("Done"))
+        (STATUS_DONE, _("Done")),
     )
 
     name = models.CharField(max_length=255, blank=False, null=False)
@@ -153,15 +153,15 @@ class Batch(models.Model):
     def is_preview(self):
         return self.status == Batch.STATUS_PREVIEW
 
-    @property 
+    @property
     def is_running(self):
         return self.status == Batch.STATUS_RUNNING
 
-    @property 
+    @property
     def is_stopped(self):
         return self.status == Batch.STATUS_STOPPED
 
-    @property 
+    @property
     def is_initial(self):
         return self.status == Batch.STATUS_INITIAL
 
@@ -185,10 +185,10 @@ class BatchCommand(models.Model):
     STATUS_DONE = 2
 
     STATUS_CHOICES = (
-        (STATUS_ERROR, _("Error")), 
-        (STATUS_INITIAL, _("Initial")), 
-        (STATUS_RUNNING, _("Running")), 
-        (STATUS_DONE, _("Done"))
+        (STATUS_ERROR, _("Error")),
+        (STATUS_INITIAL, _("Initial")),
+        (STATUS_RUNNING, _("Running")),
+        (STATUS_DONE, _("Done")),
     )
 
     ACTION_CREATE = 0
@@ -200,7 +200,7 @@ class BatchCommand(models.Model):
         (ACTION_CREATE, "CREATE"),
         (ACTION_ADD, "ADD"),
         (ACTION_REMOVE, "REMOVE"),
-        (ACTION_MERGE, "MERGE")
+        (ACTION_MERGE, "MERGE"),
     )
 
     batch = models.ForeignKey(Batch, null=False, on_delete=models.CASCADE)
@@ -257,7 +257,7 @@ class BatchCommand(models.Model):
 
     @property
     def prop(self):
-        return self.json.get("property", "") 
+        return self.json.get("property", "")
 
     @property
     def type(self):
@@ -326,11 +326,12 @@ class BatchCommand(models.Model):
         return self.what == "SITELINK"
 
     def is_error_status(self):
+        print("TO AQUI tb")
         return self.status == BatchCommand.STATUS_ERROR
 
     def response_id(self):
         """
-        Returns the response's id.            
+        Returns the response's id.
 
         It is the created entity id when in a CREATE action.
         """
@@ -457,6 +458,4 @@ class BatchCommand(models.Model):
     class Meta:
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
-        index_together = (
-            ('batch', 'index')
-        )
+        index_together = ("batch", "index")
