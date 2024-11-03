@@ -15,9 +15,9 @@
     <form method="POST" action="{% url 'batch_allow_start' %}">
         {% if is_autoconfirmed %}
         {% csrf_token %}
-        <input type="submit" value="Save and run batch">
+        <input type="submit" value="{% translate 'Save and run batch' %}">
         {% else %}
-        <input type="submit" value="Save and run batch" disabled>
+        <input type="submit" value="{% translate 'Save and run batch' %}" disabled>
         <small>
             {% translate "Note: only autoconfirmed users can run batches." %}
         </small>
