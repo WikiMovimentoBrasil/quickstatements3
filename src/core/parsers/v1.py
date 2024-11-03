@@ -8,7 +8,25 @@ from core.models import BatchCommand
 
 class V1CommandParser(BaseParser):
 
-    CREATE_PROPERTY_ALLOWED_DATATYPES = ["commonsMedia", "globe-coordinate", "wikibase-item", "wikibase-property", "string", "monolingualtext", "external-id", "quantity", "time", "url", "math", "geo-shape", "musical-notation", "tabular-data", "wikibase-lexeme", "wikibase-form", "wikibase-sense"]
+    CREATE_PROPERTY_ALLOWED_DATATYPES = [
+        "commonsMedia",
+        "globe-coordinate",
+        "wikibase-item",
+        "wikibase-property",
+        "string",
+        "monolingualtext",
+        "external-id",
+        "quantity",
+        "time",
+        "url",
+        "math",
+        "geo-shape",
+        "musical-notation",
+        "tabular-data",
+        "wikibase-lexeme",
+        "wikibase-form",
+        "wikibase-sense",
+    ]
     WHAT = {"L": "label", "D": "description", "A": "alias", "S": "sitelink"}
 
     def parse_create(self, elements):
@@ -25,7 +43,9 @@ class V1CommandParser(BaseParser):
         else:
             datatype = elements[1]
             if datatype not in self.CREATE_PROPERTY_ALLOWED_DATATYPES:
-                raise ParserException(f"CREATE PROPERTY datatype allowed values: {self.CREATE_PROPERTY_ALLOWED_DATATYPES}")
+                raise ParserException(
+                    f"CREATE PROPERTY datatype allowed values: {self.CREATE_PROPERTY_ALLOWED_DATATYPES}"
+                )
             return {"action": "create", "type": "property", "data": datatype}
 
     def parse_merge(self, elements):
@@ -55,7 +75,7 @@ class V1CommandParser(BaseParser):
             _id = elements[1].strip()
             if len(_id.split("$")) != 2:
                 raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
-            return {'action': action , 'what': 'statement' , 'id': _id}
+            return {"action": action, "what": "statement", "id": _id}
 
     def parse_statement(self, elements, first_command):
         llen = len(elements)
@@ -103,8 +123,7 @@ class V1CommandParser(BaseParser):
                 "value": vvalue,
             }
 
-
-            current_reference_block = [] # We can have multiple reference blocks
+            current_reference_block = []  # We can have multiple reference blocks
             references = [current_reference_block]
             has_references = False
 
@@ -115,25 +134,25 @@ class V1CommandParser(BaseParser):
             while index + 1 < llen:
                 key = elements[index].strip()
                 value = self.parse_value(elements[index + 1].strip())
-                
-                if key[0] == "P": # PROPERTIES 
+
+                if key[0] == "P":  # PROPERTIES
                     if not self.is_valid_property_id(key):
                         raise ParserException(f"Invalid qualifier property {key}")
                     qualifiers.append({"property": key, "value": value})
-                
-                else: # REFERENCES
+
+                else:  # REFERENCES
                     if key.startswith("!S"):
                         # !S marks the beggining of a new reference block
                         current_reference_block = []
                         references.append(current_reference_block)
                         key = key[1:]
-                    
+
                     if not self.is_valid_source_id(key):
                         raise ParserException(f"Invalid source {key}")
-                    
-                    current_reference_block.append({"property": "P"+key[1:], "value": value})
+
+                    current_reference_block.append({"property": "P" + key[1:], "value": value})
                     has_references = True
-                
+
                 index += 2
 
             if has_references:
@@ -177,12 +196,15 @@ class V1CommandParser(BaseParser):
         return data
 
     def parse(self, batch_name, batch_owner, raw_commands):
-        batch = Batch.objects.create(name=batch_name, user=batch_owner)
+        batch = Batch(name=batch_name, user=batch_owner)
         batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
-
+        commands = []
+        batch.total_count = 0
+        batch.error_count = 0
         for index, raw_command in enumerate(batch_commands.split("\n")):
+            batch.total_count += 1
             try:
-                status = BatchCommand.STATUS_INITIAL
+                status = Batch.STATUS_PREVIEW
                 command = self.parse_command(raw_command)
                 if command["action"] == "add":
                     action = BatchCommand.ACTION_ADD
@@ -194,13 +216,17 @@ class V1CommandParser(BaseParser):
                     action = BatchCommand.ACTION_MERGE
                 message = None
             except ParserException as e:
+                batch.error_count += 1
                 status = BatchCommand.STATUS_ERROR
                 command = {}
                 message = e.message
                 action = BatchCommand.ACTION_CREATE
 
-            BatchCommand.objects.create(
+            bc = BatchCommand(
                 batch=batch, index=index, action=action, json=command, raw=raw_command, status=status, message=message
             )
+            commands.append(bc)
+
+        batch.command_list = commands
 
         return batch
