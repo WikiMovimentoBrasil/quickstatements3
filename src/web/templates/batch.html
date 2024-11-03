@@ -95,19 +95,7 @@
 
 <div style="float: right;">
   {% if current_owner %}
-    {% if batch.is_preview %}
-    <form method="POST" action="{% url 'batch_allow_start' pk=batch.pk %}">
-      {% if is_autoconfirmed %}
-        {% csrf_token %}
-        <input type="submit" value="Allow batch to run">
-      {% else %}
-        <input type="submit" value="Allow batch to run" disabled>
-        <small>
-          {% translate "Note: only autoconfirmed users can run batches." %}
-        </small>
-      {% endif %}
-    </form>
-    {% elif batch.is_initial_or_running %}
+    {% if batch.is_initial_or_running %}
     <button class="secondary" onclick="showModal();">{% translate "Stop execution" %}</button>
     {% elif batch.is_stopped %}
     <form method="POST" action="{% url 'batch_restart' pk=batch.pk %}">
