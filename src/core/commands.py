@@ -1,5 +1,3 @@
-from django.conf import settings
-
 from .client import Client
 from .exceptions import ApiNotImplemented
 from .exceptions import NoStatementsForThatProperty
@@ -57,22 +55,9 @@ class ApiCommandBuilder:
 class Utilities:
     def full_body(self):
         body = self.body()
-        body["comment"] = self._comment()
+        body["comment"] = self.command.edit_summary()
         body["bot"] = False
         return body
-
-    def _comment(self):
-        """
-        Returns the command's summary if it has one
-        """
-        # Our regex for EditGroups:
-        # ".*\[\[:toollabs:TOOLFORGE_TOOL_NAME/batch/(\d+)\|.*"
-        tool = settings.TOOLFORGE_TOOL_NAME
-        batch_id = self.command.batch.id
-        editgroups_info = f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]] "
-        user_comment = self.command.json.get("summary", "")
-        return editgroups_info + user_comment
-
 
 class AddStatement(Utilities):
     def __init__(self, command):

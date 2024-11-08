@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -225,6 +226,7 @@ class BatchCommand(models.Model):
     # Operation/action fields
     # -------
     action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
+    user_summary = models.TextField(blank=True, null=True)
 
     # -------
     # Running fields
@@ -427,6 +429,26 @@ class BatchCommand(models.Model):
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
             self._error(message)
+
+    def edit_summary(self):
+        """
+        Returns the final edit summary.
+
+        It joins the user supplied summary with
+        the identification necessary for EditGroups.
+        """
+        editgroups = self.editgroups_summary()
+        return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+
+    def editgroups_summary(self):
+        """
+        Returns the EditGroups notice to put into the summary.
+        """
+        # Our regex for EditGroups:
+        # ".*\[\[:toollabs:TOOLFORGE_TOOL_NAME/batch/(\d+)\|.*"
+        tool = settings.TOOLFORGE_TOOL_NAME
+        batch_id = self.batch.id
+        return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
 
     def send_to_api(self, client: Client):
         self.verify_value_types(client)
