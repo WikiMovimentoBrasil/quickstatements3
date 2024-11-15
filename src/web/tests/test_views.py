@@ -228,38 +228,47 @@ class ViewsTest(TestCase):
         self.assertEqual(list(response.context["page"].object_list), [batch])
         self.assertTrue(batch.is_initial)
 
-    def test_create_csv_batch_logged_user(self):
-        c = Client()
-        user = User.objects.create_user(username="john")
-        c.force_login(user)
+    @requests_mock.Mocker()
+    def test_create_csv_batch_logged_user(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
 
         # Black box testing. We dont have any batch listed
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [])
 
         # Creating our new batch
-        response = c.get("/batch/new/")
+        response = self.client.get("/batch/new/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("new_batch.html")
 
-        response = c.post("/batch/new/", data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"})
+        response = self.client.post(
+            "/batch/new/", data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"}
+        )
         self.assertEqual(response.status_code, 302)
 
         # Lets view the new batch
-        response = c.get(response.url)
+        response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(f"/batch/new/preview/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My CSV batch")
+        self.assertTrue(batch.is_initial)
         self.assertEqual(batch.batchcommand_set.count(), 0)
 
         # Listing again. Now we have something
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
+        self.assertTrue(batch.is_initial)
 
     def test_create_batch_anonymous_user(self):
         c = Client()
