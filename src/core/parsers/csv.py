@@ -146,7 +146,7 @@ class CSVCommandParser(BaseParser):
         return True
 
     def parse(self, batch_name, batch_owner, raw_csv):
-        batch = Batch.objects.create(name=batch_name, user=batch_owner)
+        batch = Batch(name=batch_name, user=batch_owner)
 
         memory_file = io.StringIO(raw_csv, newline="")
 
@@ -174,14 +174,17 @@ class CSVCommandParser(BaseParser):
 
                     user_summary = command.pop("summary", None)
 
-                    BatchCommand.objects.create(
+                    bc = BatchCommand(
                         batch=batch,
                         index=index,
                         action=action,
                         json=command,
+                        raw=raw_csv,
                         status=status,
                         user_summary=user_summary,
                     )
+
+                    batch.add_preview_command(bc)
 
                     index += 1
 
