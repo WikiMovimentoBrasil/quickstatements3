@@ -191,7 +191,7 @@ def new_batch(request):
         )
 
 
-@require_http_methods(["POST", "GET"])
+@require_http_methods(["POST"])
 def batch_allow_start(request):
     """
     Saves and allow a batch that is in the preview state to start running.
