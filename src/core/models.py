@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -226,20 +227,68 @@ class BatchCommand(models.Model):
         (ACTION_MERGE, "MERGE"),
     )
 
+    # -------
+    # Identifier fields
+    # -------
     batch = models.ForeignKey(Batch, null=False, on_delete=models.CASCADE)
-    action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
     index = models.IntegerField()
-    json = models.JSONField()
-    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
-    raw = models.TextField()
-    message = models.TextField(blank=True, null=True)
+
+    # -------
+    # Datetime
+    # -------
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+
+    # -------
+    # Parser fields
+    # -------
+    raw = models.TextField()
+    json = models.JSONField()
+
+    # -------
+    # Operation/action fields
+    # -------
+    action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
+    user_summary = models.TextField(blank=True, null=True)
+
+    # -------
+    # Running fields
+    # -------
+    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
     value_type_verified = models.BooleanField(default=False)
+
+    # -------
+    # Post-running fields
+    # -------
+    message = models.TextField(blank=True, null=True)
     response_json = models.JSONField(default=dict)
 
     def __str__(self):
         return f"Batch #{self.batch.pk} Command #{self.pk}"
+
+    # -----------------
+    # Status-changing methods
+    # -----------------
+
+    def _start(self):
+        logger.debug(f"[{self}] running...")
+        self.status = BatchCommand.STATUS_RUNNING
+        self.save()
+
+    def _finish(self):
+        logger.info(f"[{self}] finished")
+        self.status = BatchCommand.STATUS_DONE
+        self.save()
+
+    def _error(self, message):
+        logger.error(f"[{self}] error: {message}")
+        self.message = message
+        self.status = BatchCommand.STATUS_ERROR
+        self.save()
+
+    # -----------------
+    # Entity id methods
+    # -----------------
 
     @property
     def entity_info(self):
@@ -259,6 +308,10 @@ class BatchCommand(models.Model):
             self.json["entity"]["id"] = value
         else:
             raise ValueError("This command has no entity to update its id.")
+
+    # -----------------
+    # Property methods
+    # -----------------
 
     @property
     def status_info(self):
@@ -306,6 +359,10 @@ class BatchCommand(models.Model):
             parts.extend(ref)
         return parts
 
+    # -----------------
+    # verification methods
+    # -----------------
+
     def is_add(self):
         return self.action == BatchCommand.ACTION_ADD
 
@@ -351,6 +408,10 @@ class BatchCommand(models.Model):
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
 
+    # -----------------
+    # LAST related methods
+    # -----------------
+
     def response_id(self):
         """
         Returns the response's id.
@@ -366,6 +427,10 @@ class BatchCommand(models.Model):
         if self.entity_id() == "LAST" and last_id is not None:
             self.set_entity_id(last_id)
             self.save()
+
+    # -----------------
+    # Wikibase API basic methods
+    # -----------------
 
     def run(self, client: Client):
         """
@@ -388,25 +453,33 @@ class BatchCommand(models.Model):
             message = getattr(e, "message", str(e))
             self._error(message)
 
+    def edit_summary(self):
+        """
+        Returns the final edit summary.
+
+        It joins the user supplied summary with
+        the identification necessary for EditGroups.
+        """
+        editgroups = self.editgroups_summary()
+        return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+
+    def editgroups_summary(self):
+        """
+        Returns the EditGroups notice to put into the summary.
+        """
+        # Our regex for EditGroups:
+        # ".*\[\[:toollabs:TOOLFORGE_TOOL_NAME/batch/(\d+)\|.*"
+        tool = settings.TOOLFORGE_TOOL_NAME
+        batch_id = self.batch.id
+        return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
+
     def send_to_api(self, client: Client):
         self.verify_value_types(client)
         self.response_json = ApiCommandBuilder(self, client).build_and_send()
 
-    def _start(self):
-        logger.debug(f"[{self}] running...")
-        self.status = BatchCommand.STATUS_RUNNING
-        self.save()
-
-    def _finish(self):
-        logger.info(f"[{self}] finished")
-        self.status = BatchCommand.STATUS_DONE
-        self.save()
-
-    def _error(self, message):
-        logger.error(f"[{self}] error: {message}")
-        self.message = message
-        self.status = BatchCommand.STATUS_ERROR
-        self.save()
+    # -----------------
+    # Visualization/label methods
+    # -----------------
 
     def get_label(self, client: Client, preferred_language="en"):
         """
@@ -432,6 +505,10 @@ class BatchCommand(models.Model):
             return labels.get("en")
         else:
             return preferred
+
+    # -----------------
+    # Value type verification
+    # -----------------
 
     def verify_value_types(self, client: Client):
         """
@@ -476,6 +553,10 @@ class BatchCommand(models.Model):
         is_not_verified_yet = not self.value_type_verified
         is_needed_actions = self.is_add_statement()
         return is_not_verified_yet and is_needed_actions
+
+    # -----------------
+    # Meta
+    # -----------------
 
     class Meta:
         verbose_name = _("Batch Command")

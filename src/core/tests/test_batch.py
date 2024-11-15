@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.test import override_settings
 
 from core.models import Batch
 from core.models import BatchCommand
@@ -202,6 +203,24 @@ class TestV1Batch(TestCase):
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
         bc3 = BatchCommand.objects.get(batch=batch, index=2)
         self.assertEqual(bc3.raw, "Q222\tP4\t9~0.1")
+
+    def test_user_summary(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "Q1|P1|Q2 /* my comment */")
+        batch.save_batch_and_preview_commands()
+        cmd = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(cmd.user_summary, "my comment")
+
+    @override_settings(TOOLFORGE_TOOL_NAME="abcdef")
+    def test_edit_summary_with_editgroups(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "Q1|P1|Q2 /* my comment */||Q1|P1|Q3")
+        batch.save_batch_and_preview_commands()
+        batch_id = batch.id
+        cmd = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        cmd = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
 
 
 class TestCSVBatch(TestCase):
@@ -615,3 +634,27 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "site": "enwiki",
             },
         )
+
+    def test_user_summary(self):
+        COMMAND = """qid,P31,#
+Q4115189,Q5,my comment"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(cmd.user_summary, "my comment")
+
+    @override_settings(TOOLFORGE_TOOL_NAME="abcdef")
+    def test_edit_summary_with_editgroups(self):
+        COMMAND = """qid,P31,#
+Q4115189,Q5,my comment
+Q4115189,Q5, 
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        batch_id = batch.id
+        cmd = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        cmd = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")

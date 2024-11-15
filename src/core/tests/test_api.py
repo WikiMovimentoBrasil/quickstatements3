@@ -520,15 +520,3 @@ class ClientTests(TestCase):
 
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
-
-    def test_comment_has_edit_group_summary(self):
-        client = self.api_client()
-        tool = settings.TOOLFORGE_TOOL_NAME
-        v1 = V1CommandParser()
-        commands = "Q1234|P65|32 /* my summary */"
-        batch = v1.parse("Test", "user", commands)
-        batch.save_batch_and_preview_commands()
-        command = batch.commands()[0]
-        api_command = ApiCommandBuilder(command, client).build()
-        final_summary = f"[[:toollabs:{tool}/batch/{batch.id}|batch #{batch.id}]] my summary"
-        self.assertEqual(api_command._comment(), final_summary)

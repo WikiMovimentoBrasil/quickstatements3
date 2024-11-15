@@ -218,9 +218,19 @@ class V1CommandParser(BaseParser):
                 message = e.message
                 action = BatchCommand.ACTION_CREATE
 
+            user_summary = command.pop("summary", None)
+
             bc = BatchCommand(
-                batch=batch, index=index, action=action, json=command, raw=raw_command, status=status, message=message
+                batch=batch,
+                index=index,
+                action=action,
+                json=command,
+                raw=raw_command,
+                status=status,
+                message=message,
+                user_summary=user_summary,
             )
+
             batch.add_preview_command(bc)
 
         return batch
