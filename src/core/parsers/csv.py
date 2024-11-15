@@ -172,7 +172,16 @@ class CSVCommandParser(BaseParser):
                     else:
                         action = BatchCommand.ACTION_MERGE
 
-                    BatchCommand.objects.create(batch=batch, index=index, action=action, json=command, status=status)
+                    user_summary = command.pop("summary", None)
+
+                    BatchCommand.objects.create(
+                        batch=batch,
+                        index=index,
+                        action=action,
+                        json=command,
+                        status=status,
+                        user_summary=user_summary,
+                    )
 
                     index += 1
 
