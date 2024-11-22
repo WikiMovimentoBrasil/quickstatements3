@@ -5,13 +5,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils import translation
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import gettext as _
-from rest_framework.authtoken.models import Token
 
 from core.client import Client
-from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.base import ParserException
 from core.parsers.v1 import V1CommandParser
@@ -23,7 +20,6 @@ from core.exceptions import ServerError
 from django.core import serializers
 
 from web.models import Preferences
-from web.languages import LANGUAGE_CHOICES
 
 from .auth import logout_per_token_expired
 
@@ -101,14 +97,16 @@ def preview_batch_commands(request):
             page = 1
 
         only_errors = int(request.GET.get("show_errors", 0)) == 1
-
         if only_errors:
-            filters["status"] = BatchCommand.STATUS_ERROR
+            batch_commands = [
+                bc for bc in batch_commands if bc.object.status == BatchCommand.STATUS_ERROR
+            ]
 
         paginator = Paginator(batch_commands, PAGE_SIZE)
         page = paginator.page(page)
 
         if request.user.is_authenticated:
+            client = Client.from_user(request.user)
             language = Preferences.objects.get_language(request.user, "en")
             for deserialized in page.object_list:
                 command = deserialized.object

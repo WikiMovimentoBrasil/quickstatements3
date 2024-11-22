@@ -211,7 +211,7 @@ class ViewsTest(TestCase):
         response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.post(f"/batch/new/preview/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get(response.url)
@@ -253,7 +253,7 @@ class ViewsTest(TestCase):
         response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.post(f"/batch/new/preview/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get(response.url)
@@ -395,10 +395,9 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("preview_batch.html")
 
-        response = self.client.get(f"/batch/new/preview/allow_start/")
+        response = self.client.get("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 405)
-
-        response = self.client.post(f"/batch/new/preview/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get(response.url)
@@ -454,11 +453,10 @@ class ViewsTest(TestCase):
         url = res.url
         res = self.client.get(url)
         self.assertEqual(res.context["is_autoconfirmed"], True)
-        response = self.client.post(f"/batch/new/preview/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         batch_url = response.url
         response = self.client.get(batch_url)
         batch = response.context["batch"]
-        pk = batch.pk
         batch.allow_start()
         res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
@@ -507,7 +505,7 @@ class ViewsTest(TestCase):
         response = self.client.get(response.url)
         self.assertInRes("Save and run batch", response)
 
-        response = self.client.post(f"/batch/new/preview/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         response = self.client.get(response.url)
         self.assertInRes("Stop execution", response)
 
@@ -521,3 +519,20 @@ class ViewsTest(TestCase):
         response = self.client.post(f"/batch/{pk}/restart/")
         response = self.client.get(response.url)
         self.assertInRes("Stop execution", response)
+
+    @requests_mock.Mocker()
+    def test_batch_preview_commands(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        labels = { "en": "English label" }
+        ApiMocker.labels(mocker, api_client, "Q1234", labels)
+        ApiMocker.labels(mocker, api_client, "Q222", labels)
+        res = self.client.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertInRes("Save and run batch", res)
+        res = self.client.get("/batch/new/preview/commands/")
+        self.assertEqual(res.status_code, 200)
