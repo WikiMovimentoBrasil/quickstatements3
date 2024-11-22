@@ -170,10 +170,19 @@ class TestV1Batch(TestCase):
         self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 3)
         bc1 = BatchCommand.objects.get(batch=batch, index=0)
         self.assertEqual(bc1.raw, "CREATE")
+        self.assertEqual(bc1.operation, BatchCommand.Operation.CREATE_ITEM)
         bc2 = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
         bc3 = BatchCommand.objects.get(batch=batch, index=2)
         self.assertEqual(bc3.raw, "Q222\tP4\t9~0.1")
+
+    def test_create_property(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q2")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.raw, "CREATE_PROPERTY\twikibase-item")
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
 
     def test_user_summary(self):
         v1 = V1CommandParser()

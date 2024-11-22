@@ -218,6 +218,8 @@ class V1CommandParser(BaseParser):
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":
                         bc.operation = bc.Operation.CREATE_ITEM
+                    elif command["type"] == "property":
+                        bc.operation = bc.Operation.CREATE_PROPERTY
                 else:
                     bc.action = BatchCommand.ACTION_MERGE
                 bc.user_summary = command.pop("summary", None)

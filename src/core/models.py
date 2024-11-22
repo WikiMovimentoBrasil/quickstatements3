@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 from django.conf import settings
 from django.db import models
@@ -249,9 +248,11 @@ class BatchCommand(models.Model):
 
     class Operation(models.TextChoices):
         CREATE_ITEM = "create_item", _("Create item")
+        CREATE_PROPERTY = "create_property", _("Create property")
 
     operation = models.TextField(
         null=True,
+        blank=True,
         choices=Operation,
     )
 
@@ -265,7 +266,16 @@ class BatchCommand(models.Model):
     # Post-running fields
     # -------
     message = models.TextField(blank=True, null=True)
-    response_json = models.JSONField(default=dict)
+    response_json = models.JSONField(default=dict, blank=True)
+
+    class Error(models.TextChoices):
+        OP_NOT_IMPLEMENTED = "op_not_implemented", _("Operation not implemented")
+
+    error = models.TextField(
+        null=True,
+        blank=True,
+        choices=Error,
+    )
 
     def __str__(self):
         return f"Batch #{self.batch.pk} Command #{self.pk}"
@@ -284,7 +294,11 @@ class BatchCommand(models.Model):
         self.status = BatchCommand.STATUS_DONE
         self.save()
 
-    def error(self, message):
+    def error_with_value(self, value: Error):
+        self.error = value
+        self.error_with_message(value.label)
+
+    def error_with_message(self, message):
         logger.error(f"[{self}] error: {message}")
         self.message = message
         self.status = BatchCommand.STATUS_ERROR
@@ -379,12 +393,6 @@ class BatchCommand(models.Model):
     def is_add_sitelink(self):
         return self.is_add() and self.what == "SITELINK"
 
-    def is_create(self):
-        return self.action == BatchCommand.ACTION_CREATE
-
-    def is_create_property(self):
-        return self.is_create() and self.type == "PROPERTY"
-
     def is_remove(self):
         return self.action == BatchCommand.ACTION_REMOVE
 
@@ -444,16 +452,18 @@ class BatchCommand(models.Model):
         self.start()
 
         if self.entity_id() == "LAST":
-            self.error("LAST could not be evaluated.")
+            self.error_with_message("LAST could not be evaluated.")
             return
 
         try:
             self.verify_value_types(client)
             self.response_json = self.send_to_api(client)
             self.finish()
+        except NotImplementedError:
+            self.error_with_value(self.Error.OP_NOT_IMPLEMENTED)
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
-            self.error(message)
+            self.error_with_message(message)
 
     def edit_summary(self):
         """
@@ -500,6 +510,8 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return self.send_create_item(client)
+            case self.Operation.CREATE_PROPERTY:
+                raise NotImplementedError()
             case _:
                 return ApiCommandBuilder(self, client).build_and_send()
 
@@ -563,7 +575,7 @@ class BatchCommand(models.Model):
                 for p in self.reference_parts():
                     client.verify_value_type(p["property"], p["value"]["type"])
             except InvalidPropertyValueType as e:
-                self.error(e.message)
+                self.error_with_message(e.message)
                 raise e
 
         self.value_type_verified = True

@@ -1,5 +1,4 @@
 from .client import Client
-from .exceptions import ApiNotImplemented
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
 
@@ -40,14 +39,12 @@ class ApiCommandBuilder:
             return AddLabelDescriptionOrAlias(cmd)
         elif cmd.is_add_sitelink():
             return AddSitelink(cmd)
-        elif cmd.is_create_property():
-            raise ApiNotImplemented()
         elif cmd.is_remove_statement_by_id():
             return RemoveStatementById(cmd)
         elif cmd.is_remove_statement_by_value():
             return RemoveStatement(cmd)
         else:
-            raise ApiNotImplemented()
+            raise NotImplementedError()
 
 
 class Utilities:

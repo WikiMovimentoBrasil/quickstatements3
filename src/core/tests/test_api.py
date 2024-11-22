@@ -566,11 +566,26 @@ class TestBatchCommand(TestCase):
     def test_send_create_item(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.create_item(mocker, "Q5")
-        user, api_client = self.login_user_and_get_token("user")
+        user, client = self.login_user_and_get_token("user")
         batch = V1CommandParser().parse("b", "u", "CREATE||LAST|P1|Q1")
         batch.save_batch_and_preview_commands()
         cmd: BatchCommand = batch.commands()[0]
-        cmd.run(api_client)
+        cmd.run(client)
         self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(cmd.status, BatchCommand.STATUS_DONE)
         self.assertEqual(cmd.response_json, {"id": "Q5"})
+
+    @requests_mock.Mocker()
+    def test_send_create_property(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, client = self.login_user_and_get_token("user")
+        batch = V1CommandParser().parse("b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q1")
+        batch.save_batch_and_preview_commands()
+        cmd: BatchCommand = batch.commands()[0]
+        cmd.run(client)
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
+        self.assertEqual(cmd.status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(cmd.error, BatchCommand.Error.OP_NOT_IMPLEMENTED)
+        self.assertEqual(cmd.response_json, {})
+        with self.assertRaises(NotImplementedError):
+            cmd.send_to_api(client)
