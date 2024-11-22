@@ -157,6 +157,35 @@ class TestBatch(TestCase):
         self.assertTrue(batch.is_initial)
         self.assertTrue(batch.message.startswith("Batch restarted by owner"))
 
+class TestBatchCommand(TestCase):
+    def test_payload_to_body(self):
+        batch = V1CommandParser().parse("b", "u", "Q1|P1|Q2 /* hello */")
+        batch.save_batch_and_preview_commands()
+        batch_id = batch.id
+        cmd = batch.commands()[0]
+        comment = f"[[:toollabs:qs-dev/batch/{batch_id}|batch #{batch_id}]]: hello"
+        self.assertEqual(
+            cmd.payload_to_body(None),
+            {
+                "bot": False,
+                "comment": comment,
+            },
+        )
+        self.assertEqual(
+            cmd.payload_to_body({}),
+            {
+                "bot": False,
+                "comment": comment,
+            },
+        )
+        self.assertEqual(
+            cmd.payload_to_body({"item": {}}),
+            {
+                "item": {},
+                "bot": False,
+                "comment": comment,
+            },
+        )
 
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):

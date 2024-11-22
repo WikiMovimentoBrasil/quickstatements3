@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 from django.conf import settings
 from django.db import models
@@ -467,6 +468,12 @@ class BatchCommand(models.Model):
         tool = settings.TOOLFORGE_TOOL_NAME
         batch_id = self.batch.id
         return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
+
+    def payload_to_body(self, payload: Optional[dict] = None):
+        body = dict(payload) if payload else {}
+        body["bot"] = False
+        body["comment"] = self.edit_summary()
+        return body
 
     def send_to_api(self, client: Client):
         self.verify_value_types(client)
