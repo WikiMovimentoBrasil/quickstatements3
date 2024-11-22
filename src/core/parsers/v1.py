@@ -200,36 +200,29 @@ class V1CommandParser(BaseParser):
         batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
 
         for index, raw_command in enumerate(batch_commands.split("\n")):
-            try:
-                status = Batch.STATUS_PREVIEW
-                command = self.parse_command(raw_command)
-                if command["action"] == "add":
-                    action = BatchCommand.ACTION_ADD
-                elif command["action"] == "remove":
-                    action = BatchCommand.ACTION_REMOVE
-                elif command["action"] == "create":
-                    action = BatchCommand.ACTION_CREATE
-                else:
-                    action = BatchCommand.ACTION_MERGE
-                message = None
-            except ParserException as e:
-                status = BatchCommand.STATUS_ERROR
-                command = {}
-                message = e.message
-                action = BatchCommand.ACTION_CREATE
-
-            user_summary = command.pop("summary", None)
-
             bc = BatchCommand(
                 batch=batch,
                 index=index,
-                action=action,
-                json=command,
                 raw=raw_command,
-                status=status,
-                message=message,
-                user_summary=user_summary,
+                json={},
+                action=BatchCommand.ACTION_CREATE,
+                status=BatchCommand.STATUS_INITIAL,
             )
+            try:
+                command = self.parse_command(raw_command)
+                if command["action"] == "add":
+                    bc.action = BatchCommand.ACTION_ADD
+                elif command["action"] == "remove":
+                    bc.action = BatchCommand.ACTION_REMOVE
+                elif command["action"] == "create":
+                    bc.action = BatchCommand.ACTION_CREATE
+                else:
+                    bc.action = BatchCommand.ACTION_MERGE
+                bc.user_summary = command.pop("summary", None)
+                bc.json = command
+            except ParserException as e:
+                bc.status = BatchCommand.STATUS_ERROR
+                bc.message = e.message
 
             batch.add_preview_command(bc)
 

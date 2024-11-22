@@ -162,27 +162,25 @@ class CSVCommandParser(BaseParser):
             else:
                 commands = self.parse_line(row, header)
                 for command in commands:
-                    status = Batch.STATUS_PREVIEW
-                    if command["action"] == "add":
-                        action = BatchCommand.ACTION_ADD
-                    elif command["action"] == "remove":
-                        action = BatchCommand.ACTION_REMOVE
-                    elif command["action"] == "create":
-                        action = BatchCommand.ACTION_CREATE
-                    else:
-                        action = BatchCommand.ACTION_MERGE
-
-                    user_summary = command.pop("summary", None)
-
                     bc = BatchCommand(
                         batch=batch,
                         index=index,
-                        action=action,
-                        json=command,
+                        json={},
                         raw=raw_csv,
-                        status=status,
-                        user_summary=user_summary,
+                        action=BatchCommand.ACTION_CREATE,
+                        status=BatchCommand.STATUS_INITIAL,
                     )
+                    if command["action"] == "add":
+                        bc.action = BatchCommand.ACTION_ADD
+                    elif command["action"] == "remove":
+                        bc.action = BatchCommand.ACTION_REMOVE
+                    elif command["action"] == "create":
+                        bc.action = BatchCommand.ACTION_CREATE
+                    else:
+                        bc.action = BatchCommand.ACTION_MERGE
+
+                    bc.user_summary = command.pop("summary", None)
+                    bc.json = command
 
                     batch.add_preview_command(bc)
 
