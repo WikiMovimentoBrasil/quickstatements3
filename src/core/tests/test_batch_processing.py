@@ -139,6 +139,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(batch.status, Batch.STATUS_DONE)
 
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
         self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
@@ -205,6 +206,7 @@ class ProcessingTests(TestCase):
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
@@ -227,6 +229,7 @@ class ProcessingTests(TestCase):
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)

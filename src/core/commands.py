@@ -40,8 +40,6 @@ class ApiCommandBuilder:
             return AddLabelDescriptionOrAlias(cmd)
         elif cmd.is_add_sitelink():
             return AddSitelink(cmd)
-        elif cmd.is_create_item():
-            return CreateItem(cmd)
         elif cmd.is_create_property():
             raise ApiNotImplemented()
         elif cmd.is_remove_statement_by_id():

@@ -216,6 +216,8 @@ class V1CommandParser(BaseParser):
                     bc.action = BatchCommand.ACTION_REMOVE
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
+                    if command["type"] == "item":
+                        bc.operation = bc.Operation.CREATE_ITEM
                 else:
                     bc.action = BatchCommand.ACTION_MERGE
                 bc.user_summary = command.pop("summary", None)

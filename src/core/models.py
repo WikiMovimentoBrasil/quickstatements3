@@ -247,6 +247,14 @@ class BatchCommand(models.Model):
     action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
     user_summary = models.TextField(blank=True, null=True)
 
+    class Operation(models.TextChoices):
+        CREATE_ITEM = "create_item", _("Create item")
+
+    operation = models.TextField(
+        null=True,
+        choices=Operation,
+    )
+
     # -------
     # Running fields
     # -------
@@ -374,9 +382,6 @@ class BatchCommand(models.Model):
     def is_create(self):
         return self.action == BatchCommand.ACTION_CREATE
 
-    def is_create_item(self):
-        return self.is_create() and self.type == "ITEM"
-
     def is_create_property(self):
         return self.is_create() and self.type == "PROPERTY"
 
@@ -443,7 +448,8 @@ class BatchCommand(models.Model):
             return
 
         try:
-            self.send_to_api(client)
+            self.verify_value_types(client)
+            self.response_json = self.send_to_api(client)
             self.finish()
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
@@ -469,15 +475,36 @@ class BatchCommand(models.Model):
         batch_id = self.batch.id
         return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
 
-    def payload_to_body(self, payload: Optional[dict] = None):
-        body = dict(payload) if payload else {}
+    def api_payload(self):
+        """
+        Returns the data that is sent to the Wikibase API through the body.
+        """
+        match self.operation:
+            case self.Operation.CREATE_ITEM:
+                return {"item": {}}
+            case _:
+                return {}
+
+    def api_body(self):
+        """
+        Returns the final Wikibase API body.
+
+        Joins the api payload with bot marking = False and the edit summary.
+        """
+        body = self.api_payload()
         body["bot"] = False
         body["comment"] = self.edit_summary()
         return body
 
-    def send_to_api(self, client: Client):
-        self.verify_value_types(client)
-        self.response_json = ApiCommandBuilder(self, client).build_and_send()
+    def send_to_api(self, client: Client) -> dict:
+        match self.operation:
+            case self.Operation.CREATE_ITEM:
+                return self.send_create_item(client)
+            case _:
+                return ApiCommandBuilder(self, client).build_and_send()
+
+    def send_create_item(self, client: Client):
+        return client.create_item(self.api_body())
 
     # -----------------
     # Visualization/label methods

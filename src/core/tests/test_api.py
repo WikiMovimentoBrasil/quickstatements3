@@ -5,12 +5,11 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
 from django.utils.timezone import now
-from django.conf import settings
 
 from web.models import Token
 
 from core.client import Client
-from core.commands import ApiCommandBuilder
+from core.models import BatchCommand
 from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
@@ -520,3 +519,58 @@ class ClientTests(TestCase):
 
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
+
+class TestBatchCommand(TestCase):
+    def login_user_and_get_token(self, username):
+        """
+        Creates an user and a test token.
+
+        Returns a tuple with the user object and their API client.
+        """
+        user = User.objects.create_user(username=username)
+        self.client.force_login(user)
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        api_client = Client.from_user(user)
+        return (user, api_client)
+
+    def test_api_payload(self):
+        payload = BatchCommand().api_payload()
+        self.assertEqual(payload, {})
+        payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload()
+        self.assertEqual(payload, {"item": {}})
+
+    def test_api_body(self):
+        batch = V1CommandParser().parse("b", "u", "Q1|P1|Q2 /* hello */")
+        batch.save_batch_and_preview_commands()
+        batch_id = batch.id
+        cmd = batch.commands()[0]
+        comment = f"[[:toollabs:qs-dev/batch/{batch_id}|batch #{batch_id}]]: hello"
+        self.assertEqual(
+            cmd.api_body(),
+            {
+                "bot": False,
+                "comment": comment,
+            },
+        )
+        cmd.operation = cmd.Operation.CREATE_ITEM
+        self.assertEqual(
+            cmd.api_body(),
+            {
+                "item": {},
+                "bot": False,
+                "comment": comment,
+            },
+        )
+
+    @requests_mock.Mocker()
+    def test_send_create_item(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.create_item(mocker, "Q5")
+        user, api_client = self.login_user_and_get_token("user")
+        batch = V1CommandParser().parse("b", "u", "CREATE||LAST|P1|Q1")
+        batch.save_batch_and_preview_commands()
+        cmd: BatchCommand = batch.commands()[0]
+        cmd.run(api_client)
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_ITEM)
+        self.assertEqual(cmd.status, BatchCommand.STATUS_DONE)
+        self.assertEqual(cmd.response_json, {"id": "Q5"})
