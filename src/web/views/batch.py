@@ -42,14 +42,6 @@ def batch(request, pk):
         batch = Batch.objects.get(pk=pk)
         current_owner = request.user.is_authenticated and request.user.username == batch.user
         is_autoconfirmed = None
-        if current_owner and batch.is_preview:
-            try:
-                client = Client.from_user(request.user)
-                is_autoconfirmed = client.get_is_autoconfirmed()
-            except UnauthorizedToken:
-                return logout_per_token_expired(request)
-            except (NoToken, ServerError):
-                is_autoconfirmed = False
         return render(
             request,
             "batch.html",
@@ -74,25 +66,6 @@ def batch_stop(request, pk):
         current_owner = request.user.is_authenticated and request.user.username == batch.user
         if current_owner:
             batch.stop()
-        return redirect(reverse("batch", args=[batch.pk]))
-    except Batch.DoesNotExist:
-        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
-
-
-@require_http_methods(
-    [
-        "POST",
-    ]
-)
-def batch_allow_start(request, pk):
-    """
-    Allows a batch that is in the preview state to start running.
-    """
-    try:
-        batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
-        if current_owner:
-            batch.allow_start()
         return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
@@ -209,74 +182,3 @@ def batch_summary(request, pk):
         )
     except Batch.DoesNotExist:
         return render(request, "batch_summary.html", {}, status=404)
-
-
-@login_required()
-def new_batch(request):
-    """
-    Creates a new batch
-    """
-    if request.method == "POST":
-        try:
-            batch_owner = request.user.username
-            batch_commands = request.POST.get("commands")
-            batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
-            batch_type = request.POST.get("type", "v1")
-            request.session["preferred_batch_type"] = batch_type
-
-            batch_commands = batch_commands.strip()
-            if not batch_commands:
-                raise ParserException("Command string cannot be empty")
-
-            batch_name = batch_name.strip()
-            if not batch_name:
-                raise ParserException("Batch name cannot be empty")
-
-            if batch_type == "v1":
-                parser = V1CommandParser()
-            else:
-                parser = CSVCommandParser()
-
-            batch = parser.parse(batch_name, batch_owner, batch_commands)
-            batch.status = Batch.STATUS_PREVIEW
-
-            if "block_on_errors" in request.POST:
-                batch.block_on_errors = True
-
-            batch.save()
-
-            return redirect(reverse("batch", args=[batch.pk]))
-        except ParserException as p:
-            error = p.message
-        except Exception as p:
-            error = str(p)
-        return render(
-            request,
-            "new_batch.html",
-            {
-                "error": error,
-                "name": batch_name,
-                "batch_type": batch_type,
-                "commands": batch_commands,
-            },
-        )
-
-    else:
-        preferred_batch_type = request.session.get("preferred_batch_type", "v1")
-
-        try:
-            client = Client.from_user(request.user)
-            is_autoconfirmed = client.get_is_autoconfirmed()
-        except UnauthorizedToken:
-            return logout_per_token_expired(request)
-        except (NoToken, ServerError):
-            is_autoconfirmed = False
-
-        return render(
-            request,
-            "new_batch.html",
-            {
-                "batch_type": preferred_batch_type,
-                "is_autoconfirmed": is_autoconfirmed,
-            },
-        )

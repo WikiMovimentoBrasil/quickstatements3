@@ -186,75 +186,89 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [b3, b2, b1])
 
-    def test_create_v1_batch_logged_user(self):
-        c = Client()
-        user = User.objects.create_user(username="john")
-        c.force_login(user)
+    @requests_mock.Mocker()
+    def test_create_v1_batch_logged_user(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
 
         # Black box testing. We dont have any batch listed
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [])
 
         # Creating our new batch
-        response = c.get("/batch/new/")
+        response = self.client.get("/batch/new/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("new_batch.html")
 
-        response = c.post(
+        response = self.client.post(
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
         self.assertEqual(response.status_code, 302)
 
         # Lets view the new batch
-        response = c.get(response.url)
+        response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My v1 batch")
-        self.assertTrue(batch.is_preview)
+        self.assertTrue(batch.is_initial)
         self.assertEqual(batch.batchcommand_set.count(), 3)
 
         # Listing again. Now we have something
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
-        self.assertTrue(batch.is_preview)
+        self.assertTrue(batch.is_initial)
 
-    def test_create_csv_batch_logged_user(self):
-        c = Client()
-        user = User.objects.create_user(username="john")
-        c.force_login(user)
+    @requests_mock.Mocker()
+    def test_create_csv_batch_logged_user(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
 
         # Black box testing. We dont have any batch listed
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [])
 
         # Creating our new batch
-        response = c.get("/batch/new/")
+        response = self.client.get("/batch/new/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("new_batch.html")
 
-        response = c.post("/batch/new/", data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"})
+        response = self.client.post(
+            "/batch/new/", data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"}
+        )
         self.assertEqual(response.status_code, 302)
 
         # Lets view the new batch
-        response = c.get(response.url)
+        response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
         self.assertTemplateUsed("batch.html")
         batch = response.context["batch"]
         self.assertEqual(batch.name, "My CSV batch")
+        self.assertTrue(batch.is_initial)
         self.assertEqual(batch.batchcommand_set.count(), 0)
 
         # Listing again. Now we have something
-        response = c.get("/batches/")
+        response = self.client.get("/batches/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batches.html")
         self.assertEqual(list(response.context["page"].object_list), [batch])
+        self.assertTrue(batch.is_initial)
 
     def test_create_batch_anonymous_user(self):
         c = Client()
@@ -275,6 +289,7 @@ class ViewsTest(TestCase):
 
         parser = V1CommandParser()
         batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
+        batch.save_batch_and_preview_commands()
 
         labels = {
             "en": "English label",
@@ -365,33 +380,27 @@ class ViewsTest(TestCase):
         self.assertIsNotAuthenticated()
         self.assertTrue(self.client.session["token_expired"])
 
-    def test_allow_start_after_create(self):
-        c = Client()
-        user = User.objects.create_user(username="john")
-        c.force_login(user)
+    @requests_mock.Mocker()
+    def test_allow_start_after_create(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
 
-        response = c.post(
+        response = self.client.post(
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/batch/new/preview/")
 
-        response = c.get(response.url)
+        response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed("batch.html")
-        batch = response.context["batch"]
-        self.assertEqual(batch.name, "My v1 batch")
-        self.assertEqual(batch.batchcommand_set.count(), 3)
-        self.assertTrue(batch.is_preview)
+        self.assertTemplateUsed("preview_batch.html")
 
-        pk = batch.pk
-
-        response = c.get(f"/batch/{pk}/allow_start/")
+        response = self.client.get("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 405)
-
-        response = c.post(f"/batch/{pk}/allow_start/")
+        response = self.client.post("/batch/new/preview/allow_start/")
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(response.url)
+        response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["batch"].is_preview)
         self.assertTrue(response.context["batch"].is_initial)
@@ -407,7 +416,7 @@ class ViewsTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context["is_autoconfirmed"], False)
         self.assertInRes("only autoconfirmed users can run batches", res)
-        self.assertInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+        self.assertInRes("""<input type="submit" value="Save and run batch" disabled>""", res)
 
     @requests_mock.Mocker()
     def test_allow_start_after_create_is_autoconfirmed(self, mocker):
@@ -419,9 +428,9 @@ class ViewsTest(TestCase):
         res = self.client.get(res.url)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context["is_autoconfirmed"], True)
-        self.assertInRes("""<input type="submit" value="Allow batch to run">""", res)
+        self.assertInRes("""<input type="submit" value="Save and run batch">""", res)
         self.assertNotInRes("only autoconfirmed users can run batches", res)
-        self.assertNotInRes("""<input type="submit" value="Allow batch to run" disabled>""", res)
+        self.assertNotInRes("""<input type="submit" value="Save and run batch" disabled>""", res)
 
     @requests_mock.Mocker()
     def test_allow_start_after_create_token_expired(self, mocker):
@@ -444,12 +453,15 @@ class ViewsTest(TestCase):
         url = res.url
         res = self.client.get(url)
         self.assertEqual(res.context["is_autoconfirmed"], True)
-        batch = res.context["batch"]
+        response = self.client.post("/batch/new/preview/allow_start/")
+        batch_url = response.url
+        response = self.client.get(batch_url)
+        batch = response.context["batch"]
         batch.allow_start()
-        res = self.client.get(url)
+        res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
         batch.stop()
-        res = self.client.get(url)
+        res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
 
     def test_create_block_on_errors(self):
@@ -480,30 +492,47 @@ class ViewsTest(TestCase):
         response = c.get(response.url)
         self.assertTrue(response.context["batch"].block_on_errors)
 
-    def test_restart_after_stopped_buttons(self):
-        c = Client()
-        user = User.objects.create_user(username="john")
-        c.force_login(user)
+    @requests_mock.Mocker()
+    def test_restart_after_stopped_buttons(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
 
-        response = c.post(
+        response = self.client.post(
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
         self.assertEqual(response.status_code, 302)
 
-        response = c.get(response.url)
-        self.assertInRes("Allow batch to run", response)
+        response = self.client.get(response.url)
+        self.assertInRes("Save and run batch", response)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        response = self.client.get(response.url)
+        self.assertInRes("Stop execution", response)
 
         batch = response.context["batch"]
         pk = batch.pk
 
-        response = c.post(f"/batch/{pk}/allow_start/")
-        response = c.get(response.url)
-        self.assertInRes("Stop execution", response)
-
-        response = c.post(f"/batch/{pk}/stop/")
-        response = c.get(response.url)
+        response = self.client.post(f"/batch/{pk}/stop/")
+        response = self.client.get(response.url)
         self.assertInRes("Restart", response)
 
-        response = c.post(f"/batch/{pk}/restart/")
-        response = c.get(response.url)
+        response = self.client.post(f"/batch/{pk}/restart/")
+        response = self.client.get(response.url)
         self.assertInRes("Stop execution", response)
+
+    @requests_mock.Mocker()
+    def test_batch_preview_commands(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        labels = { "en": "English label" }
+        ApiMocker.labels(mocker, api_client, "Q1234", labels)
+        ApiMocker.labels(mocker, api_client, "Q222", labels)
+        res = self.client.post(
+            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+        )
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertInRes("Save and run batch", res)
+        res = self.client.get("/batch/new/preview/commands/")
+        self.assertEqual(res.status_code, 200)

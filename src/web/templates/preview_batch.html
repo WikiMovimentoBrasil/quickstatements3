@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% load i18n %}
+{% block pagetitle %}QuickStatements 3.0 - {% translate "Batch" %} #{{ batch.pk }}{% endblock%}
+{% block css %}
+{% include '_batch_css.html' %}
+{% endblock %}
+{% block content %}
+<div style="float: left;">
+    <hgroup>
+        <h2> {% translate "Batch Preview" %} <img id="spinner" class="htmx-indicator"></h2>
+        <p><b>{{batch.name}}</b></p>
+    </hgroup>
+</div>
+<div style="float: right;">
+    <form method="POST" action="{% url 'batch_allow_start' %}">
+        {% if is_autoconfirmed %}
+        {% csrf_token %}
+        <input type="submit" value="{% translate 'Save and run batch' %}">
+        {% else %}
+        <input type="submit" value="{% translate 'Save and run batch' %}" disabled>
+        <small>
+            {% translate "Note: only autoconfirmed users can run batches." %}
+        </small>
+        {% endif %}
+    </form>
+</div>
+<div class="preview_notice">
+  <p>
+      {% translate "THIS BATCH IS IN PREVIEW MODE, AND WILL BE ONLY SAVED AND PROCESSED AFTER CLICKING 'Save and run batch'." %}
+  </p>
+</div>
+<div id="batchProgressDiv" style="margin: 20px 0; font-size: 14px; ">
+    <div class="progress" id="batchprogress">
+        <div class="progress-status">{% translate "BATCH STATUS" %}
+            <b class="status status_preview">{% translate "PREVIEW" %}</b>
+        </div>
+        <div class="progress-meter">
+            <div class="progress-done-meter" style="width: 0%;"></div>
+        </div>
+        <div class="progress-summary">{{0}}% {% translate "DONE" %} ({% blocktranslate %}{{0}} of {{total_count}}{% endblocktranslate %})</div>
+    </div>
+    <div>
+        {% translate "COMMANDS SUMMARY" %}
+        <b class="status status_total">{% translate "TOTAL" %}: {{total_count}}</b>
+        <b class="status status_initial">{% translate "INITIAL" %}: {{init_count}}</b>
+        <b class="status status_error">{% translate "ERRORS" %}: {{error_count}}</b>
+        {% if batch.block_on_errors %}
+        <small>
+            {% translate "This batch will be blocked if a command fails." %}
+        </small>
+        {% endif %}
+    </div>
+</div>
+<h4>{% translate "Commands" %}</h4>
+<div class="overflow-auto" id="batchCommandsDiv" hx-get="{% url 'preview_batch_commands' %}" hx-trigger="load, reload" hx-indicator="#spinner" hx-swap="innerHTML">
+    {% translate "Loading commands..." %}
+</div>
+{% endblock %}

@@ -14,7 +14,7 @@ from .exceptions import UnauthorizedToken
 from .exceptions import ServerError
 
 logger = logging.getLogger("qsts3")
-   
+
 
 class Batch(models.Model):
     """
@@ -34,7 +34,7 @@ class Batch(models.Model):
         (STATUS_PREVIEW, _("Preview")),
         (STATUS_INITIAL, _("Initial")),
         (STATUS_RUNNING, _("Running")),
-        (STATUS_DONE, _("Done"))
+        (STATUS_DONE, _("Done")),
     )
 
     name = models.CharField(max_length=255, blank=False, null=False)
@@ -154,15 +154,15 @@ class Batch(models.Model):
     def is_preview(self):
         return self.status == Batch.STATUS_PREVIEW
 
-    @property 
+    @property
     def is_running(self):
         return self.status == Batch.STATUS_RUNNING
 
-    @property 
+    @property
     def is_stopped(self):
         return self.status == Batch.STATUS_STOPPED
 
-    @property 
+    @property
     def is_initial(self):
         return self.status == Batch.STATUS_INITIAL
 
@@ -173,6 +173,29 @@ class Batch(models.Model):
     @property
     def is_preview_initial_or_running(self):
         return self.is_preview or self.is_initial or self.is_running
+
+    def add_preview_command(self, preview_command) -> bool:
+        if not hasattr(self, "_preview_commands"):
+            self._preview_commands = []
+        if preview_command is not None and type(preview_command) == BatchCommand:
+            self._preview_commands.append(preview_command)
+            return True
+        return False
+
+    def get_preview_commands(self) -> list:
+        if hasattr(self, "_preview_commands"):
+            return self._preview_commands
+        else:
+            return []
+
+    def save_batch_and_preview_commands(self):
+        self.status = self.STATUS_INITIAL
+        if not self.pk:
+            super(Batch, self).save()
+        if hasattr(self, "_preview_commands"):
+            for batch_command in self._preview_commands:
+                batch_command.batch = self
+                batch_command.save()
 
 
 class BatchCommand(models.Model):
@@ -186,10 +209,10 @@ class BatchCommand(models.Model):
     STATUS_DONE = 2
 
     STATUS_CHOICES = (
-        (STATUS_ERROR, _("Error")), 
-        (STATUS_INITIAL, _("Initial")), 
-        (STATUS_RUNNING, _("Running")), 
-        (STATUS_DONE, _("Done"))
+        (STATUS_ERROR, _("Error")),
+        (STATUS_INITIAL, _("Initial")),
+        (STATUS_RUNNING, _("Running")),
+        (STATUS_DONE, _("Done")),
     )
 
     ACTION_CREATE = 0
@@ -201,7 +224,7 @@ class BatchCommand(models.Model):
         (ACTION_CREATE, "CREATE"),
         (ACTION_ADD, "ADD"),
         (ACTION_REMOVE, "REMOVE"),
-        (ACTION_MERGE, "MERGE")
+        (ACTION_MERGE, "MERGE"),
     )
 
     # -------
@@ -310,7 +333,7 @@ class BatchCommand(models.Model):
 
     @property
     def prop(self):
-        return self.json.get("property", "") 
+        return self.json.get("property", "")
 
     @property
     def type(self):
@@ -391,7 +414,7 @@ class BatchCommand(models.Model):
 
     def response_id(self):
         """
-        Returns the response's id.            
+        Returns the response's id.
 
         It is the created entity id when in a CREATE action.
         """
@@ -538,6 +561,4 @@ class BatchCommand(models.Model):
     class Meta:
         verbose_name = _("Batch Command")
         verbose_name_plural = _("Batch Commands")
-        index_together = (
-            ('batch', 'index')
-        )
+        index_together = ("batch", "index")
