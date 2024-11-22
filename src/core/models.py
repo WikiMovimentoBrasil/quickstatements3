@@ -112,11 +112,6 @@ class Batch(models.Model):
         self.status = self.STATUS_DONE
         self.save()
 
-    def allow_start(self):
-        if self.is_preview:
-            self.status = self.STATUS_INITIAL
-            self.save()
-
     def stop(self):
         logger.debug(f"[{self}] stop...")
         self.message = f"Batch stopped processing by owner at {datetime.now()}"
