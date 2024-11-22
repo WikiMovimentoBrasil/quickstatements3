@@ -1,26 +1,17 @@
-from datetime import datetime
-
 from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils import translation
 from django.views.decorators.http import require_http_methods
-from rest_framework.authtoken.models import Token
 
 from core.client import Client
 from core.models import Batch
 from core.models import BatchCommand
-from core.parsers.base import ParserException
-from core.parsers.v1 import V1CommandParser
-from core.parsers.csv import CSVCommandParser
 from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
 from core.exceptions import ServerError
 
 from web.models import Preferences
-from web.languages import LANGUAGE_CHOICES
 
 from .auth import logout_per_token_expired
 

@@ -1,13 +1,9 @@
-from datetime import datetime
-
 from authlib.integrations.base_client.errors import MismatchingStateError
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods
-from rest_framework.authtoken.models import Token
 
 from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
