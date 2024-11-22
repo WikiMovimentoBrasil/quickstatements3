@@ -64,7 +64,7 @@ class Batch(models.Model):
         if not self.is_initial:
             return
 
-        self._start()
+        self.start()
 
         try:
             client = Client.from_username(self.user)
@@ -98,15 +98,15 @@ class Batch(models.Model):
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
-        self._finish()
+        self.finish()
 
-    def _start(self):
+    def start(self):
         logger.debug(f"[{self}] running...")
         self.message = f"Batch started processing at {datetime.now()}"
         self.status = self.STATUS_RUNNING
         self.save()
 
-    def _finish(self):
+    def finish(self):
         logger.info(f"[{self}] finished")
         self.message = f"Batch finished processing at {datetime.now()}"
         self.status = self.STATUS_DONE
@@ -174,10 +174,10 @@ class Batch(models.Model):
     def is_preview_initial_or_running(self):
         return self.is_preview or self.is_initial or self.is_running
 
-    def add_preview_command(self, preview_command) -> bool:
+    def add_preview_command(self, preview_command: "BatchCommand") -> bool:
         if not hasattr(self, "_preview_commands"):
             self._preview_commands = []
-        if preview_command is not None and type(preview_command) == BatchCommand:
+        if preview_command is not None:
             self._preview_commands.append(preview_command)
             return True
         return False
@@ -270,17 +270,17 @@ class BatchCommand(models.Model):
     # Status-changing methods
     # -----------------
 
-    def _start(self):
+    def start(self):
         logger.debug(f"[{self}] running...")
         self.status = BatchCommand.STATUS_RUNNING
         self.save()
 
-    def _finish(self):
+    def finish(self):
         logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
         self.save()
 
-    def _error(self, message):
+    def error(self, message):
         logger.error(f"[{self}] error: {message}")
         self.message = message
         self.status = BatchCommand.STATUS_ERROR
@@ -440,18 +440,18 @@ class BatchCommand(models.Model):
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
-        self._start()
+        self.start()
 
         if self.entity_id() == "LAST":
-            self._error("LAST could not be evaluated.")
+            self.error("LAST could not be evaluated.")
             return
 
         try:
             self.send_to_api(client)
-            self._finish()
+            self.finish()
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
-            self._error(message)
+            self.error(message)
 
     def edit_summary(self):
         """
@@ -534,7 +534,7 @@ class BatchCommand(models.Model):
                 for p in self.reference_parts():
                     client.verify_value_type(p["property"], p["value"]["type"])
             except InvalidPropertyValueType as e:
-                self._error(e.message)
+                self.error(e.message)
                 raise e
 
         self.value_type_verified = True
