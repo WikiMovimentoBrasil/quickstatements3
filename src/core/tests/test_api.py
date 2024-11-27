@@ -171,6 +171,14 @@ class ApiMocker:
         )
 
     @classmethod
+    def delete_statement_sucessful(cls, mocker, statement_id):
+        mocker.delete(
+            cls.wikibase_url(f"/statements/{statement_id}"),
+            json="Statement deleted",
+            status_code=200,
+        )
+
+    @classmethod
     def labels(cls, mocker, client, entity_id, labels):
         mocker.get(
             client.wikibase_entity_url(entity_id, "/labels"),

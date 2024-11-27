@@ -170,6 +170,7 @@ class TestV1Batch(TestCase):
         self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 3)
         bc1 = BatchCommand.objects.get(batch=batch, index=0)
         self.assertEqual(bc1.raw, "CREATE")
+        self.assertIsNone(bc1.statement_id())
         self.assertEqual(bc1.operation, BatchCommand.Operation.CREATE_ITEM)
         bc2 = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
@@ -182,7 +183,17 @@ class TestV1Batch(TestCase):
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[0]
         self.assertEqual(cmd.raw, "CREATE_PROPERTY\twikibase-item")
+        self.assertIsNone(cmd.statement_id())
         self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
+
+    def test_remove_statemeny_by_id(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "-STATEMENT|Q1234$abcdefgh-uijkl")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.statement_id(), "Q1234$abcdefgh-uijkl")
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
+        self.assertEqual(cmd.entity_id(), "Q1234")
 
     def test_user_summary(self):
         v1 = V1CommandParser()

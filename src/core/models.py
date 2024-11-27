@@ -249,6 +249,7 @@ class BatchCommand(models.Model):
     class Operation(models.TextChoices):
         CREATE_ITEM = "create_item", _("Create item")
         CREATE_PROPERTY = "create_property", _("Create property")
+        REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
 
     operation = models.TextField(
         null=True,
@@ -396,9 +397,6 @@ class BatchCommand(models.Model):
     def is_remove(self):
         return self.action == BatchCommand.ACTION_REMOVE
 
-    def is_remove_statement_by_id(self):
-        return self.is_remove() and self.what == "STATEMENT" and "id" in self.json.keys()
-
     def is_remove_statement_by_value(self):
         return self.is_remove() and self.what == "STATEMENT" and "id" not in self.json.keys()
 
@@ -509,14 +507,24 @@ class BatchCommand(models.Model):
     def send_to_api(self, client: Client) -> dict:
         match self.operation:
             case self.Operation.CREATE_ITEM:
-                return self.send_create_item(client)
+                return client.create_item(self.api_body())
             case self.Operation.CREATE_PROPERTY:
                 raise NotImplementedError()
+            case self.Operation.REMOVE_STATEMENT_BY_ID:
+                return client.delete_statement(self.statement_id(), self.api_body())
             case _:
                 return ApiCommandBuilder(self, client).build_and_send()
 
-    def send_create_item(self, client: Client):
-        return client.create_item(self.api_body())
+    # -----------------
+    # Auxiliary methods for Wikibase API interaction
+    # -----------------
+
+    def statement_id(self) -> str:
+        """
+        Returns the ID of the statement related to this command.
+        """
+        if self.operation == self.Operation.REMOVE_STATEMENT_BY_ID:
+            return self.json["id"]
 
     # -----------------
     # Visualization/label methods

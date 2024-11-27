@@ -268,3 +268,16 @@ class ProcessingTests(TestCase):
         commands = batch.commands()
         self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_id(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        batch = self.parse("-STATEMENT|Q1234$abcdefgh-uijkl")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].statement_id(), "Q1234$abcdefgh-uijkl")
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")

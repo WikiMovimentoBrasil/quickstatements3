@@ -39,8 +39,6 @@ class ApiCommandBuilder:
             return AddLabelDescriptionOrAlias(cmd)
         elif cmd.is_add_sitelink():
             return AddSitelink(cmd)
-        elif cmd.is_remove_statement_by_id():
-            return RemoveStatementById(cmd)
         elif cmd.is_remove_statement_by_value():
             return RemoveStatement(cmd)
         else:
@@ -218,20 +216,4 @@ class RemoveStatement(Utilities):
         self.load_id_to_delete(client)
         full_body = self.full_body()
         res = client.delete_statement(self.id_to_delete, full_body)
-        return res
-
-
-class RemoveStatementById(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-        j = self.command.json
-        self.id = j["id"]
-
-    def body(self):
-        return {}
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        res = client.delete_statement(self.id, full_body)
         return res

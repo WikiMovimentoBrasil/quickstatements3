@@ -70,12 +70,11 @@ class V1CommandParser(BaseParser):
         if llen != 2:
             raise ParserException("remove statement by ID command must have 2 columns")
         else:
-            command = elements[0]
-            action = "remove" if command[0] == "-" else "add"
             _id = elements[1].strip()
-            if len(_id.split("$")) != 2:
+            _split = _id.split("$")
+            if len(_split) != 2:
                 raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
-            return {"action": action, "what": "statement", "id": _id}
+            return {"action": "remove", "what": "statement", "id": _id, "entity": {"id": _split[0]}}
 
     def parse_statement(self, elements, first_command):
         llen = len(elements)
@@ -185,7 +184,7 @@ class V1CommandParser(BaseParser):
             data = self.parse_create_property(elements)
         elif first_command == "MERGE":
             data = self.parse_merge(elements)
-        elif first_command == "STATEMENT" or first_command == "-STATEMENT":
+        elif first_command == "-STATEMENT":
             data = self.parse_statement_by_id(elements)
         else:
             data = self.parse_statement(elements, first_command)
@@ -214,6 +213,9 @@ class V1CommandParser(BaseParser):
                     bc.action = BatchCommand.ACTION_ADD
                 elif command["action"] == "remove":
                     bc.action = BatchCommand.ACTION_REMOVE
+                    if command.get("what") == "statement":
+                        if "id" in command:
+                            bc.operation = bc.Operation.REMOVE_STATEMENT_BY_ID
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":
