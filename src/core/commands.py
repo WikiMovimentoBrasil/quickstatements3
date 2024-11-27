@@ -54,6 +54,7 @@ class Utilities:
         body["bot"] = False
         return body
 
+
 class AddStatement(Utilities):
     def __init__(self, command):
         self.command = command
@@ -167,18 +168,6 @@ class AddSitelink(Utilities):
     def send(self, client: Client):
         full_body = self.full_body()
         return client.add_sitelink(self.entity_id, full_body)
-
-
-class CreateItem(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-    def body(self):
-        return {"item": {}}
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        return client.create_item(full_body)
 
 
 class RemoveStatement(Utilities):
