@@ -12,6 +12,7 @@ from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
 from .exceptions import UnauthorizedToken
 from .exceptions import ServerError
+from .exceptions import UserError
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
 
@@ -253,6 +254,7 @@ class BatchCommand(models.Model):
         CREATE_PROPERTY = "create_property", _("Create property")
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
+        SET_SITELINK = "set_sitelink", _("Set sitelink")
 
     operation = models.TextField(
         null=True,
@@ -276,6 +278,7 @@ class BatchCommand(models.Model):
         OP_NOT_IMPLEMENTED = "op_not_implemented", _("Operation not implemented")
         NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
+        SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
 
     error = models.TextField(
         null=True,
@@ -303,6 +306,10 @@ class BatchCommand(models.Model):
     def error_with_value(self, value: Error):
         self.error = value
         self.error_with_message(value.label)
+
+    def error_with_exception(self, exception: Exception):
+        message = getattr(exception, "message", str(exception))
+        self.error_with_message(message)
 
     def error_with_message(self, message):
         logger.error(f"[{self}] error: {message}")
@@ -386,7 +393,7 @@ class BatchCommand(models.Model):
                 "type": "value",
                 "content": self.value_value,
             }
-        
+
     def qualifiers(self):
         return self.json.get("qualifiers", [])
 
@@ -411,9 +418,6 @@ class BatchCommand(models.Model):
 
     def is_add_label_description_alias(self):
         return self.is_add() and self.what in ["DESCRIPTION", "LABEL", "ALIAS"]
-
-    def is_add_sitelink(self):
-        return self.is_add() and self.what == "SITELINK"
 
     def is_remove(self):
         return self.action == BatchCommand.ACTION_REMOVE
@@ -481,9 +485,13 @@ class BatchCommand(models.Model):
             self.error_with_value(self.Error.NO_STATEMENTS_PROPERTY)
         except NoStatementsWithThatValue:
             self.error_with_value(self.Error.NO_STATEMENTS_VALUE)
+        except UserError as e:
+            if e.response_message == "Invalid path parameter: 'site_id'":
+                self.error_with_value(self.Error.SITELINK_INVALID)
+            else:
+                self.error_with_exception(e)
         except (ApiException, Exception) as e:
-            message = getattr(e, "message", str(e))
-            self.error_with_message(message)
+            self.error_with_exception(e)
 
     def edit_summary(self):
         """
@@ -512,6 +520,13 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
+            case self.Operation.SET_SITELINK:
+                return {
+                    "sitelink": {
+                        "title": self.value_value,
+                        "badges": [],
+                    },
+                }
             case _:
                 return {}
 
@@ -534,6 +549,8 @@ class BatchCommand(models.Model):
                 raise NotImplementedError()
             case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
                 return client.delete_statement(self.statement_id(client), self.api_body())
+            case self.Operation.SET_SITELINK:
+                return client.add_sitelink(self.entity_id(), self.sitelink, self.api_body())
             case _:
                 return ApiCommandBuilder(self, client).build_and_send()
 

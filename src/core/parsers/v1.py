@@ -211,6 +211,8 @@ class V1CommandParser(BaseParser):
                 command = self.parse_command(raw_command)
                 if command["action"] == "add":
                     bc.action = BatchCommand.ACTION_ADD
+                    if command["what"] == "sitelink":
+                        bc.operation = bc.Operation.SET_SITELINK
                 elif command["action"] == "remove":
                     bc.action = BatchCommand.ACTION_REMOVE
                     if command.get("what") == "statement":

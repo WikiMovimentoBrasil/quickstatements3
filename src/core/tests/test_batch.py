@@ -230,6 +230,16 @@ class TestV1Batch(TestCase):
         cmd = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
 
+    def test_set_sitelink(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Sptwiki|"Cool article" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+        self.assertEqual(cmd.value_value, "Cool article")
+
 
 class TestCSVBatch(TestCase):
     def test_create_property(self):
@@ -678,3 +688,16 @@ Q4115189,Q5,Q6"""
         self.assertEqual(cmd.entity_id(), "Q4115189")
         self.assertEqual(cmd.prop, "P31")
         self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q6"})
+
+    def test_set_sitelink(self):
+        COMMAND = """qid,Sptwiki
+Q4115189,"Cool article"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+        self.assertEqual(cmd.value_value, "Cool article")

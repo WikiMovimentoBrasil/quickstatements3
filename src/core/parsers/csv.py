@@ -172,6 +172,8 @@ class CSVCommandParser(BaseParser):
                     )
                     if command["action"] == "add":
                         bc.action = BatchCommand.ACTION_ADD
+                        if command["what"] == "sitelink":
+                            bc.operation = bc.Operation.SET_SITELINK
                     elif command["action"] == "remove":
                         bc.action = BatchCommand.ACTION_REMOVE
                         bc.operation = bc.Operation.REMOVE_STATEMENT_BY_VALUE

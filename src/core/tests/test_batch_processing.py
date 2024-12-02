@@ -368,3 +368,26 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[0].error, BatchCommand.Error.NO_STATEMENTS_VALUE)
+
+    @requests_mock.Mocker()
+    def test_set_sitelink_success(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelink_success(mocker, "Q1234", "ptwiki", "Cool article")
+        batch = self.parse("""Q1234|Sptwiki|"Cool article" """)
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_set_sitelink_invalid(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelink_invalid(mocker, "Q1234", "ptwikix")
+        batch = self.parse("""Q1234|Sptwikix|"Cool article" """)
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)

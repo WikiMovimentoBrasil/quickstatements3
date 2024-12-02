@@ -195,6 +195,30 @@ class ApiMocker:
         )
 
     @classmethod
+    def sitelink_success(cls, mocker, item_id, sitelink, value):
+        mocker.put(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={
+                "title": value,
+                "badges": [],
+                "url": "ignored",
+            },
+            status_code=200,
+        )
+
+    @classmethod
+    def sitelink_invalid(cls, mocker, item_id, sitelink):
+        mocker.put(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={
+                "code": "invalid-path-parameter",
+                "message": "Invalid path parameter: 'site_id'",
+                "context": {"parameter": "site_id"},
+            },
+            status_code=400,
+        )
+
+    @classmethod
     def labels(cls, mocker, client, entity_id, labels):
         mocker.get(
             client.wikibase_entity_url(entity_id, "/labels"),
