@@ -174,6 +174,7 @@ class CSVCommandParser(BaseParser):
                         bc.action = BatchCommand.ACTION_ADD
                     elif command["action"] == "remove":
                         bc.action = BatchCommand.ACTION_REMOVE
+                        bc.operation = bc.Operation.REMOVE_STATEMENT_BY_VALUE
                     elif command["action"] == "create":
                         bc.action = BatchCommand.ACTION_CREATE
                         if command["type"] == "item":

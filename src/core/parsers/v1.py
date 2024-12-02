@@ -216,6 +216,8 @@ class V1CommandParser(BaseParser):
                     if command.get("what") == "statement":
                         if "id" in command:
                             bc.operation = bc.Operation.REMOVE_STATEMENT_BY_ID
+                        else:
+                            bc.operation = bc.Operation.REMOVE_STATEMENT_BY_VALUE
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":

@@ -277,7 +277,94 @@ class ProcessingTests(TestCase):
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
-        self.assertEqual(commands[0].statement_id(), "Q1234$abcdefgh-uijkl")
         self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
         self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_success(self, mocker):
+        statements = {
+            "P5": [{
+                "id": "Q1234$abcdefgh-uijkl",
+                "value": {
+                    "type": "value",
+                    "content": "Q12",
+                },
+            }],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_success_will_pick_first(self, mocker):
+        statements = {
+            "P5": [
+                {
+                    "id": "Q1234$abcdefgh-uijkl",
+                    "value": {
+                        "type": "value",
+                        "content": "Q12",
+                    },
+                },
+                {
+                    "id": "Q1234$defgh-xyzabc",
+                    "value": {
+                        "type": "value",
+                        "content": "Q12",
+                    },
+                },
+            ],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        ApiMocker.delete_statement_fail(mocker, "Q1234$defgh-xyzabc")
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_fail_no_statements_property(self, mocker):
+        statements = {}
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.NO_STATEMENTS_PROPERTY)
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_fail_no_statements_value(self, mocker):
+        statements = {
+            "P5": [{
+                "id": "Q1234$abcdefgh-uijkl",
+                "value": {
+                    "type": "value",
+                    "content": "this is my string",
+                },
+            }],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.NO_STATEMENTS_VALUE)

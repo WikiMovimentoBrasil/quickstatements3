@@ -12,6 +12,8 @@ from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
 from .exceptions import UnauthorizedToken
 from .exceptions import ServerError
+from .exceptions import NoStatementsForThatProperty
+from .exceptions import NoStatementsWithThatValue
 
 logger = logging.getLogger("qsts3")
 
@@ -250,6 +252,7 @@ class BatchCommand(models.Model):
         CREATE_ITEM = "create_item", _("Create item")
         CREATE_PROPERTY = "create_property", _("Create property")
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
+        REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
 
     operation = models.TextField(
         null=True,
@@ -271,6 +274,8 @@ class BatchCommand(models.Model):
 
     class Error(models.TextChoices):
         OP_NOT_IMPLEMENTED = "op_not_implemented", _("Operation not implemented")
+        NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
+        NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
 
     error = models.TextField(
         null=True,
@@ -366,6 +371,22 @@ class BatchCommand(models.Model):
     def value_type(self):
         return self.json.get("value", {}).get("type", "")
 
+    @property
+    def value_value(self):
+        return self.json.get("value", {}).get("value", "")
+
+    @property
+    def statement_api_value(self):
+        if self.value_type in ["novalue", "somevalue"]:
+            return {
+                "type": self.value_type,
+            }
+        else:
+            return {
+                "type": "value",
+                "content": self.value_value,
+            }
+        
     def qualifiers(self):
         return self.json.get("qualifiers", [])
 
@@ -396,9 +417,6 @@ class BatchCommand(models.Model):
 
     def is_remove(self):
         return self.action == BatchCommand.ACTION_REMOVE
-
-    def is_remove_statement_by_value(self):
-        return self.is_remove() and self.what == "STATEMENT" and "id" not in self.json.keys()
 
     def is_add_or_remove_command(self):
         return self.action in [BatchCommand.ACTION_ADD, BatchCommand.ACTION_REMOVE]
@@ -459,6 +477,10 @@ class BatchCommand(models.Model):
             self.finish()
         except NotImplementedError:
             self.error_with_value(self.Error.OP_NOT_IMPLEMENTED)
+        except NoStatementsForThatProperty:
+            self.error_with_value(self.Error.NO_STATEMENTS_PROPERTY)
+        except NoStatementsWithThatValue:
+            self.error_with_value(self.Error.NO_STATEMENTS_VALUE)
         except (ApiException, Exception) as e:
             message = getattr(e, "message", str(e))
             self.error_with_message(message)
@@ -510,8 +532,8 @@ class BatchCommand(models.Model):
                 return client.create_item(self.api_body())
             case self.Operation.CREATE_PROPERTY:
                 raise NotImplementedError()
-            case self.Operation.REMOVE_STATEMENT_BY_ID:
-                return client.delete_statement(self.statement_id(), self.api_body())
+            case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
+                return client.delete_statement(self.statement_id(client), self.api_body())
             case _:
                 return ApiCommandBuilder(self, client).build_and_send()
 
@@ -519,12 +541,36 @@ class BatchCommand(models.Model):
     # Auxiliary methods for Wikibase API interaction
     # -----------------
 
-    def statement_id(self) -> str:
+    def statement_id(self, client: Client) -> str:
         """
         Returns the ID of the statement related to this command.
         """
         if self.operation == self.Operation.REMOVE_STATEMENT_BY_ID:
             return self.json["id"]
+        elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
+            return self.get_statement_id_by_value(client)
+
+    def get_statement_id_by_value(self, client: Client) -> str:
+        """
+        Gets the first statement from the API that matches
+        this commmand's property and value.
+
+        # Raises
+
+        - `NoStatementsForThatProperty`
+        - `NoStatementsWithThatValue`
+        """
+        all = client.get_statements(self.entity_id())
+        statements = all.get(self.prop, [])
+
+        if len(statements) == 0:
+            raise NoStatementsForThatProperty(self.entity_id(), self.prop)
+
+        for statement in statements:
+            if statement["value"] == self.statement_api_value:
+                return statement["id"]
+
+        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
 
     # -----------------
     # Visualization/label methods

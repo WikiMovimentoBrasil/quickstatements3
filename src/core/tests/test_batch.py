@@ -170,7 +170,6 @@ class TestV1Batch(TestCase):
         self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 3)
         bc1 = BatchCommand.objects.get(batch=batch, index=0)
         self.assertEqual(bc1.raw, "CREATE")
-        self.assertIsNone(bc1.statement_id())
         self.assertEqual(bc1.operation, BatchCommand.Operation.CREATE_ITEM)
         bc2 = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
@@ -183,7 +182,6 @@ class TestV1Batch(TestCase):
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[0]
         self.assertEqual(cmd.raw, "CREATE_PROPERTY\twikibase-item")
-        self.assertIsNone(cmd.statement_id())
         self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
 
     def test_remove_statemeny_by_id(self):
@@ -191,9 +189,28 @@ class TestV1Batch(TestCase):
         batch = v1.parse("b", "u", "-STATEMENT|Q1234$abcdefgh-uijkl")
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[0]
-        self.assertEqual(cmd.statement_id(), "Q1234$abcdefgh-uijkl")
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
         self.assertEqual(cmd.entity_id(), "Q1234")
+
+    def test_remove_statemeny_by_value(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "-Q1234|P5|Q31")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.prop, "P5")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q31"})
+
+    def test_remove_statemeny_by_value_2(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """-Q1234|P5|"my string" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.prop, "P5")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "my string"})
 
     def test_user_summary(self):
         v1 = V1CommandParser()
@@ -649,3 +666,15 @@ Q4115189,Q5,
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
         cmd = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+
+    def test_remove_statemeny_by_value(self):
+        COMMAND = """qid,P31,-P31
+Q4115189,Q5,Q6"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[1]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.prop, "P31")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q6"})
