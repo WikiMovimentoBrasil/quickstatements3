@@ -193,6 +193,8 @@ class Client:
 
         if method == "POST":
             res = requests.post(url, **kwargs)
+        elif method == "GET":
+            res = requests.get(url, **kwargs)
         elif method == "PATCH":
             res = requests.patch(url, **kwargs)
         elif method == "PUT":
@@ -208,6 +210,9 @@ class Client:
 
     def wikibase_post(self, endpoint, body):
         return self.wikibase_request_wrapper("POST", endpoint, body)
+
+    def wikibase_get(self, endpoint, body):
+        return self.wikibase_request_wrapper("GET", endpoint, body)
 
     def wikibase_patch(self, endpoint, body):
         return self.wikibase_request_wrapper("PATCH", endpoint, body)
@@ -335,6 +340,14 @@ class Client:
     def add_sitelink(self, entity_id, sitelink, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
         return self.wikibase_put(endpoint, body)
+
+    def remove_sitelink(self, entity_id, sitelink, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
+        return self.wikibase_delete(endpoint, body)
+
+    def sitelinks(self, entity_id, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, "/sitelinks")
+        return self.wikibase_get(endpoint, body)
 
     def delete_statement(self, statement_id, body):
         endpoint = f"/statements/{statement_id}"

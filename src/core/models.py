@@ -255,6 +255,7 @@ class BatchCommand(models.Model):
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
         SET_SITELINK = "set_sitelink", _("Set sitelink")
+        REMOVE_SITELINK = "remove_sitelink", _("Remove sitelink")
 
     operation = models.TextField(
         null=True,
@@ -551,6 +552,15 @@ class BatchCommand(models.Model):
                 return client.delete_statement(self.statement_id(client), self.api_body())
             case self.Operation.SET_SITELINK:
                 return client.add_sitelink(self.entity_id(), self.sitelink, self.api_body())
+            case self.Operation.REMOVE_SITELINK:
+                sitelinks = client.sitelinks(self.entity_id(), self.api_body())
+                # TODO: (improve) workaround to make it idempotent like QSv2
+                # I could not make it work using json patches,
+                # the API gives an error when trying to remove a non-existant path
+                if self.sitelink in sitelinks:
+                    return client.remove_sitelink(self.entity_id(), self.sitelink, self.api_body())
+                else:
+                    return sitelinks
             case _:
                 return ApiCommandBuilder(self, client).build_and_send()
 

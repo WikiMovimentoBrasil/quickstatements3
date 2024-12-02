@@ -19,6 +19,11 @@ class ProcessingTests(TestCase):
         batch.save_batch_and_preview_commands()
         return batch
 
+    def parse_run(self, text):
+        batch = self.parse(text)
+        batch.run()
+        return batch
+
     def parse_with_block_on_errors(self, text):
         batch = self.parse(text)
         batch.block_on_errors = True
@@ -391,3 +396,26 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
+
+    @requests_mock.Mocker()
+    def test_remove_sitel_existant(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelinks(mocker, "Q1234", {"ptwiki": {"title": "Something"}})
+        ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
+        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_remove_sitelink_non_existant(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelinks(mocker, "Q1234", {})
+        # this won't be called:
+        # ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
+        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)

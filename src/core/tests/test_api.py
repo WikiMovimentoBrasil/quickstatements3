@@ -219,6 +219,22 @@ class ApiMocker:
         )
 
     @classmethod
+    def sitelinks(cls, mocker, item_id, sitelinks):
+        mocker.get(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks"),
+            json=sitelinks,
+            status_code=200,
+        )
+
+    @classmethod
+    def remove_sitelink_success(cls, mocker, item_id, sitelink):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json="Sitelink deleted",
+            status_code=200,
+        )
+
+    @classmethod
     def labels(cls, mocker, client, entity_id, labels):
         mocker.get(
             client.wikibase_entity_url(entity_id, "/labels"),

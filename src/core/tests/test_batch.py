@@ -241,6 +241,16 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.value_value, "Cool article")
 
 
+    def test_remove_sitelink(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Sptwiki|"" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+
+
 class TestCSVBatch(TestCase):
     def test_create_property(self):
         COMMAND = """qid,Len,Den,P31
@@ -701,3 +711,24 @@ Q4115189,"Cool article"
         self.assertEqual(cmd.entity_id(), "Q4115189")
         self.assertEqual(cmd.sitelink, "ptwiki")
         self.assertEqual(cmd.value_value, "Cool article")
+
+    def test_remove_sitelink_minus(self):
+        COMMAND = """qid,-Sptwiki
+Q4115189,"x"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+
+    def test_remove_sitelink_not_empty(self):
+        COMMAND = """qid,Sptwiki
+Q4115189,""
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        self.assertEqual(len(batch.commands()), 0)

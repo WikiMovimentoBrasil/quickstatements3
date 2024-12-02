@@ -104,6 +104,8 @@ class V1CommandParser(BaseParser):
             lang = elements[1][1:]
             data = {"action": action, "what": what, "item": entity, "value": vvalue}
             if what == "sitelink":
+                if vvalue["value"] == "":
+                    data["action"] = "remove"
                 data["site"] = lang
             else:
                 data["language"] = lang
@@ -215,11 +217,14 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.SET_SITELINK
                 elif command["action"] == "remove":
                     bc.action = BatchCommand.ACTION_REMOVE
-                    if command.get("what") == "statement":
+                    what = command.get("what")
+                    if what == "statement":
                         if "id" in command:
                             bc.operation = bc.Operation.REMOVE_STATEMENT_BY_ID
                         else:
                             bc.operation = bc.Operation.REMOVE_STATEMENT_BY_VALUE
+                    elif what == "sitelink":
+                        bc.operation = bc.Operation.REMOVE_SITELINK
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":
