@@ -19,6 +19,11 @@ class ProcessingTests(TestCase):
         batch.save_batch_and_preview_commands()
         return batch
 
+    def parse_run(self, text):
+        batch = self.parse(text)
+        batch.run()
+        return batch
+
     def parse_with_block_on_errors(self, text):
         batch = self.parse(text)
         batch.block_on_errors = True
@@ -139,6 +144,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(batch.status, Batch.STATUS_DONE)
 
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
         self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
@@ -205,6 +211,7 @@ class ProcessingTests(TestCase):
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
@@ -227,6 +234,7 @@ class ProcessingTests(TestCase):
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
         commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_ITEM)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
@@ -265,3 +273,149 @@ class ProcessingTests(TestCase):
         commands = batch.commands()
         self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_id(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        batch = self.parse("-STATEMENT|Q1234$abcdefgh-uijkl")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_success(self, mocker):
+        statements = {
+            "P5": [{
+                "id": "Q1234$abcdefgh-uijkl",
+                "value": {
+                    "type": "value",
+                    "content": "Q12",
+                },
+            }],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_success_will_pick_first(self, mocker):
+        statements = {
+            "P5": [
+                {
+                    "id": "Q1234$abcdefgh-uijkl",
+                    "value": {
+                        "type": "value",
+                        "content": "Q12",
+                    },
+                },
+                {
+                    "id": "Q1234$defgh-xyzabc",
+                    "value": {
+                        "type": "value",
+                        "content": "Q12",
+                    },
+                },
+            ],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
+        ApiMocker.delete_statement_fail(mocker, "Q1234$defgh-xyzabc")
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, "Statement deleted")
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_fail_no_statements_property(self, mocker):
+        statements = {}
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.NO_STATEMENTS_PROPERTY)
+
+    @requests_mock.Mocker()
+    def test_remove_statement_by_value_fail_no_statements_value(self, mocker):
+        statements = {
+            "P5": [{
+                "id": "Q1234$abcdefgh-uijkl",
+                "value": {
+                    "type": "value",
+                    "content": "this is my string",
+                },
+            }],
+        }
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.statements(mocker, "Q1234", statements)
+        batch = self.parse("-Q1234|P5|Q12")
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.NO_STATEMENTS_VALUE)
+
+    @requests_mock.Mocker()
+    def test_set_sitelink_success(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelink_success(mocker, "Q1234", "ptwiki", "Cool article")
+        batch = self.parse("""Q1234|Sptwiki|"Cool article" """)
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_set_sitelink_invalid(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelink_invalid(mocker, "Q1234", "ptwikix")
+        batch = self.parse("""Q1234|Sptwikix|"Cool article" """)
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
+
+    @requests_mock.Mocker()
+    def test_remove_sitel_existant(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelinks(mocker, "Q1234", {"ptwiki": {"title": "Something"}})
+        ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
+        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_remove_sitelink_non_existant(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.sitelinks(mocker, "Q1234", {})
+        # this won't be called:
+        # ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
+        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)

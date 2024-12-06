@@ -5,12 +5,11 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
 from django.utils.timezone import now
-from django.conf import settings
 
 from web.models import Token
 
 from core.client import Client
-from core.commands import ApiCommandBuilder
+from core.models import BatchCommand
 from core.exceptions import NonexistantPropertyOrNoDataType
 from core.exceptions import NoValueTypeForThisDataType
 from core.exceptions import InvalidPropertyValueType
@@ -169,6 +168,70 @@ class ApiMocker:
             cls.wikibase_url(f"/entities/items/{item_id}/statements"),
             json={"error": "my-error-code"},
             status_code=500,
+        )
+
+    @classmethod
+    def delete_statement_sucessful(cls, mocker, statement_id):
+        mocker.delete(
+            cls.wikibase_url(f"/statements/{statement_id}"),
+            json="Statement deleted",
+            status_code=200,
+        )
+
+    @classmethod
+    def delete_statement_fail(cls, mocker, statement_id):
+        mocker.delete(
+            cls.wikibase_url(f"/statements/{statement_id}"),
+            json="Unknown error",
+            status_code=500,
+        )
+
+    @classmethod
+    def statements(cls, mocker, item_id, statements):
+        mocker.get(
+            cls.wikibase_url(f"/entities/items/{item_id}/statements"),
+            json=statements,
+            status_code=200,
+        )
+
+    @classmethod
+    def sitelink_success(cls, mocker, item_id, sitelink, value):
+        mocker.put(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={
+                "title": value,
+                "badges": [],
+                "url": "ignored",
+            },
+            status_code=200,
+        )
+
+    @classmethod
+    def sitelink_invalid(cls, mocker, item_id, sitelink):
+        mocker.put(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={
+                "code": "invalid-path-parameter",
+                "message": "Invalid path parameter: 'site_id'",
+                "context": {"parameter": "site_id"},
+            },
+            status_code=400,
+        )
+
+    @classmethod
+    def sitelinks(cls, mocker, item_id, sitelinks):
+        mocker.get(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks"),
+            json=sitelinks,
+            status_code=200,
+        )
+
+    @classmethod
+    def remove_sitelink_success(cls, mocker, item_id, sitelink):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json="Sitelink deleted",
+            status_code=200,
         )
 
     @classmethod
@@ -520,3 +583,73 @@ class ClientTests(TestCase):
 
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
+
+class TestBatchCommand(TestCase):
+    def login_user_and_get_token(self, username):
+        """
+        Creates an user and a test token.
+
+        Returns a tuple with the user object and their API client.
+        """
+        user = User.objects.create_user(username=username)
+        self.client.force_login(user)
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        api_client = Client.from_user(user)
+        return (user, api_client)
+
+    def test_api_payload(self):
+        payload = BatchCommand().api_payload()
+        self.assertEqual(payload, {})
+        payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload()
+        self.assertEqual(payload, {"item": {}})
+
+    def test_api_body(self):
+        batch = V1CommandParser().parse("b", "u", "Q1|P1|Q2 /* hello */")
+        batch.save_batch_and_preview_commands()
+        batch_id = batch.id
+        cmd = batch.commands()[0]
+        comment = f"[[:toollabs:qs-dev/batch/{batch_id}|batch #{batch_id}]]: hello"
+        self.assertEqual(
+            cmd.api_body(),
+            {
+                "bot": False,
+                "comment": comment,
+            },
+        )
+        cmd.operation = cmd.Operation.CREATE_ITEM
+        self.assertEqual(
+            cmd.api_body(),
+            {
+                "item": {},
+                "bot": False,
+                "comment": comment,
+            },
+        )
+
+    @requests_mock.Mocker()
+    def test_send_create_item(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.create_item(mocker, "Q5")
+        user, client = self.login_user_and_get_token("user")
+        batch = V1CommandParser().parse("b", "u", "CREATE||LAST|P1|Q1")
+        batch.save_batch_and_preview_commands()
+        cmd: BatchCommand = batch.commands()[0]
+        cmd.run(client)
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_ITEM)
+        self.assertEqual(cmd.status, BatchCommand.STATUS_DONE)
+        self.assertEqual(cmd.response_json, {"id": "Q5"})
+
+    @requests_mock.Mocker()
+    def test_send_create_property(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, client = self.login_user_and_get_token("user")
+        batch = V1CommandParser().parse("b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q1")
+        batch.save_batch_and_preview_commands()
+        cmd: BatchCommand = batch.commands()[0]
+        cmd.run(client)
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
+        self.assertEqual(cmd.status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(cmd.error, BatchCommand.Error.OP_NOT_IMPLEMENTED)
+        self.assertEqual(cmd.response_json, {})
+        with self.assertRaises(NotImplementedError):
+            cmd.send_to_api(client)

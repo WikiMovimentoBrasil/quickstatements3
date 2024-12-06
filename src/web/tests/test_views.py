@@ -457,7 +457,7 @@ class ViewsTest(TestCase):
         batch_url = response.url
         response = self.client.get(batch_url)
         batch = response.context["batch"]
-        batch.allow_start()
+        batch.save_batch_and_preview_commands()
         res = self.client.get(batch_url)
         self.assertEqual(res.context["is_autoconfirmed"], None)
         batch.stop()
