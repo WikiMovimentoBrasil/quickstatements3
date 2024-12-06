@@ -175,7 +175,7 @@ class Batch(models.Model):
     def add_preview_command(self, preview_command: "BatchCommand") -> bool:
         if not hasattr(self, "_preview_commands"):
             self._preview_commands = []
-        if preview_command is not None:
+        if preview_command is not None and isinstance(preview_command, BatchCommand):
             self._preview_commands.append(preview_command)
             return True
         return False

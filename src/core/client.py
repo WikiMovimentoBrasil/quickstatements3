@@ -191,18 +191,7 @@ class Client:
 
         logger.debug(f"{method} request at {url} | sending with body {body}")
 
-        if method == "POST":
-            res = requests.post(url, **kwargs)
-        elif method == "GET":
-            res = requests.get(url, **kwargs)
-        elif method == "PATCH":
-            res = requests.patch(url, **kwargs)
-        elif method == "PUT":
-            res = requests.put(url, **kwargs)
-        elif method == "DELETE":
-            res = requests.delete(url, **kwargs)
-        else:
-            raise ValueError("not implemented")
+        res = getattr(requests, method.lower())(url, **kwargs)
 
         logger.debug(f"{method} request at {url} | response: {res.json()}")
         self.raise_for_status(res)
