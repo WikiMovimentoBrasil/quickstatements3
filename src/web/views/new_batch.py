@@ -223,7 +223,6 @@ def batch_allow_start(request):
             for batch_command in serializers.deserialize("json", preview_batch_commands):
                 batch.add_preview_command(batch_command.object)
             batch.save_batch_and_preview_commands()
-            batch.allow_start()
 
             del request.session["preview_batch"]
             del request.session["preview_commands"]

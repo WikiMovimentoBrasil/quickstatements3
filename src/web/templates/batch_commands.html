@@ -29,7 +29,11 @@
           
           <td >
             <span class="action action_{{ command.get_action_display.lower }}">
+              {% if command.operation %}
+              {{ command.get_operation_display|upper }}
+              {% else %}
               {{ command.get_action_display }}
+              {% endif %}
             </span>
           </td>
 

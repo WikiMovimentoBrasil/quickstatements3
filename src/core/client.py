@@ -191,14 +191,7 @@ class Client:
 
         logger.debug(f"{method} request at {url} | sending with body {body}")
 
-        if method == "POST":
-            res = requests.post(url, **kwargs)
-        elif method == "PATCH":
-            res = requests.patch(url, **kwargs)
-        elif method == "DELETE":
-            res = requests.delete(url, **kwargs)
-        else:
-            raise ValueError("not implemented")
+        res = getattr(requests, method.lower())(url, **kwargs)
 
         logger.debug(f"{method} request at {url} | response: {res.json()}")
         self.raise_for_status(res)
@@ -207,8 +200,14 @@ class Client:
     def wikibase_post(self, endpoint, body):
         return self.wikibase_request_wrapper("POST", endpoint, body)
 
+    def wikibase_get(self, endpoint, body):
+        return self.wikibase_request_wrapper("GET", endpoint, body)
+
     def wikibase_patch(self, endpoint, body):
         return self.wikibase_request_wrapper("PATCH", endpoint, body)
+
+    def wikibase_put(self, endpoint, body):
+        return self.wikibase_request_wrapper("PUT", endpoint, body)
 
     def wikibase_delete(self, endpoint, body):
         return self.wikibase_request_wrapper("DELETE", endpoint, body)
@@ -327,9 +326,17 @@ class Client:
         endpoint = self.wikibase_entity_endpoint(entity_id, "/aliases")
         return self.wikibase_patch(endpoint, body)
 
-    def add_sitelink(self, entity_id, body):
+    def add_sitelink(self, entity_id, sitelink, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
+        return self.wikibase_put(endpoint, body)
+
+    def remove_sitelink(self, entity_id, sitelink, body):
+        endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
+        return self.wikibase_delete(endpoint, body)
+
+    def sitelinks(self, entity_id, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, "/sitelinks")
-        return self.wikibase_patch(endpoint, body)
+        return self.wikibase_get(endpoint, body)
 
     def delete_statement(self, statement_id, body):
         endpoint = f"/statements/{statement_id}"

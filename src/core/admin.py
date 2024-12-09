@@ -7,16 +7,22 @@ from core.models import BatchCommand
 @admin.register(BatchCommand)
 class BatchCommandAdmin(admin.ModelAdmin):
     list_select_related = ["batch"]
-    list_display = ["batch", "index", "status", "created", "modified"]
-    list_filter = ["status", "created", "modified"]
+    list_display = ["batch", "index", "operation", "status", "error", "created", "modified"]
+    list_filter = ["operation", "status", "error", "created", "modified"]
     search_field = ["batch__name", "batch__user"]
     raw_id_fields = ["batch"]
 
 
-class BatchCommandInline(admin.StackedInline):
+class BatchCommandInline(admin.TabularInline):
     model = BatchCommand
     show_change_link = True
     ordering = ["batch", "index"]
+    fields = [
+        "operation",
+        "status",
+        "error",
+        "json",
+    ]
 
 
 @admin.register(Batch)

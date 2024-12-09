@@ -132,34 +132,6 @@ class TestBatch(TestCase):
         batch.save()
         self.assertFalse(batch.is_preview_initial_or_running)
 
-    def test_batch_allow_start(self):
-        batch = Batch.objects.create(name="teste")
-        batch.status = Batch.STATUS_PREVIEW
-        batch.save()
-
-        batch.allow_start()
-        self.assertFalse(batch.is_preview)
-        self.assertTrue(batch.is_initial)
-
-        batch.allow_start()
-        self.assertFalse(batch.is_preview)
-        self.assertTrue(batch.is_initial)
-
-        batch.status = Batch.STATUS_STOPPED
-        batch.save()
-        batch.allow_start()
-        self.assertFalse(batch.is_initial)
-
-        batch.status = Batch.STATUS_DONE
-        batch.save()
-        batch.allow_start()
-        self.assertFalse(batch.is_initial)
-
-        batch.status = Batch.STATUS_PREVIEW
-        batch.save()
-        batch.allow_start()
-        self.assertTrue(batch.is_initial)
-
     def test_batch_stop(self):
         batch = Batch.objects.create(name="teste")
         self.assertFalse(batch.is_stopped)
@@ -185,7 +157,6 @@ class TestBatch(TestCase):
         self.assertTrue(batch.is_initial)
         self.assertTrue(batch.message.startswith("Batch restarted by owner"))
 
-
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
         v1 = V1CommandParser()
@@ -199,10 +170,47 @@ class TestV1Batch(TestCase):
         self.assertEqual(BatchCommand.objects.filter(batch=batch).count(), 3)
         bc1 = BatchCommand.objects.get(batch=batch, index=0)
         self.assertEqual(bc1.raw, "CREATE")
+        self.assertEqual(bc1.operation, BatchCommand.Operation.CREATE_ITEM)
         bc2 = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(bc2.raw, "-Q1234\tP1\t12")
         bc3 = BatchCommand.objects.get(batch=batch, index=2)
         self.assertEqual(bc3.raw, "Q222\tP4\t9~0.1")
+
+    def test_create_property(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q2")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.raw, "CREATE_PROPERTY\twikibase-item")
+        self.assertEqual(cmd.operation, BatchCommand.Operation.CREATE_PROPERTY)
+
+    def test_remove_statemeny_by_id(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "-STATEMENT|Q1234$abcdefgh-uijkl")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_ID)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+
+    def test_remove_statemeny_by_value(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", "-Q1234|P5|Q31")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.prop, "P5")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q31"})
+
+    def test_remove_statemeny_by_value_2(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """-Q1234|P5|"my string" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.prop, "P5")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "my string"})
 
     def test_user_summary(self):
         v1 = V1CommandParser()
@@ -221,6 +229,26 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
         cmd = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+
+    def test_set_sitelink(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Sptwiki|"Cool article" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+        self.assertEqual(cmd.value_value, "Cool article")
+
+
+    def test_remove_sitelink(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Sptwiki|"" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.sitelink, "ptwiki")
 
 
 class TestCSVBatch(TestCase):
@@ -658,3 +686,49 @@ Q4115189,Q5,
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
         cmd = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+
+    def test_remove_statemeny_by_value(self):
+        COMMAND = """qid,P31,-P31
+Q4115189,Q5,Q6"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[1]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.prop, "P31")
+        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q6"})
+
+    def test_set_sitelink(self):
+        COMMAND = """qid,Sptwiki
+Q4115189,"Cool article"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+        self.assertEqual(cmd.value_value, "Cool article")
+
+    def test_remove_sitelink_minus(self):
+        COMMAND = """qid,-Sptwiki
+Q4115189,"x"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_SITELINK)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.sitelink, "ptwiki")
+
+    def test_remove_sitelink_not_empty(self):
+        COMMAND = """qid,Sptwiki
+Q4115189,""
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        self.assertEqual(len(batch.commands()), 0)

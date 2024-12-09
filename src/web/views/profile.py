@@ -1,8 +1,4 @@
-from datetime import datetime
-
-from authlib.integrations.base_client.errors import MismatchingStateError
 from django.shortcuts import render
-from django.conf import settings
 from rest_framework.authtoken.models import Token
 
 from core.client import Client
@@ -10,10 +6,6 @@ from core.exceptions import NoToken
 from core.exceptions import UnauthorizedToken
 from core.exceptions import ServerError
 
-from web.oauth import oauth
-from web.utils import user_from_access_token
-from web.utils import user_from_full_token
-from web.utils import clear_tokens
 from web.models import Preferences
 from web.languages import LANGUAGE_CHOICES
 

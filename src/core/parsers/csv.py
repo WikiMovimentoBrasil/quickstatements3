@@ -162,13 +162,25 @@ class CSVCommandParser(BaseParser):
             else:
                 commands = self.parse_line(row, header)
                 for command in commands:
-                    status = Batch.STATUS_PREVIEW
+                    action = BatchCommand.ACTION_CREATE
+                    operation = None
                     if command["action"] == "add":
                         action = BatchCommand.ACTION_ADD
+                        if command["what"] == "sitelink":
+                            operation = BatchCommand.Operation.SET_SITELINK
                     elif command["action"] == "remove":
                         action = BatchCommand.ACTION_REMOVE
+                        what = command.get("what")
+                        if what == "statement":
+                            operation = BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
+                        elif what == "sitelink":
+                            operation = BatchCommand.Operation.REMOVE_SITELINK
                     elif command["action"] == "create":
                         action = BatchCommand.ACTION_CREATE
+                        if command["type"] == "item":
+                            operation = BatchCommand.Operation.CREATE_ITEM
+                        elif command["type"] == "property":
+                            operation = BatchCommand.Operation.CREATE_PROPERTY
                     else:
                         action = BatchCommand.ACTION_MERGE
 
@@ -177,10 +189,11 @@ class CSVCommandParser(BaseParser):
                     bc = BatchCommand(
                         batch=batch,
                         index=index,
-                        action=action,
                         json=command,
                         raw=raw_csv,
-                        status=status,
+                        action=action,
+                        operation=operation,
+                        status=BatchCommand.STATUS_INITIAL,
                         user_summary=user_summary,
                     )
 

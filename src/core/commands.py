@@ -1,7 +1,4 @@
 from .client import Client
-from .exceptions import ApiNotImplemented
-from .exceptions import NoStatementsForThatProperty
-from .exceptions import NoStatementsWithThatValue
 
 
 def parser_value_to_api_value(parser_value):
@@ -38,18 +35,8 @@ class ApiCommandBuilder:
             return AddStatement(cmd)
         elif cmd.is_add_label_description_alias():
             return AddLabelDescriptionOrAlias(cmd)
-        elif cmd.is_add_sitelink():
-            return AddSitelink(cmd)
-        elif cmd.is_create_item():
-            return CreateItem(cmd)
-        elif cmd.is_create_property():
-            raise ApiNotImplemented()
-        elif cmd.is_remove_statement_by_id():
-            return RemoveStatementById(cmd)
-        elif cmd.is_remove_statement_by_value():
-            return RemoveStatement(cmd)
         else:
-            raise ApiNotImplemented()
+            raise NotImplementedError()
 
 
 class Utilities:
@@ -58,6 +45,7 @@ class Utilities:
         body["comment"] = self.command.edit_summary()
         body["bot"] = False
         return body
+
 
 class AddStatement(Utilities):
     def __init__(self, command):
@@ -145,109 +133,3 @@ class AddLabelDescriptionOrAlias(Utilities):
             return client.add_alias(self.entity_id, full_body)
         else:
             raise ValueError("'what' is not label, description or alias.")
-
-
-class AddSitelink(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-        j = self.command.json
-
-        self.what = j["what"]
-        self.entity_id = j["item"]
-        self.site = j["site"]
-        self.value = j["value"]["value"]
-
-    def body(self):
-        return {
-            "patch": [
-                {
-                    "op": "replace",
-                    "path": f"/{self.site}/title",
-                    "value": self.value,
-                }
-            ]
-        }
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        return client.add_sitelink(self.entity_id, full_body)
-
-
-class CreateItem(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-    def body(self):
-        return {"item": {}}
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        return client.create_item(full_body)
-
-
-class RemoveStatement(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-        j = self.command.json
-
-        self.entity_id = j["entity"]["id"]
-        self.property_id = j["property"]
-        self.parser_value = j["value"]
-        self.api_value = parser_value_to_api_value(self.parser_value)
-
-    def load_id_to_delete(self, client: Client):
-        id_to_delete = None
-        statements = self._get_statements_for_our_property(client)
-
-        for statement in statements:
-            id = statement["id"]
-            api_value = statement["value"]
-
-            if api_value == self.api_value:
-                id_to_delete = id
-                break
-
-        if id_to_delete is None:
-            raise NoStatementsWithThatValue(
-                self.entity_id,
-                self.property_id,
-                self.parser_value["value"],
-            )
-
-        self.id_to_delete = id_to_delete
-
-    def _get_statements_for_our_property(self, client: Client):
-        all_statements = client.get_statements(self.entity_id)
-        our_statements = all_statements.get(self.property_id, [])
-
-        if len(our_statements) == 0:
-            raise NoStatementsForThatProperty(self.entity_id, self.property_id)
-
-        return our_statements
-
-    def body(self):
-        return {}
-
-    def send(self, client: Client):
-        self.load_id_to_delete(client)
-        full_body = self.full_body()
-        res = client.delete_statement(self.id_to_delete, full_body)
-        return res
-
-
-class RemoveStatementById(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-        j = self.command.json
-        self.id = j["id"]
-
-    def body(self):
-        return {}
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        res = client.delete_statement(self.id, full_body)
-        return res

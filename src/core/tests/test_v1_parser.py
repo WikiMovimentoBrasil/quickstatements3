@@ -87,6 +87,7 @@ class TestV1ParserCommand(TestCase):
             data,
             {
                 "action": "remove",
+                "entity": {"id": "Q4115189"},
                 "id": "Q4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34",
                 "what": "statement",
             },
@@ -103,6 +104,9 @@ class TestV1ParserCommand(TestCase):
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("-STATEMENT\tQ1")
         self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("STATEMENT|Q1234$abcdefg-huijk")
+        self.assertEqual(context.exception.message, "STATEMENT must contain at least entity, property and value")
 
     def test_v1_remove_quantity(self):
         parser = V1CommandParser()

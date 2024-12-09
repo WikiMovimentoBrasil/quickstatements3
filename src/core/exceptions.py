@@ -75,12 +75,6 @@ class ServerError(ApiException):
         return super().__init__(message)
 
 
-class ApiNotImplemented(ApiException):
-    def __init__(self):
-        message = "That functionality is not implemented yet"
-        return super().__init__(message)
-
-
 class EntityTypeNotImplemented(ApiException):
     def __init__(self, entity_id):
         message = f"{entity_id}: entity type not supported"
