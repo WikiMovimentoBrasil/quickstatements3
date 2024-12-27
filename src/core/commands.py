@@ -33,8 +33,6 @@ class ApiCommandBuilder:
 
         if cmd.is_add_statement():
             return AddStatement(cmd)
-        elif cmd.is_add_label_description_alias():
-            return AddLabelDescriptionOrAlias(cmd)
         else:
             raise NotImplementedError()
 
@@ -94,42 +92,3 @@ class AddStatement(Utilities):
     def send(self, client: Client):
         full_body = self.full_body()
         return client.add_statement(self.entity_id, full_body)
-
-
-class AddLabelDescriptionOrAlias(Utilities):
-    def __init__(self, command):
-        self.command = command
-
-        j = self.command.json
-
-        self.what = j["what"]
-        self.entity_id = j["item"]
-        self.language = j["language"]
-        self.value = j["value"]["value"]
-
-    def body(self):
-        if self.what != "alias":
-            path = f"/{self.language}"
-        else:
-            path = f"/{self.language}/0"
-
-        return {
-            "patch": [
-                {
-                    "op": "add",
-                    "path": path,
-                    "value": self.value,
-                }
-            ]
-        }
-
-    def send(self, client: Client):
-        full_body = self.full_body()
-        if self.what == "label":
-            return client.add_label(self.entity_id, full_body)
-        elif self.what == "description":
-            return client.add_description(self.entity_id, full_body)
-        elif self.what == "alias":
-            return client.add_alias(self.entity_id, full_body)
-        else:
-            raise ValueError("'what' is not label, description or alias.")

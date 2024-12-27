@@ -166,8 +166,11 @@ class CSVCommandParser(BaseParser):
                     operation = None
                     if command["action"] == "add":
                         action = BatchCommand.ACTION_ADD
-                        if command["what"] == "sitelink":
+                        what = command.get("what")
+                        if what == "sitelink":
                             operation = BatchCommand.Operation.SET_SITELINK
+                        elif what == "label":
+                            operation = BatchCommand.Operation.SET_LABEL
                     elif command["action"] == "remove":
                         action = BatchCommand.ACTION_REMOVE
                         what = command.get("what")
@@ -175,6 +178,8 @@ class CSVCommandParser(BaseParser):
                             operation = BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
                         elif what == "sitelink":
                             operation = BatchCommand.Operation.REMOVE_SITELINK
+                        elif what == "label":
+                            operation = BatchCommand.Operation.REMOVE_LABEL
                     elif command["action"] == "create":
                         action = BatchCommand.ACTION_CREATE
                         if command["type"] == "item":

@@ -235,6 +235,30 @@ class ApiMocker:
         )
 
     @classmethod
+    def remove_sitelink_error_404(cls, mocker, item_id, sitelink):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
+        )
+
+    @classmethod
+    def remove_description_error_404(cls, mocker, item_id, lang):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/descriptions/{lang}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
+        )
+
+    @classmethod
+    def remove_label_error_404(cls, mocker, item_id, lang):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/labels/{lang}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
+        )
+
+    @classmethod
     def labels(cls, mocker, client, entity_id, labels):
         mocker.get(
             client.wikibase_entity_url(entity_id, "/labels"),

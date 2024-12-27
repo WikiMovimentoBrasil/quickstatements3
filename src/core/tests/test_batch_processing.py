@@ -398,24 +398,20 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
 
     @requests_mock.Mocker()
-    def test_remove_sitel_existant(self, mocker):
+    def test_remove_ok_if_non_existant(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
-        ApiMocker.sitelinks(mocker, "Q1234", {"ptwiki": {"title": "Something"}})
-        ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
-        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        ApiMocker.remove_sitelink_error_404(mocker, "Q1234", "ptwiki")
+        ApiMocker.remove_description_error_404(mocker, "Q1234", "pt")
+        ApiMocker.remove_label_error_404(mocker, "Q1234", "pt")
+        batch = self.parse_run("""Q1234|Sptwiki|""
+        Q1234|Dpt|""
+        Q1234|Lpt|"" """)
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
         self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
-
-    @requests_mock.Mocker()
-    def test_remove_sitelink_non_existant(self, mocker):
-        ApiMocker.is_autoconfirmed(mocker)
-        ApiMocker.sitelinks(mocker, "Q1234", {})
-        # this won't be called:
-        # ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
-        batch = self.parse_run("""Q1234|Sptwiki|"" """)
-        self.assertEqual(batch.status, Batch.STATUS_DONE)
-        commands = batch.commands()
-        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].operation, BatchCommand.Operation.REMOVE_DESCRIPTION)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[2].operation, BatchCommand.Operation.REMOVE_LABEL)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(len(commands), 3)

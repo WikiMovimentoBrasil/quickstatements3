@@ -134,7 +134,7 @@ class Client:
             raise UnauthorizedToken()
         if 400 <= status <= 499:
             j = response.json()
-            raise UserError(j.get("code"), j.get("message"))
+            raise UserError(status, j.get("code"), j.get("message"), j)
         if 500 <= status <= 599:
             j = response.json()
             raise ServerError(j)
@@ -165,7 +165,8 @@ class Client:
     def wikibase_url(self, endpoint):
         return f"{self.WIKIBASE_URL}{endpoint}"
 
-    def wikibase_entity_endpoint(self, entity_id, entity_endpoint):
+    @staticmethod
+    def wikibase_entity_endpoint(entity_id, entity_endpoint):
         if entity_id.startswith("Q"):
             base = "/entities/items"
         elif entity_id.startswith("P"):
@@ -199,18 +200,6 @@ class Client:
 
     def wikibase_post(self, endpoint, body):
         return self.wikibase_request_wrapper("POST", endpoint, body)
-
-    def wikibase_get(self, endpoint, body):
-        return self.wikibase_request_wrapper("GET", endpoint, body)
-
-    def wikibase_patch(self, endpoint, body):
-        return self.wikibase_request_wrapper("PATCH", endpoint, body)
-
-    def wikibase_put(self, endpoint, body):
-        return self.wikibase_request_wrapper("PUT", endpoint, body)
-
-    def wikibase_delete(self, endpoint, body):
-        return self.wikibase_request_wrapper("DELETE", endpoint, body)
 
     # ---
     # Wikibase GET/reading
@@ -305,39 +294,6 @@ class Client:
     # ---
     # Wikibase POST/editing
     # ---
-    def create_item(self, body):
-        endpoint = "/entities/items"
-        return self.wikibase_post(endpoint, body)
-
     def add_statement(self, entity_id, body):
         endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
         return self.wikibase_post(endpoint, body)
-
-    def add_label(self, entity_id, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/labels")
-        self.label_cache = {}
-        return self.wikibase_patch(endpoint, body)
-
-    def add_description(self, entity_id, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/descriptions")
-        return self.wikibase_patch(endpoint, body)
-
-    def add_alias(self, entity_id, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/aliases")
-        return self.wikibase_patch(endpoint, body)
-
-    def add_sitelink(self, entity_id, sitelink, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
-        return self.wikibase_put(endpoint, body)
-
-    def remove_sitelink(self, entity_id, sitelink, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, f"/sitelinks/{sitelink}")
-        return self.wikibase_delete(endpoint, body)
-
-    def sitelinks(self, entity_id, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/sitelinks")
-        return self.wikibase_get(endpoint, body)
-
-    def delete_statement(self, statement_id, body):
-        endpoint = f"/statements/{statement_id}"
-        return self.wikibase_delete(endpoint, body)

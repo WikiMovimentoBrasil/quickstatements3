@@ -250,6 +250,25 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(cmd.sitelink, "ptwiki")
 
+    def test_set_label(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Lpt|"oi" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_LABEL)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.language, "pt")
+        self.assertEqual(cmd.value_value, "oi")
+
+    def test_remove_label(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """Q1234|Lpt|"" """)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_LABEL)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(cmd.language, "pt")
+
 
 class TestCSVBatch(TestCase):
     def test_create_property(self):
@@ -723,6 +742,31 @@ Q4115189,"x"
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_SITELINK)
         self.assertEqual(cmd.entity_id(), "Q4115189")
         self.assertEqual(cmd.sitelink, "ptwiki")
+
+    def test_set_label(self):
+        COMMAND = """qid,Lpt
+Q4115189,"Cool label"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.SET_LABEL)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.language, "pt")
+        self.assertEqual(cmd.value_value, "Cool label")
+
+    def test_remove_label_minus(self):
+        COMMAND = """qid,-Lpt
+Q4115189,"x"
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_LABEL)
+        self.assertEqual(cmd.entity_id(), "Q4115189")
+        self.assertEqual(cmd.language, "pt")
 
     def test_remove_sitelink_not_empty(self):
         COMMAND = """qid,Sptwiki
