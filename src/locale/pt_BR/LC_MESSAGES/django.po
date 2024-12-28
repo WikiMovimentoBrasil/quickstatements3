@@ -159,8 +159,8 @@ msgstr "ANTERIOR"
 #: src/web/templates/batch_commands.html:111 src/web/templates/batches.html:93
 #: src/web/templates/preview_batch_commands.html:113
 #, python-format
-msgid "Pg. %(page.number)s of %(page.paginator.num_pages)s"
-msgstr "Pag. %(page.number)s de %(page.paginator.num_pages)s"
+msgid "Pg. %(page)s of %(total)s"
+msgstr "Pag. %(page)s de %(total)s"
 
 #: src/web/templates/batch_commands.html:122 src/web/templates/batches.html:102
 #: src/web/templates/preview_batch_commands.html:124
