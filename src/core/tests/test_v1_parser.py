@@ -36,7 +36,7 @@ class TestV1ParserCommand(TestCase):
         self.assertEqual(context.exception.message, "MERGE command must have 3 columns")
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("MERGE\tQ1\t")
-        self.assertEqual(context.exception.message, "MERGE items wrong format item1=[Q1] item2=[]")
+        self.assertEqual(context.exception.message, "MERGE command must have 3 columns")
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("MERGE\tQ1\tQ2\tQ3")
         self.assertEqual(context.exception.message, "MERGE command must have 3 columns")

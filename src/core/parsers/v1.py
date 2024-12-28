@@ -179,6 +179,7 @@ class V1CommandParser(BaseParser):
         elements = raw_command.split("\t")
         if len(elements) == 0:
             raise ParserException("Empty command statement")
+        elements = [el.strip() for el in elements if len(el.strip()) > 0]
 
         first_command = elements[0].upper().strip()
 

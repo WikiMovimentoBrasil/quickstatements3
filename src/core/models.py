@@ -395,16 +395,20 @@ class BatchCommand(models.Model):
         return self.json.get("type", "").upper()
 
     @property
+    def value_dict(self):
+        return self.json.get("value") if self.json.get("value") else {}
+
+    @property
     def value(self):
-        return self.json.get("value", {}).get("value", "")
+        return self.value_dict.get("value", "")
 
     @property
     def value_type(self):
-        return self.json.get("value", {}).get("type", "")
+        return self.value_dict.get("type", "")
 
     @property
     def value_value(self):
-        return self.json.get("value", {}).get("value", "")
+        return self.value_dict.get("value", "")
 
     def parser_value_to_api_value(self, parser_value):
         if parser_value["type"] in ["novalue", "somevalue"]:

@@ -352,6 +352,7 @@ class BaseParser(object):
         Returns None otherwise
         """
         v = v.strip()
+        v = v.replace('“', '"').replace('”', '"') # fixes weird double-quotes
         for fn in [
             self.parse_value_somevalue_novalue, 
             self.parse_value_entity,
