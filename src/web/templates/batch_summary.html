@@ -5,7 +5,7 @@
     <b class="status status_{{ status | lower }}">{{status | upper}}</b>
   </div>
   <div class="progress-meter">
-    <div class="progress-done-meter" style="width: {{done_percentage}}%;"></div>
+    <div class="progress-done-meter" style="width: {{done_percentage|floatformat:'0'}}%;"></div>
   </div>
   <div class="progress-summary">{{done_percentage}}% {% translate "DONE" %} ({% blocktranslate %}{{done_count}} of {{total_count}}{% endblocktranslate %})</div>
 </div>
@@ -13,10 +13,10 @@
 <div>
     {% translate "COMMANDS SUMMARY" %}
     <b class="status status_total">{% translate "TOTAL" %}: {{total_count}}</b>
-    <b class="status status_initial">{% translate "INIT" %}: {{initial_count}}</b> 
-    <b class="status status_running">{% translate "RUNNING" %}: {{running_count}}</b> 
-    <b class="status status_done">{% translate "DONE" %}: {{done_count}}</b>
-    <b class="status status_error">{% translate "ERRORS" %}: {{error_count}}</b>
+    {% if initial_count %}<b class="status status_initial">{% translate "INIT" %}: {{initial_count}}</b>{% endif %}
+    {% if running_count %}<b class="status status_running">{% translate "RUNNING" %}: {{running_count}}</b>{% endif %}
+    {% if done_count %}<b class="status status_done">{% translate "DONE" %}: {{done_count}}</b>{% endif %}
+    {% if error_count %}<b class="status status_error">{% translate "ERRORS" %}: {{error_count}}</b>{% endif %}
     {% if show_block_on_errors_notice %}
     <small>
       {% translate "This batch will be blocked if a command fails." %}
