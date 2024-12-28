@@ -291,6 +291,13 @@ class Client:
         url = self.wikibase_entity_url(entity_id, "/statements")
         return self.get(url).json()
 
+    def get_entity(self, entity_id):
+        """
+        Returns the entire entity json document.
+        """
+        url = self.wikibase_entity_url(entity_id, "")
+        return self.get(url).json()
+
     # ---
     # Wikibase POST/editing
     # ---

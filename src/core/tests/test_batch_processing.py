@@ -36,6 +36,7 @@ class ProcessingTests(TestCase):
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.property_data_type(mocker, "P12", "url")
+        ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
         batch = self.parse('Q1234|P65|32||Q1234|P12|"""https://myurl.com"""')
@@ -100,6 +101,7 @@ class ProcessingTests(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.create_item(mocker, "Q123")
+        ApiMocker.item_empty(mocker, "Q123")
         ApiMocker.add_statement_successful(mocker, "Q123")
         ApiMocker.property_data_type(mocker, "P1", "commonsMedia")
         ApiMocker.property_data_type(mocker, "P2", "geo-shape")
@@ -168,7 +170,9 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_block_on_errors(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P5", "quantity")
+        ApiMocker.item_empty(mocker, "Q1")
         ApiMocker.add_statement_successful(mocker, "Q1")
         raw = """Q1|P5|33||Q1|P5|"string"||Q1|P5|45"""
 
@@ -204,7 +208,9 @@ class ProcessingTests(TestCase):
         fails, all subsequent LAST commands also fail.
         """
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.item_empty(mocker, "Q1")
         ApiMocker.add_statement_successful(mocker, "Q1")
         ApiMocker.create_item_failed_server(mocker)
         batch = self.parse("CREATE||LAST|P1|1||LAST|P1|1||Q1|P1|1")

@@ -171,6 +171,12 @@ class CSVCommandParser(BaseParser):
                             operation = BatchCommand.Operation.SET_SITELINK
                         elif what == "label":
                             operation = BatchCommand.Operation.SET_LABEL
+                        elif what == "description":
+                            operation = BatchCommand.Operation.SET_DESCRIPTION
+                        elif what == "alias":
+                            operation = BatchCommand.Operation.ADD_ALIAS
+                        elif what == "statement":
+                            operation = BatchCommand.Operation.SET_STATEMENT
                     elif command["action"] == "remove":
                         action = BatchCommand.ACTION_REMOVE
                         what = command.get("what")
@@ -180,6 +186,10 @@ class CSVCommandParser(BaseParser):
                             operation = BatchCommand.Operation.REMOVE_SITELINK
                         elif what == "label":
                             operation = BatchCommand.Operation.REMOVE_LABEL
+                        elif what == "description":
+                            operation = BatchCommand.Operation.REMOVE_DESCRIPTION
+                        elif what == "alias":
+                            operation = BatchCommand.Operation.REMOVE_ALIAS
                     elif command["action"] == "create":
                         action = BatchCommand.ACTION_CREATE
                         if command["type"] == "item":

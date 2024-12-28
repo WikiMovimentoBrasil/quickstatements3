@@ -1,4 +1,6 @@
 import logging
+import jsonpatch
+import copy
 from datetime import datetime
 
 from django.conf import settings
@@ -6,7 +8,6 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from .client import Client
-from .commands import ApiCommandBuilder
 from .exceptions import ApiException
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
@@ -253,6 +254,8 @@ class BatchCommand(models.Model):
         CREATE_ITEM = "create_item", _("Create item")
         CREATE_PROPERTY = "create_property", _("Create property")
         #
+        SET_STATEMENT = "set_statement", _("Set statement")
+        #
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
         #
@@ -403,17 +406,54 @@ class BatchCommand(models.Model):
     def value_value(self):
         return self.json.get("value", {}).get("value", "")
 
-    @property
-    def statement_api_value(self):
-        if self.value_type in ["novalue", "somevalue"]:
+    def parser_value_to_api_value(self, parser_value):
+        if parser_value["type"] in ["novalue", "somevalue"]:
             return {
-                "type": self.value_type,
+                "type": parser_value["type"],
             }
         else:
             return {
                 "type": "value",
-                "content": self.value_value,
+                "content": parser_value["value"],
             }
+
+    @property
+    def statement_api_value(self):
+        value = self.json["value"]
+        return self.parser_value_to_api_value(value)
+
+    def statement_for_api(self):
+        statement = {
+            "property": {
+                "id": self.prop,
+            },
+            "value": self.statement_api_value,
+        }
+        if self.qualifiers():
+            statement["qualifiers"] = self.qualifiers_for_api()
+        if self.references():
+            statement["references"] = self.references_for_api()
+        return statement
+
+    def qualifiers_for_api(self):
+        return [
+            {
+                "property": {"id": q["property"]},
+                "value": self.parser_value_to_api_value(q["value"]),
+            }
+            for q in self.qualifiers()
+        ]
+
+    def references_for_api(self):
+        all_refs = []
+        for ref in self.references():
+            fixed_parts = []
+            for part in ref:
+                fixed_parts.append({
+                    "property": {"id": part["property"]},
+                    "value": self.parser_value_to_api_value(part["value"]),
+                })
+            all_refs.append({"parts": fixed_parts})
 
     def qualifiers(self):
         return self.json.get("qualifiers", [])
@@ -534,13 +574,38 @@ class BatchCommand(models.Model):
         batch_id = self.batch.id
         return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
 
-    def api_payload(self):
+    def set_statement_patch(self, client: Client):
+        """
+        Computes the json patch for SET_STATEMENT operation.
+
+        This is done by modifying the entity's json document.
+        """
+        src = client.get_entity(self.entity_id())
+        new = copy.deepcopy(src)
+        statements = new["statements"].get(self.prop, [])
+        index = None
+        for i, statement in enumerate(statements):
+            if statement["value"] == self.statement_api_value:
+                index = i
+        new["statements"].setdefault(self.prop, [])
+        if index is None:
+            new["statements"][self.prop].append(self.statement_for_api())
+        else:
+            if self.qualifiers():
+                new["statements"][self.prop][i]["qualifiers"].extend(self.qualifiers_for_api())
+            if self.references():
+                new["statements"][self.prop][i]["references"].extend(self.references_for_api())
+        return jsonpatch.JsonPatch.from_diff(src, new).patch
+
+    def api_payload(self, client: Client):
         """
         Returns the data that is sent to the Wikibase API through the body.
         """
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
+            case self.Operation.SET_STATEMENT:
+                return {"patch": self.set_statement_patch(client)}
             case self.Operation.SET_SITELINK:
                 return {
                     "sitelink": {
@@ -563,13 +628,13 @@ class BatchCommand(models.Model):
             case _:
                 return {}
 
-    def api_body(self):
+    def api_body(self, client: Client):
         """
         Returns the final Wikibase API body.
 
         Joins the api payload with bot marking = False and the edit summary.
         """
-        body = self.api_payload()
+        body = self.api_payload(client)
         body["bot"] = False
         body["comment"] = self.edit_summary()
         return body
@@ -588,6 +653,7 @@ class BatchCommand(models.Model):
                 raise NotImplementedError()
             case (
                     self.Operation.CREATE_ITEM |
+                    self.Operation.SET_STATEMENT |
                     self.Operation.REMOVE_STATEMENT_BY_ID | 
                     self.Operation.REMOVE_STATEMENT_BY_VALUE |
                     self.Operation.SET_LABEL |
@@ -602,8 +668,6 @@ class BatchCommand(models.Model):
                     self.Operation.REMOVE_SITELINK
                 ):
                 return self.send_ignoring_404(client)
-            case _:
-                return ApiCommandBuilder(self, client).build_and_send()
         return {}
 
     # -----------------
@@ -649,6 +713,8 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return ("POST", "/entities/items")
+            case self.Operation.SET_STATEMENT:
+                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
             case self.Operation.SET_LABEL:
                 return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
             case self.Operation.SET_DESCRIPTION:
@@ -672,7 +738,7 @@ class BatchCommand(models.Model):
         Sends the request
         """
         method, endpoint = self.operation_method_and_endpoint(client)
-        body = self.api_body()
+        body = self.api_body(client)
         return client.wikibase_request_wrapper(method, endpoint, body)
 
     def send_ignoring_404(self, client: Client):

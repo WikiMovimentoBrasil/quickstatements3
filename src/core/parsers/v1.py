@@ -224,6 +224,8 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.SET_DESCRIPTION
                     elif what == "alias":
                         bc.operation = bc.Operation.ADD_ALIAS
+                    elif what == "statement":
+                        bc.operation = bc.Operation.SET_STATEMENT
                 elif command["action"] == "remove":
                     bc.action = BatchCommand.ACTION_REMOVE
                     what = command.get("what")
