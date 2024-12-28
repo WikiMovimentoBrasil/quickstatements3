@@ -89,7 +89,7 @@ class TestBatchCommand(TestCase):
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
         self.assertEqual(command.prop, "P1")
-        self.assertEqual(command.value, {"amount": "12", "unit": "1"})
+        self.assertEqual(command.value, {"amount": "+12", "unit": "1"})
         self.assertEqual(command.language, "")
         self.assertEqual(command.sitelink, "")
         self.assertEqual(command.what, "STATEMENT")

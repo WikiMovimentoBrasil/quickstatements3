@@ -68,7 +68,7 @@ class BatchCommandDetailViewTest(TestCase):
                 "what": "statement",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
+                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "1"}},
             },
         )
         self.assertEqual(c1["response_json"], {})

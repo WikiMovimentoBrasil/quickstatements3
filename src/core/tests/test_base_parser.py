@@ -306,10 +306,10 @@ class TestBaseParser(TestCase):
 
     def test_parse_value_quantity(self):
         parser = BaseParser()
-        ret = {"type": "quantity", "value": {"amount": "10", "unit": "1"}}
+        ret = {"type": "quantity", "value": {"amount": "+10", "unit": "1"}}
         self.assertEqual(parser.parse_value("10"), ret)
         
-        ret = {"type": "quantity", "value": {"amount": "12", "unit": "11573"}}
+        ret = {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}}
         self.assertEqual(parser.parse_value("12U11573"), ret)
         
         ret = {
@@ -318,10 +318,10 @@ class TestBaseParser(TestCase):
         }
         self.assertEqual(parser.parse_value("9~0.1"), ret)
         
-        ret = {"type": "quantity", "value": {"amount": "10.3", "unit": "1"}}
+        ret = {"type": "quantity", "value": {"amount": "+10.3", "unit": "1"}}
         self.assertEqual(parser.parse_value("10.3"), ret)
 
-        ret = {"type": "quantity", "value": {"amount": "12.8", "unit": "11573"}}
+        ret = {"type": "quantity", "value": {"amount": "+12.8", "unit": "11573"}}
         self.assertEqual(parser.parse_value("12.8U11573"), ret)
         
         ret = {

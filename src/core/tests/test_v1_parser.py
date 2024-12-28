@@ -117,7 +117,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
+                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "1"}},
                 "what": "statement",
             },
         )
@@ -129,7 +129,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
+                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}},
                 "what": "statement",
             },
         )
@@ -172,7 +172,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P1",
-                "value": {"type": "quantity", "value": {"amount": "12", "unit": "1"}},
+                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "1"}},
                 "what": "statement",
             },
         )
@@ -184,7 +184,7 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "12", "unit": "11573"}},
+                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}},
                 "what": "statement",
             },
         )

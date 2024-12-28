@@ -214,7 +214,7 @@ class TestCSVParser(TestCase):
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "qualifiers": [
-                    {"property": "P1545", "value": {'type': 'quantity', 'value': {'amount': '1', 'unit': '1'}}},
+                    {"property": "P1545", "value": {'type': 'quantity', 'value': {'amount': '+1', 'unit': '1'}}},
                 ],
             }
         ]
@@ -428,7 +428,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "10", "unit": "1"}},
+                    "value": {"type": "quantity", "value": {"amount": "+10", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -441,7 +441,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "20", "unit": "1"}},
+                    "value": {"type": "quantity", "value": {"amount": "+20", "unit": "1"}},
                     "what": "statement",
                 },
             ],
@@ -454,7 +454,7 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "3.1415926", "unit": "1"}},
+                    "value": {"type": "quantity", "value": {"amount": "+3.1415926", "unit": "1"}},
                     "what": "statement",
                 },
             ],
