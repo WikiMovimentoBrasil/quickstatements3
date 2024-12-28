@@ -424,6 +424,11 @@ class BatchCommand(models.Model):
     @property
     def statement_api_value(self):
         value = self.json["value"]
+        if value["type"] == "quantity" and value["value"]["unit"] != "1":
+            # TODO: the unit is an entity and we need to put the
+            # full entity URL... so we need the client
+            # to process the URL
+            raise NotImplementedError()
         return self.parser_value_to_api_value(value)
 
     def statement_for_api(self):

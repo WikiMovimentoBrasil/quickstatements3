@@ -16,7 +16,7 @@
           <td colspan="2">
             {{command.message}}
           </td>
-          <td colspan="2">
+          <td>
             {{command.raw}}
           </td>
 
@@ -35,14 +35,6 @@
               {{ command.get_action_display }}
               {% endif %}
             </span>
-          </td>
-
-          <td>
-            {% if command.is_merge_command %}
-            {% translate "STATEMENT" %}
-            {% else %}
-            {{command.what}}
-            {% endif %}
           </td>
 
           <td>
