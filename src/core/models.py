@@ -574,14 +574,21 @@ class BatchCommand(models.Model):
         batch_id = self.batch.id
         return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
 
+    def get_two_entity_json(self, client: Client):
+        """
+        Returns two entity json documents to calculate patches.
+        """
+        src = client.get_entity(self.entity_id())
+        new = copy.deepcopy(src)
+        return (src, new)
+
     def set_statement_patch(self, client: Client):
         """
         Computes the json patch for SET_STATEMENT operation.
 
         This is done by modifying the entity's json document.
         """
-        src = client.get_entity(self.entity_id())
-        new = copy.deepcopy(src)
+        src, new = self.get_two_entity_json(client)
         statements = new["statements"].get(self.prop, [])
         index = None
         for i, statement in enumerate(statements):
@@ -595,6 +602,15 @@ class BatchCommand(models.Model):
                 new["statements"][self.prop][i]["qualifiers"].extend(self.qualifiers_for_api())
             if self.references():
                 new["statements"][self.prop][i]["references"].extend(self.references_for_api())
+        return jsonpatch.JsonPatch.from_diff(src, new).patch
+
+    def add_alias_patch(self, client: Client):
+        """
+        Computes the json patch for ADD_ALIAS operation.
+        """
+        src, new = self.get_two_entity_json(client)
+        new["aliases"].setdefault(self.language, [])
+        new["aliases"][self.language].append(self.value_value)
         return jsonpatch.JsonPatch.from_diff(src, new).patch
 
     def api_payload(self, client: Client):
@@ -618,13 +634,7 @@ class BatchCommand(models.Model):
             case self.Operation.SET_DESCRIPTION:
                 return {"description": self.value_value}
             case self.Operation.ADD_ALIAS:
-                return {"patch": [
-                    {
-                        "op": "add",
-                        "path": f"/{self.language}/-",
-                        "value": self.value_value,
-                    }
-                ]}
+                return {"patch": self.add_alias_patch(client)}
             case _:
                 return {}
 
@@ -728,7 +738,7 @@ class BatchCommand(models.Model):
             case self.Operation.REMOVE_SITELINK:
                 return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
             case self.Operation.ADD_ALIAS:
-                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), "/aliases"))
+                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
             case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
                 statement_id = self.statement_id(client)
                 return ("DELETE", f"/statements/{statement_id}")
