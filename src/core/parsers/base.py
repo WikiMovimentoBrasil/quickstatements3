@@ -316,9 +316,7 @@ class BaseParser(object):
         if quantity_match:
             amount = Decimal(quantity_match.group(1))
             unit = quantity_match.group(4)
-            str_amount = str(amount)
-            if amount >= 0:
-                str_amount = f"+{str_amount}"
+            str_amount = f"+{amount}" if amount >= 0 else f"{amount}"
             return {
                 "type": "quantity",
                 "value": {

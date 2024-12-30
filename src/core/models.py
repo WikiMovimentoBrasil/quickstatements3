@@ -396,7 +396,9 @@ class BatchCommand(models.Model):
 
     @property
     def value_dict(self):
-        return self.json.get("value") if self.json.get("value") else {}
+        if not hasattr(self, "_value_dict"):
+            self._value_dict = self.json.get("value", {})
+        return self._value_dict
 
     @property
     def value(self):

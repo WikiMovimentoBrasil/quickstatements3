@@ -135,7 +135,7 @@ class Client:
         if 400 <= status <= 499:
             j = response.json()
             raise UserError(status, j.get("code"), j.get("message"), j)
-        if 500 <= status <= 599:
+        if 500 <= status:
             j = response.json()
             raise ServerError(j)
 

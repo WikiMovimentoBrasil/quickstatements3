@@ -10,6 +10,21 @@ from core.models import BatchCommand
 
 
 class CSVCommandParser(BaseParser):
+    ADD_WHAT_OP = {
+        "alias": BatchCommand.Operation.ADD_ALIAS,
+        "description": BatchCommand.Operation.SET_DESCRIPTION,
+        "label": BatchCommand.Operation.SET_LABEL,
+        "statement": BatchCommand.Operation.SET_STATEMENT,
+        "sitelink": BatchCommand.Operation.SET_SITELINK,
+    }
+    REMOVE_WHAT_OP = {
+        "alias": BatchCommand.Operation.REMOVE_ALIAS,
+        "description": BatchCommand.Operation.REMOVE_DESCRIPTION,
+        "label": BatchCommand.Operation.REMOVE_LABEL,
+        "statement": BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE,
+        "sitelink": BatchCommand.Operation.REMOVE_SITELINK,
+    }
+
     def parse_line(self, row, header):
         commands = []
         current_command = None
@@ -167,29 +182,11 @@ class CSVCommandParser(BaseParser):
                     if command["action"] == "add":
                         action = BatchCommand.ACTION_ADD
                         what = command.get("what")
-                        if what == "sitelink":
-                            operation = BatchCommand.Operation.SET_SITELINK
-                        elif what == "label":
-                            operation = BatchCommand.Operation.SET_LABEL
-                        elif what == "description":
-                            operation = BatchCommand.Operation.SET_DESCRIPTION
-                        elif what == "alias":
-                            operation = BatchCommand.Operation.ADD_ALIAS
-                        elif what == "statement":
-                            operation = BatchCommand.Operation.SET_STATEMENT
+                        operation = self.ADD_WHAT_OP[what]
                     elif command["action"] == "remove":
                         action = BatchCommand.ACTION_REMOVE
                         what = command.get("what")
-                        if what == "statement":
-                            operation = BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
-                        elif what == "sitelink":
-                            operation = BatchCommand.Operation.REMOVE_SITELINK
-                        elif what == "label":
-                            operation = BatchCommand.Operation.REMOVE_LABEL
-                        elif what == "description":
-                            operation = BatchCommand.Operation.REMOVE_DESCRIPTION
-                        elif what == "alias":
-                            operation = BatchCommand.Operation.REMOVE_ALIAS
+                        operation = self.REMOVE_WHAT_OP[what]
                     elif command["action"] == "create":
                         action = BatchCommand.ACTION_CREATE
                         if command["type"] == "item":
