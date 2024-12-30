@@ -103,9 +103,11 @@ class V1CommandParser(BaseParser):
 
             lang = elements[1][1:]
             data = {"action": action, "what": what, "item": entity, "value": vvalue}
+            # remove if it's empty string
+            if vvalue["value"] == "":
+                data["action"] = "remove"
+
             if what == "sitelink":
-                if vvalue["value"] == "":
-                    data["action"] = "remove"
                 data["site"] = lang
             else:
                 data["language"] = lang
@@ -177,6 +179,7 @@ class V1CommandParser(BaseParser):
         elements = raw_command.split("\t")
         if len(elements) == 0:
             raise ParserException("Empty command statement")
+        elements = [el.strip() for el in elements if len(el.strip()) > 0]
 
         first_command = elements[0].upper().strip()
 
@@ -213,8 +216,17 @@ class V1CommandParser(BaseParser):
                 command = self.parse_command(raw_command)
                 if command["action"] == "add":
                     bc.action = BatchCommand.ACTION_ADD
-                    if command["what"] == "sitelink":
+                    what = command.get("what")
+                    if what == "sitelink":
                         bc.operation = bc.Operation.SET_SITELINK
+                    elif what == "label":
+                        bc.operation = bc.Operation.SET_LABEL
+                    elif what == "description":
+                        bc.operation = bc.Operation.SET_DESCRIPTION
+                    elif what == "alias":
+                        bc.operation = bc.Operation.ADD_ALIAS
+                    elif what == "statement":
+                        bc.operation = bc.Operation.SET_STATEMENT
                 elif command["action"] == "remove":
                     bc.action = BatchCommand.ACTION_REMOVE
                     what = command.get("what")
@@ -225,6 +237,12 @@ class V1CommandParser(BaseParser):
                             bc.operation = bc.Operation.REMOVE_STATEMENT_BY_VALUE
                     elif what == "sitelink":
                         bc.operation = bc.Operation.REMOVE_SITELINK
+                    elif what == "label":
+                        bc.operation = bc.Operation.REMOVE_LABEL
+                    elif what == "description":
+                        bc.operation = bc.Operation.REMOVE_DESCRIPTION
+                    elif what == "alias":
+                        bc.operation = bc.Operation.REMOVE_ALIAS
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":

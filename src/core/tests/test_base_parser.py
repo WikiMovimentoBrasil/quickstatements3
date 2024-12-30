@@ -306,26 +306,35 @@ class TestBaseParser(TestCase):
 
     def test_parse_value_quantity(self):
         parser = BaseParser()
-        ret = {"type": "quantity", "value": {"amount": "10", "unit": "1"}}
+        ret = {"type": "quantity", "value": {"amount": "+10", "unit": "1"}}
         self.assertEqual(parser.parse_value("10"), ret)
-        
-        ret = {"type": "quantity", "value": {"amount": "12", "unit": "11573"}}
+
+        ret = {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}}
         self.assertEqual(parser.parse_value("12U11573"), ret)
-        
+
         ret = {
             "type": "quantity",
             "value": {"amount": "9", "upperBound": "9.1", "lowerBound": "8.9", "unit": "1"},
         }
         self.assertEqual(parser.parse_value("9~0.1"), ret)
-        
-        ret = {"type": "quantity", "value": {"amount": "10.3", "unit": "1"}}
+        self.assertEqual(parser.parse_value("9[8.9, 9.1]"), ret)
+
+        ret = {"type": "quantity", "value": {"amount": "+10.3", "unit": "1"}}
         self.assertEqual(parser.parse_value("10.3"), ret)
 
-        ret = {"type": "quantity", "value": {"amount": "12.8", "unit": "11573"}}
+        ret = {"type": "quantity", "value": {"amount": "+12.8", "unit": "11573"}}
         self.assertEqual(parser.parse_value("12.8U11573"), ret)
         
         ret = {
             "type": "quantity",
-            "value": {"amount": "9.6", "upperBound": "9.7", "lowerBound": "9.5", "unit": "1"},
+            "value": {"amount": "9.6", "upperBound": "9.7", "lowerBound": "9.5", "unit": "11573"},
         }
-        self.assertEqual(parser.parse_value("9.6~0.1"), ret)
+        self.assertEqual(parser.parse_value("9.6~0.1U11573"), ret)
+        self.assertEqual(parser.parse_value("9.6[9.5, 9.7]U11573"), ret)
+
+        ret = {
+            "type": "quantity",
+            "value": {"amount": "9.123", "upperBound": "9.246", "lowerBound": "9.000", "unit": "1"},
+        }
+        self.assertEqual(parser.parse_value("9.123~0.123"), ret)
+        self.assertEqual(parser.parse_value("9.123[9.000,9.246]"), ret)

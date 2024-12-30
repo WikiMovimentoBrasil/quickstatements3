@@ -1,10 +1,24 @@
+import requests_mock
+
 from django.test import TestCase
+from django.contrib.auth.models import User
 
 from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
+from core.client import Client
+from core.tests.test_api import ApiMocker
+from web.models import Token
 
 
 class TestBatchCommand(TestCase):
+    def parse(self, text):
+        user = User.objects.create(username="user")
+        Token.objects.create(user=user, value="tokenvalue")
+        v1 = V1CommandParser()
+        batch = v1.parse("Test", "user", text)
+        batch.save_batch_and_preview_commands()
+        return batch
+
     def test_error_status(self):
         parser = V1CommandParser()
         batch = parser.parse("Batch", "wikiuser", "CREATE")
@@ -89,7 +103,7 @@ class TestBatchCommand(TestCase):
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_REMOVE)
         self.assertEqual(command.prop, "P1")
-        self.assertEqual(command.value, {"amount": "12", "unit": "1"})
+        self.assertEqual(command.value, {"amount": "+12", "unit": "1"})
         self.assertEqual(command.language, "")
         self.assertEqual(command.sitelink, "")
         self.assertEqual(command.what, "STATEMENT")
@@ -193,3 +207,60 @@ class TestBatchCommand(TestCase):
         self.assertFalse(command.is_label_alias_description_command())
         self.assertTrue(command.is_sitelink_command())
         self.assertFalse(command.is_error_status())
+
+    @requests_mock.Mocker()
+    def test_set_stament_api_payload(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.item_empty(mocker, "Q1234")
+        ApiMocker.item_empty(mocker, "Q333")
+        batch = self.parse("""Q1234|P1|Q2
+        Q333|P3|12|P5|100""")
+        commands = batch.commands()
+        client = Client.from_username("user")
+        self.assertEqual(len(commands), 2)
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_STATEMENT)
+        self.assertEqual(
+            commands[0].statement_for_api(),
+            {
+                "property": {"id": "P1"},
+                "value": {"type": "value", "content": "Q2"},
+            },
+        )
+        self.assertEqual(
+            commands[0].api_payload(client),
+            {
+                "patch": [
+                    {
+                        "op": "add",
+                        "path": "/statements/P1",
+                        "value": [
+                            {
+                                "property": {"id": "P1"},
+                                "value": {"type": "value", "content": "Q2"},
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        self.assertEqual(
+            commands[1].api_payload(client),
+            {
+                "patch": [
+                    {
+                        "op": "add",
+                        "path": "/statements/P3",
+                        "value": [
+                            {
+                                "property": {"id": "P3"},
+                                "value": {"type": "value", "content": {"amount": "+12", "unit": "1"}},
+                                "qualifiers": [{
+                                    "property": {"id": "P5"},
+                                    "value": {"type": "value", "content": {"amount": "+100", "unit": "1"}},
+                                }],
+                            }
+                        ],
+                    }
+                ]
+            },
+        )

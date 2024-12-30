@@ -16,7 +16,7 @@
           <td colspan="2">
             {{command.message}}
           </td>
-          <td colspan="2">
+          <td>
             {{command.raw}}
           </td>
 
@@ -38,14 +38,6 @@
           </td>
 
           <td>
-            {% if command.is_merge_command %}
-            {% translate "STATEMENT" %}
-            {% else %}
-            {{command.what}}
-            {% endif %}
-          </td>
-
-          <td>
             {% if command.is_label_alias_description_command %}
               <i>{{ command.language }}</i>:
             {% elif command.is_merge_command %}
@@ -55,7 +47,7 @@
             {% else %}
               {{ command.prop }}:
             {% endif %}
-            {{ command.value }}
+            {{ command.value_value }}
           </td>
 
         {% endif %}

@@ -304,7 +304,7 @@ class BaseParser(object):
             }
         return None
 
-    def parser_value_quantity(self, v):
+    def parse_value_quantity(self, v):
         """
         Returns quantity data if v matches one of the following format:
 
@@ -316,12 +316,35 @@ class BaseParser(object):
         if quantity_match:
             amount = Decimal(quantity_match.group(1))
             unit = quantity_match.group(4)
+            str_amount = f"+{amount}" if amount >= 0 else f"{amount}"
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": str(amount),
+                    "amount": str_amount,
                     "unit": unit if unit else "1",
 
+                },
+            }
+
+        bounds_match = re.match(
+            r"^([\+\-]{0,1}\d+(\.\d+){0,1})"
+            r"\[([\+\-]{0,1}\d+(\.\d+){0,1}),\s{0,1}"
+            r"([\+\-]{0,1}\d+(\.\d+){0,1})\]"
+            r"(U(\d+)){0,1}$",
+            v
+        )
+        if bounds_match:
+            value = Decimal(bounds_match.group(1))
+            lowerBound = Decimal(bounds_match.group(3))
+            upperBound = Decimal(bounds_match.group(5))
+            unit = bounds_match.group(8)
+            return {
+                "type": "quantity",
+                "value": {
+                    "amount": str(value),
+                    "lowerBound": str(lowerBound),
+                    "upperBound": str(upperBound),
+                    "unit": unit if unit else "1",
                 },
             }
 
@@ -349,6 +372,7 @@ class BaseParser(object):
         Returns None otherwise
         """
         v = v.strip()
+        v = v.replace('“', '"').replace('”', '"') # fixes weird double-quotes
         for fn in [
             self.parse_value_somevalue_novalue, 
             self.parse_value_entity,
@@ -359,7 +383,7 @@ class BaseParser(object):
             self.parse_value_string,
             self.parse_value_time,
             self.parse_value_location,
-            self.parser_value_quantity,
+            self.parse_value_quantity,
         ]:
             ret = fn(v)
             if ret is not None:

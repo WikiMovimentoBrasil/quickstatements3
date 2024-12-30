@@ -139,6 +139,31 @@ class ApiMocker:
         )
 
     @classmethod
+    def item(cls, mocker, item_id, item_json):
+        mocker.get(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json=item_json,
+            status_code=200,
+        )
+
+    @classmethod
+    def item_empty(cls, mocker, item_id):
+        EMPTY_ITEM = {
+          "type": "item",
+          "labels": {},
+          "descriptions": {},
+          "aliases": {},
+          "statements": {},
+          "sitelinks": {},
+          "id": item_id,
+        }
+        mocker.get(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json=EMPTY_ITEM,
+            status_code=200,
+        )
+
+    @classmethod
     def property_data_type_not_found(cls, mocker, property_id):
         mocker.get(
             cls.wikibase_url(f"/entities/properties/{property_id}"),
@@ -156,8 +181,8 @@ class ApiMocker:
 
     @classmethod
     def add_statement_successful(cls, mocker, item_id):
-        mocker.post(
-            cls.wikibase_url(f"/entities/items/{item_id}/statements"),
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
             json={"id": f"{item_id}$somestuff"},
             status_code=200,
         )
@@ -232,6 +257,30 @@ class ApiMocker:
             cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
             json="Sitelink deleted",
             status_code=200,
+        )
+
+    @classmethod
+    def remove_sitelink_error_404(cls, mocker, item_id, sitelink):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
+        )
+
+    @classmethod
+    def remove_description_error_404(cls, mocker, item_id, lang):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/descriptions/{lang}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
+        )
+
+    @classmethod
+    def remove_label_error_404(cls, mocker, item_id, lang):
+        mocker.delete(
+            cls.wikibase_url(f"/entities/items/{item_id}/labels/{lang}"),
+            json={"code": "not-foud", "message": "message"},
+            status_code=404,
         )
 
     @classmethod
@@ -598,27 +647,25 @@ class TestBatchCommand(TestCase):
         return (user, api_client)
 
     def test_api_payload(self):
-        payload = BatchCommand().api_payload()
+        user = User.objects.create_user(username="test_api_payload")
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        client = Client.from_user(user)
+        payload = BatchCommand().api_payload(client)
         self.assertEqual(payload, {})
-        payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload()
+        payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload(client)
         self.assertEqual(payload, {"item": {}})
 
     def test_api_body(self):
-        batch = V1CommandParser().parse("b", "u", "Q1|P1|Q2 /* hello */")
+        user = User.objects.create_user(username="test_api_payload")
+        Token.objects.create(user=user, value="TEST_TOKEN")
+        client = Client.from_user(user)
+        batch = V1CommandParser().parse("b", "u", "CREATE /* hello */")
         batch.save_batch_and_preview_commands()
         batch_id = batch.id
         cmd = batch.commands()[0]
         comment = f"[[:toollabs:qs-dev/batch/{batch_id}|batch #{batch_id}]]: hello"
         self.assertEqual(
-            cmd.api_body(),
-            {
-                "bot": False,
-                "comment": comment,
-            },
-        )
-        cmd.operation = cmd.Operation.CREATE_ITEM
-        self.assertEqual(
-            cmd.api_body(),
+            cmd.api_body(client),
             {
                 "item": {},
                 "bot": False,

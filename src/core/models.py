@@ -1,4 +1,6 @@
 import logging
+import jsonpatch
+import copy
 from datetime import datetime
 
 from django.conf import settings
@@ -6,7 +8,6 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from .client import Client
-from .commands import ApiCommandBuilder
 from .exceptions import ApiException
 from .exceptions import InvalidPropertyValueType
 from .exceptions import NoToken
@@ -252,10 +253,22 @@ class BatchCommand(models.Model):
     class Operation(models.TextChoices):
         CREATE_ITEM = "create_item", _("Create item")
         CREATE_PROPERTY = "create_property", _("Create property")
+        #
+        SET_STATEMENT = "set_statement", _("Set statement")
+        #
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
+        #
         SET_SITELINK = "set_sitelink", _("Set sitelink")
+        SET_LABEL = "set_label", _("Set label")
+        SET_DESCRIPTION = "set_description", _("Set label")
+        #
         REMOVE_SITELINK = "remove_sitelink", _("Remove sitelink")
+        REMOVE_LABEL = "remove_label", _("Remove label")
+        REMOVE_DESCRIPTION = "remove_description", _("Remove description")
+        #
+        ADD_ALIAS = "add_alias", _("Add alias")
+        REMOVE_ALIAS = "remove_alias", _("Remove alias")
 
     operation = models.TextField(
         null=True,
@@ -359,9 +372,19 @@ class BatchCommand(models.Model):
 
     @property
     def what(self):
-        if not hasattr(self, "_what"):
-            self._what = self.json.get("what", "").upper()
-        return self._what
+        return self.json.get("what", "").upper()
+
+    @property
+    def what_plural_lowercase(self):
+        what = self.json.get("what")
+        if what == "alias":
+            return "aliases"
+        elif what:
+            return f"{what}s"
+
+    @property
+    def language_or_sitelink(self):
+        return self.language if self.language else self.sitelink
 
     @property
     def prop(self):
@@ -372,28 +395,76 @@ class BatchCommand(models.Model):
         return self.json.get("type", "").upper()
 
     @property
+    def value_dict(self):
+        if not hasattr(self, "_value_dict"):
+            self._value_dict = self.json.get("value", {})
+        return self._value_dict
+
+    @property
     def value(self):
-        return self.json.get("value", {}).get("value", "")
+        return self.value_dict.get("value", "")
 
     @property
     def value_type(self):
-        return self.json.get("value", {}).get("type", "")
+        return self.value_dict.get("type", "")
 
     @property
     def value_value(self):
-        return self.json.get("value", {}).get("value", "")
+        return self.value_dict.get("value", "")
 
-    @property
-    def statement_api_value(self):
-        if self.value_type in ["novalue", "somevalue"]:
+    def parser_value_to_api_value(self, parser_value):
+        if parser_value["type"] in ["novalue", "somevalue"]:
             return {
-                "type": self.value_type,
+                "type": parser_value["type"],
             }
         else:
             return {
                 "type": "value",
-                "content": self.value_value,
+                "content": parser_value["value"],
             }
+
+    @property
+    def statement_api_value(self):
+        value = self.json["value"]
+        if value["type"] == "quantity" and value["value"]["unit"] != "1":
+            # TODO: the unit is an entity and we need to put the
+            # full entity URL... so we need the client
+            # to process the URL
+            raise NotImplementedError()
+        return self.parser_value_to_api_value(value)
+
+    def statement_for_api(self):
+        statement = {
+            "property": {
+                "id": self.prop,
+            },
+            "value": self.statement_api_value,
+        }
+        if self.qualifiers():
+            statement["qualifiers"] = self.qualifiers_for_api()
+        if self.references():
+            statement["references"] = self.references_for_api()
+        return statement
+
+    def qualifiers_for_api(self):
+        return [
+            {
+                "property": {"id": q["property"]},
+                "value": self.parser_value_to_api_value(q["value"]),
+            }
+            for q in self.qualifiers()
+        ]
+
+    def references_for_api(self):
+        all_refs = []
+        for ref in self.references():
+            fixed_parts = []
+            for part in ref:
+                fixed_parts.append({
+                    "property": {"id": part["property"]},
+                    "value": self.parser_value_to_api_value(part["value"]),
+                })
+            all_refs.append({"parts": fixed_parts})
 
     def qualifiers(self):
         return self.json.get("qualifiers", [])
@@ -514,13 +585,54 @@ class BatchCommand(models.Model):
         batch_id = self.batch.id
         return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
 
-    def api_payload(self):
+    def get_two_entity_json(self, client: Client):
+        """
+        Returns two entity json documents to calculate patches.
+        """
+        src = client.get_entity(self.entity_id())
+        new = copy.deepcopy(src)
+        return (src, new)
+
+    def set_statement_patch(self, client: Client):
+        """
+        Computes the json patch for SET_STATEMENT operation.
+
+        This is done by modifying the entity's json document.
+        """
+        src, new = self.get_two_entity_json(client)
+        statements = new["statements"].get(self.prop, [])
+        index = None
+        for i, statement in enumerate(statements):
+            if statement["value"] == self.statement_api_value:
+                index = i
+        new["statements"].setdefault(self.prop, [])
+        if index is None:
+            new["statements"][self.prop].append(self.statement_for_api())
+        else:
+            if self.qualifiers():
+                new["statements"][self.prop][i]["qualifiers"].extend(self.qualifiers_for_api())
+            if self.references():
+                new["statements"][self.prop][i]["references"].extend(self.references_for_api())
+        return jsonpatch.JsonPatch.from_diff(src, new).patch
+
+    def add_alias_patch(self, client: Client):
+        """
+        Computes the json patch for ADD_ALIAS operation.
+        """
+        src, new = self.get_two_entity_json(client)
+        new["aliases"].setdefault(self.language, [])
+        new["aliases"][self.language].append(self.value_value)
+        return jsonpatch.JsonPatch.from_diff(src, new).patch
+
+    def api_payload(self, client: Client):
         """
         Returns the data that is sent to the Wikibase API through the body.
         """
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
+            case self.Operation.SET_STATEMENT:
+                return {"patch": self.set_statement_patch(client)}
             case self.Operation.SET_SITELINK:
                 return {
                     "sitelink": {
@@ -528,41 +640,56 @@ class BatchCommand(models.Model):
                         "badges": [],
                     },
                 }
+            case self.Operation.SET_LABEL:
+                return {"label": self.value_value}
+            case self.Operation.SET_DESCRIPTION:
+                return {"description": self.value_value}
+            case self.Operation.ADD_ALIAS:
+                return {"patch": self.add_alias_patch(client)}
             case _:
                 return {}
 
-    def api_body(self):
+    def api_body(self, client: Client):
         """
         Returns the final Wikibase API body.
 
         Joins the api payload with bot marking = False and the edit summary.
         """
-        body = self.api_payload()
+        body = self.api_payload(client)
         body["bot"] = False
         body["comment"] = self.edit_summary()
         return body
 
     def send_to_api(self, client: Client) -> dict:
+        """
+        Sends the operation to the Wikibase API.
+
+        # Raises
+
+        - `NotImplementedError` if the operation
+        is not implemented.
+        """
         match self.operation:
-            case self.Operation.CREATE_ITEM:
-                return client.create_item(self.api_body())
-            case self.Operation.CREATE_PROPERTY:
+            case self.Operation.CREATE_PROPERTY | self.Operation.REMOVE_ALIAS:
                 raise NotImplementedError()
-            case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
-                return client.delete_statement(self.statement_id(client), self.api_body())
-            case self.Operation.SET_SITELINK:
-                return client.add_sitelink(self.entity_id(), self.sitelink, self.api_body())
-            case self.Operation.REMOVE_SITELINK:
-                sitelinks = client.sitelinks(self.entity_id(), self.api_body())
-                # TODO: (improve) workaround to make it idempotent like QSv2
-                # I could not make it work using json patches,
-                # the API gives an error when trying to remove a non-existant path
-                if self.sitelink in sitelinks:
-                    return client.remove_sitelink(self.entity_id(), self.sitelink, self.api_body())
-                else:
-                    return sitelinks
-            case _:
-                return ApiCommandBuilder(self, client).build_and_send()
+            case (
+                    self.Operation.CREATE_ITEM |
+                    self.Operation.SET_STATEMENT |
+                    self.Operation.REMOVE_STATEMENT_BY_ID | 
+                    self.Operation.REMOVE_STATEMENT_BY_VALUE |
+                    self.Operation.SET_LABEL |
+                    self.Operation.SET_DESCRIPTION |
+                    self.Operation.SET_SITELINK |
+                    self.Operation.ADD_ALIAS
+                ):
+                return self.send_basic(client)
+            case (
+                    self.Operation.REMOVE_LABEL |
+                    self.Operation.REMOVE_DESCRIPTION |
+                    self.Operation.REMOVE_SITELINK
+                ):
+                return self.send_ignoring_404(client)
+        return {}
 
     # -----------------
     # Auxiliary methods for Wikibase API interaction
@@ -598,6 +725,54 @@ class BatchCommand(models.Model):
                 return statement["id"]
 
         raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
+
+    def operation_method_and_endpoint(self, client: Client):
+        """
+        Returns a tuple of HTTP method and the endpoint
+        necessary for the operation.
+        """
+        match self.operation:
+            case self.Operation.CREATE_ITEM:
+                return ("POST", "/entities/items")
+            case self.Operation.SET_STATEMENT:
+                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
+            case self.Operation.SET_LABEL:
+                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
+            case self.Operation.SET_DESCRIPTION:
+                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
+            case self.Operation.SET_SITELINK:
+                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
+            case self.Operation.REMOVE_LABEL:
+                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
+            case self.Operation.REMOVE_DESCRIPTION:
+                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
+            case self.Operation.REMOVE_SITELINK:
+                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
+            case self.Operation.ADD_ALIAS:
+                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
+            case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
+                statement_id = self.statement_id(client)
+                return ("DELETE", f"/statements/{statement_id}")
+
+    def send_basic(self, client: Client):
+        """
+        Sends the request
+        """
+        method, endpoint = self.operation_method_and_endpoint(client)
+        body = self.api_body(client)
+        return client.wikibase_request_wrapper(method, endpoint, body)
+
+    def send_ignoring_404(self, client: Client):
+        """
+        Sends the request ignoring 404 error codes.
+        """
+        try:
+            return self.send_basic(client)
+        except UserError as e:
+            if e.status == 404:
+                return e.response_json
+            else:
+                raise e
 
     # -----------------
     # Visualization/label methods

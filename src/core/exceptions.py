@@ -61,10 +61,12 @@ class NoStatementsWithThatValue(ApiException):
 
 
 class UserError(ApiException):
-    def __init__(self, response_code, response_message):
+    def __init__(self, status, response_code, response_message, response_json):
+        self.status = status
         self.response_code = response_code
         self.response_message = response_message
-        message = f"Error ('{response_code}'): {response_message}"
+        self.response_json = response_json
+        message = f"Error {status} ('{response_code}'): {response_message}"
         return super().__init__(message)
 
 

@@ -36,6 +36,7 @@ class ProcessingTests(TestCase):
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P65", "quantity")
         ApiMocker.property_data_type(mocker, "P12", "url")
+        ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.add_statement_successful(mocker, "Q1234")
 
         batch = self.parse('Q1234|P65|32||Q1234|P12|"""https://myurl.com"""')
@@ -100,6 +101,7 @@ class ProcessingTests(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.create_item(mocker, "Q123")
+        ApiMocker.item_empty(mocker, "Q123")
         ApiMocker.add_statement_successful(mocker, "Q123")
         ApiMocker.property_data_type(mocker, "P1", "commonsMedia")
         ApiMocker.property_data_type(mocker, "P2", "geo-shape")
@@ -168,7 +170,9 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_block_on_errors(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P5", "quantity")
+        ApiMocker.item_empty(mocker, "Q1")
         ApiMocker.add_statement_successful(mocker, "Q1")
         raw = """Q1|P5|33||Q1|P5|"string"||Q1|P5|45"""
 
@@ -204,7 +208,9 @@ class ProcessingTests(TestCase):
         fails, all subsequent LAST commands also fail.
         """
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.item_empty(mocker, "Q1")
         ApiMocker.add_statement_successful(mocker, "Q1")
         ApiMocker.create_item_failed_server(mocker)
         batch = self.parse("CREATE||LAST|P1|1||LAST|P1|1||Q1|P1|1")
@@ -398,24 +404,20 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
 
     @requests_mock.Mocker()
-    def test_remove_sitel_existant(self, mocker):
+    def test_remove_ok_if_non_existant(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
-        ApiMocker.sitelinks(mocker, "Q1234", {"ptwiki": {"title": "Something"}})
-        ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
-        batch = self.parse_run("""Q1234|Sptwiki|"" """)
+        ApiMocker.remove_sitelink_error_404(mocker, "Q1234", "ptwiki")
+        ApiMocker.remove_description_error_404(mocker, "Q1234", "pt")
+        ApiMocker.remove_label_error_404(mocker, "Q1234", "pt")
+        batch = self.parse_run("""Q1234|Sptwiki|""
+        Q1234|Dpt|""
+        Q1234|Lpt|"" """)
         self.assertEqual(batch.status, Batch.STATUS_DONE)
         commands = batch.commands()
         self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
-
-    @requests_mock.Mocker()
-    def test_remove_sitelink_non_existant(self, mocker):
-        ApiMocker.is_autoconfirmed(mocker)
-        ApiMocker.sitelinks(mocker, "Q1234", {})
-        # this won't be called:
-        # ApiMocker.remove_sitelink_success(mocker, "Q1234", "ptwiki")
-        batch = self.parse_run("""Q1234|Sptwiki|"" """)
-        self.assertEqual(batch.status, Batch.STATUS_DONE)
-        commands = batch.commands()
-        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].operation, BatchCommand.Operation.REMOVE_DESCRIPTION)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[2].operation, BatchCommand.Operation.REMOVE_LABEL)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(len(commands), 3)
