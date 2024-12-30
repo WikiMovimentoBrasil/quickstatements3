@@ -23,7 +23,9 @@
         {% else %}
 
           <td >
+              {% if command.display_label %}
               {{ command.display_label }}
+              {% endif %}
               {{ command.entity_info }}
           </td>
           
