@@ -104,15 +104,19 @@ def preview_batch_commands(request):
 
         paginator = Paginator(batch_commands, PAGE_SIZE)
         page = paginator.page(page)
+        page.object_list = [
+            d.object for d in page.object_list
+        ]
 
         if request.user.is_authenticated:
             client = Client.from_user(request.user)
             language = Preferences.objects.get_language(request.user, "en")
-            for deserialized in page.object_list:
-                command = deserialized.object
+            for command in page.object_list:
                 command.display_label = command.get_label(client, language)
 
-    return render(request, "preview_batch_commands.html", {"page": page, "only_errors": only_errors})
+
+    base_url = reverse("preview_batch_commands")
+    return render(request, "batch_commands.html", {"page": page, "only_errors": only_errors, "base_url": base_url})
 
 
 @login_required()

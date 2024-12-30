@@ -119,7 +119,8 @@ def batch_commands(request, pk):
         except (NoToken, ServerError):
             pass
 
-    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors})
+    base_url = reverse("batch_commands", args=[pk])
+    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors, "base_url": base_url})
 
 
 @require_http_methods(
