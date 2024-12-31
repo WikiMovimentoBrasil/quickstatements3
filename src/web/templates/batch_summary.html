@@ -5,7 +5,15 @@
     <b class="status status_{{ status | lower }}">{{status | upper}}</b>
   </div>
   <div class="progress-meter">
-    <div class="progress-done-meter" style="width: {{done_percentage|floatformat:'0'}}%;"></div>
+    <div id="progress-done-meter"
+      class="progress-done-meter"
+      style="width: {{done_percentage|floatformat:'0'}}%;"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="{{done_percentage}}"
+    >
+    </div>
   </div>
   <div class="progress-summary">{{done_percentage}}% {% translate "DONE" %} ({% blocktranslate %}{{done_count}} of {{total_count}}{% endblocktranslate %})</div>
 </div>
