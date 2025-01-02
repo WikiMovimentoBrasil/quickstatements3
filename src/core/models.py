@@ -355,6 +355,14 @@ class BatchCommand(models.Model):
         else:
             raise ValueError("This command has no entity to update its id.")
 
+    def entity_url(self):
+        entity_id = self.entity_id()
+        base = Client.BASE_REST_URL.replace("/w/rest.php", "")
+        if entity_id and entity_id != "LAST":
+            return f"{base}/entity/{entity_id}"
+        else:
+            return ""
+
     # -----------------
     # Property methods
     # -----------------
