@@ -474,6 +474,7 @@ class BatchCommand(models.Model):
                     "value": self.parser_value_to_api_value(part["value"]),
                 })
             all_refs.append({"parts": fixed_parts})
+        return all_refs
 
     def qualifiers(self):
         return self.json.get("qualifiers", [])
