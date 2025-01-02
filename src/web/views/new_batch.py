@@ -40,7 +40,7 @@ def preview_batch(request):
     preview_batch = request.session.get("preview_batch")
     if preview_batch:
         total_count = 0
-        init_count = 0
+        initial_count = 0
         error_count = 0
         batch = list(serializers.deserialize("json", preview_batch))[0]
         preview_batch_commands = request.session.get("preview_commands", "[]")
@@ -50,7 +50,7 @@ def preview_batch(request):
             if bc.object.status == BatchCommand.STATUS_ERROR:
                 error_count += 1
             else:
-                init_count += 1
+                initial_count += 1
 
         is_autoconfirmed = None
         try:
@@ -69,7 +69,7 @@ def preview_batch(request):
                 "current_owner": True,
                 "is_autoconfirmed": is_autoconfirmed,
                 "total_count": total_count,
-                "init_count": init_count,
+                "initial_count": initial_count,
                 "error_count": error_count,
             },
         )
@@ -104,15 +104,19 @@ def preview_batch_commands(request):
 
         paginator = Paginator(batch_commands, PAGE_SIZE)
         page = paginator.page(page)
+        page.object_list = [
+            d.object for d in page.object_list
+        ]
 
         if request.user.is_authenticated:
             client = Client.from_user(request.user)
             language = Preferences.objects.get_language(request.user, "en")
-            for deserialized in page.object_list:
-                command = deserialized.object
+            for command in page.object_list:
                 command.display_label = command.get_label(client, language)
 
-    return render(request, "preview_batch_commands.html", {"page": page, "only_errors": only_errors})
+
+    base_url = reverse("preview_batch_commands")
+    return render(request, "batch_commands.html", {"page": page, "only_errors": only_errors, "base_url": base_url})
 
 
 @login_required()

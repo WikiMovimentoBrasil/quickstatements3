@@ -74,13 +74,13 @@
       
         {% if page.has_previous %}
         <span class="pagination prev-page">
-          <a href="{% url 'last_batches_by_user' user=user %}?page=1">
+          <a href="{{base_url}}?page=1">
             << {% translate 'FIRST' %}
           </a>
         </span> 
         
         <span class="pagination prev-page">
-          <a href="{% url 'last_batches_by_user' user=user %}?page={{page.previous_page_number}}">
+          <a href="{{base_url}}?page={{page.previous_page_number}}">
             < {% translate 'PREVIOUS' %}
           </a>
         </span> 
@@ -90,7 +90,9 @@
 
     <div style="display: inline-block; text-align: center; width: 30%;">
         <span class="pagination current-page">
-          {% blocktranslate %}Pg. {{page.number}} of {{page.paginator.num_pages}}{% endblocktranslate %}
+          {% blocktranslate with page=page.number total=page.paginator.num_pages %}
+            Pg. {{page}} of {{total}}
+          {% endblocktranslate %}
         </span> 
     </div>
 
@@ -98,13 +100,13 @@
     
       {% if page.has_next %}
       <span class="pagination next-page">
-        <a href="{% url 'last_batches_by_user' user=user %}?page={{page.next_page_number}}">
+        <a href="{{base_url}}?page={{page.next_page_number}}">
             {% translate 'NEXT' %} >
         </a>
       </span> 
         
       <span class="pagination next-page">
-        <a href="{% url 'last_batches_by_user' user=user %}?page={{page.paginator.num_pages}}">
+        <a href="{{base_url}}?page={{page.paginator.num_pages}}">
             {% translate 'LAST' %}>>
         </a>
       </span> 

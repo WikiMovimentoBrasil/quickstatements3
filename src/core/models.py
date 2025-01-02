@@ -792,7 +792,7 @@ class BatchCommand(models.Model):
         id = self.entity_id()
 
         if id is None or id == "LAST":
-            return id
+            return None
 
         labels = client.get_labels(id)
 

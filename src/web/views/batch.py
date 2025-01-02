@@ -119,7 +119,8 @@ def batch_commands(request, pk):
         except (NoToken, ServerError):
             pass
 
-    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors})
+    base_url = reverse("batch_commands", args=[pk])
+    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors, "base_url": base_url})
 
 
 @require_http_methods(
@@ -165,7 +166,7 @@ def batch_summary(request, pk):
                 "running_count": batch.running_commands,
                 "done_count": batch.done_commands,
                 "total_count": batch.total_commands,
-                "done_percentage": float(100 * batch.done_commands) / batch.total_commands
+                "done_percentage": round(float(100 * batch.done_commands) / batch.total_commands, 1)
                 if batch.total_commands
                 else 0,
                 "show_block_on_errors_notice": show_block_on_errors_notice,

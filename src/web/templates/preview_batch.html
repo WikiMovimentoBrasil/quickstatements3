@@ -30,26 +30,7 @@
   </p>
 </div>
 <div id="batchProgressDiv" style="margin: 20px 0; font-size: 14px; ">
-    <div class="progress" id="batchprogress">
-        <div class="progress-status">{% translate "BATCH STATUS" %}
-            <b class="status status_preview">{% translate "PREVIEW" %}</b>
-        </div>
-        <div class="progress-meter">
-            <div class="progress-done-meter" style="width: 0%;"></div>
-        </div>
-        <div class="progress-summary">{{0}}% {% translate "DONE" %} ({% blocktranslate %}{{0}} of {{total_count}}{% endblocktranslate %})</div>
-    </div>
-    <div>
-        {% translate "COMMANDS SUMMARY" %}
-        <b class="status status_total">{% translate "TOTAL" %}: {{total_count}}</b>
-        <b class="status status_initial">{% translate "INITIAL" %}: {{init_count}}</b>
-        <b class="status status_error">{% translate "ERRORS" %}: {{error_count}}</b>
-        {% if batch.block_on_errors %}
-        <small>
-            {% translate "This batch will be blocked if a command fails." %}
-        </small>
-        {% endif %}
-    </div>
+    {% include 'batch_summary.html' with done_count=0 done_percentage=0 status="Preview" show_block_on_errors_notice=True %}
 </div>
 <h4>{% translate "Commands" %}</h4>
 <div class="overflow-auto" id="batchCommandsDiv" hx-get="{% url 'preview_batch_commands' %}" hx-trigger="load, reload" hx-indicator="#spinner" hx-swap="innerHTML">
