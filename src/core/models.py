@@ -16,6 +16,7 @@ from .exceptions import ServerError
 from .exceptions import UserError
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
+from .exceptions import NonexistantPropertyOrNoDataType
 
 logger = logging.getLogger("qsts3")
 
@@ -82,7 +83,7 @@ class Batch(models.Model):
         for command in self.commands():
             try:
                 command.verify_value_types(client)
-            except InvalidPropertyValueType:
+            except (InvalidPropertyValueType, NonexistantPropertyOrNoDataType):
                 if self.block_on_errors:
                     return self.block_by(command)
 
