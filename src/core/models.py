@@ -631,7 +631,8 @@ class BatchCommand(models.Model):
         """
         src, new = self.get_two_entity_json(client)
         new["aliases"].setdefault(self.language, [])
-        new["aliases"][self.language].append(self.value_value)
+        for alias in self.value_value:
+            new["aliases"][self.language].append(alias)
         return jsonpatch.JsonPatch.from_diff(src, new).patch
 
     def api_payload(self, client: Client):

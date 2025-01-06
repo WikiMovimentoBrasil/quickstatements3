@@ -141,7 +141,7 @@ class TestBatchCommand(TestCase):
         self.assertEqual(command.entity_info, "[Q1234]")
         self.assertEqual(command.action, BatchCommand.ACTION_ADD)
         self.assertEqual(command.prop, "")
-        self.assertEqual(command.value, "Texto brasileiro")
+        self.assertEqual(command.value, ["Texto brasileiro"])
         self.assertEqual(command.language, "pt")
         self.assertEqual(command.sitelink, "")
         self.assertEqual(command.what, "ALIAS")
