@@ -16,6 +16,7 @@ from .exceptions import ServerError
 from .exceptions import UserError
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
+from .exceptions import NonexistantPropertyOrNoDataType
 
 logger = logging.getLogger("qsts3")
 
@@ -82,7 +83,7 @@ class Batch(models.Model):
         for command in self.commands():
             try:
                 command.verify_value_types(client)
-            except InvalidPropertyValueType:
+            except (InvalidPropertyValueType, NonexistantPropertyOrNoDataType):
                 if self.block_on_errors:
                     return self.block_by(command)
 
@@ -354,6 +355,14 @@ class BatchCommand(models.Model):
         else:
             raise ValueError("This command has no entity to update its id.")
 
+    def entity_url(self):
+        entity_id = self.entity_id()
+        base = Client.BASE_REST_URL.replace("/w/rest.php", "")
+        if entity_id and entity_id != "LAST":
+            return f"{base}/entity/{entity_id}"
+        else:
+            return ""
+
     # -----------------
     # Property methods
     # -----------------
@@ -465,6 +474,7 @@ class BatchCommand(models.Model):
                     "value": self.parser_value_to_api_value(part["value"]),
                 })
             all_refs.append({"parts": fixed_parts})
+        return all_refs
 
     def qualifiers(self):
         return self.json.get("qualifiers", [])
@@ -621,7 +631,8 @@ class BatchCommand(models.Model):
         """
         src, new = self.get_two_entity_json(client)
         new["aliases"].setdefault(self.language, [])
-        new["aliases"][self.language].append(self.value_value)
+        for alias in self.value_value:
+            new["aliases"][self.language].append(alias)
         return jsonpatch.JsonPatch.from_diff(src, new).patch
 
     def api_payload(self, client: Client):
