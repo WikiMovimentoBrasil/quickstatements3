@@ -586,7 +586,10 @@ class BatchCommand(models.Model):
         the identification necessary for EditGroups.
         """
         editgroups = self.editgroups_summary()
-        return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+        if editgroups:
+            return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+        else:
+            return self.user_summary if self.user_summary else ""
 
     def editgroups_summary(self):
         """
@@ -595,8 +598,11 @@ class BatchCommand(models.Model):
         # Our regex for EditGroups:
         # ".*\[\[:toollabs:TOOLFORGE_TOOL_NAME/batch/(\d+)\|.*"
         tool = settings.TOOLFORGE_TOOL_NAME
-        batch_id = self.batch.id
-        return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
+        if tool is not None:
+            batch_id = self.batch.id
+            return f"[[:toollabs:{tool}/batch/{batch_id}|batch #{batch_id}]]"
+        else:
+            return ""
 
     def get_two_entity_json(self, client: Client):
         """

@@ -193,4 +193,4 @@ BASE_REST_URL = os.getenv(
 )
 
 # To use with EditGroups integration
-TOOLFORGE_TOOL_NAME = os.getenv("TOOLFORGE_TOOL_NAME", "qs-dev")
+TOOLFORGE_TOOL_NAME = os.getenv("TOOLFORGE_TOOL_NAME")

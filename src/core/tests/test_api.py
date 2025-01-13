@@ -2,6 +2,7 @@ import requests_mock
 from datetime import timedelta
 
 from django.test import TestCase
+from django.test import override_settings
 from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
 from django.utils.timezone import now
@@ -655,6 +656,7 @@ class TestBatchCommand(TestCase):
         payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload(client)
         self.assertEqual(payload, {"item": {}})
 
+    @override_settings(TOOLFORGE_TOOL_NAME="qs-dev")
     def test_api_body(self):
         user = User.objects.create_user(username="test_api_payload")
         Token.objects.create(user=user, value="TEST_TOKEN")
