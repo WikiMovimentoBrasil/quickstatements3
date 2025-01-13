@@ -3,6 +3,7 @@ import requests
 import logging
 
 from django.core.cache import cache as django_cache
+from django.conf import settings
 from django.contrib.auth.models import User
 from requests.exceptions import HTTPError
 
@@ -56,10 +57,7 @@ def cache_with_first_arg(cache_name):
 
 
 class Client:
-    BASE_REST_URL = os.getenv(
-        "BASE_REST_URL",
-        "https://www.wikidata.org/w/rest.php",
-    )
+    BASE_REST_URL = settings.BASE_REST_URL
     ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
     WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
 

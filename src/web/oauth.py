@@ -1,11 +1,9 @@
 import os
 
+from django.conf import settings
 from authlib.integrations.django_client import OAuth
 
-BASE_REST_URL = os.getenv(
-    "BASE_REST_URL",
-    "https://www.wikidata.org/w/rest.php",
-)
+BASE_REST_URL = settings.BASE_REST_URL
 
 oauth = OAuth()
 oauth.register(
