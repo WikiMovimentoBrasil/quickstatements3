@@ -453,6 +453,8 @@ class BatchCommand(models.Model):
             statement["qualifiers"] = self.qualifiers_for_api()
         if self.references():
             statement["references"] = self.references_for_api()
+        if self.statement_rank():
+            statement["rank"] = self.statement_rank()
         return statement
 
     def qualifiers_for_api(self):
@@ -487,6 +489,9 @@ class BatchCommand(models.Model):
         for ref in self.references():
             parts.extend(ref)
         return parts
+
+    def statement_rank(self):
+        return self.json.get("rank")
 
     # -----------------
     # verification methods
@@ -623,6 +628,8 @@ class BatchCommand(models.Model):
                 new["statements"][self.prop][i]["qualifiers"].extend(self.qualifiers_for_api())
             if self.references():
                 new["statements"][self.prop][i]["references"].extend(self.references_for_api())
+            if self.statement_rank():
+                new["statements"][self.prop][i]["rank"] = self.statement_rank()
         return jsonpatch.JsonPatch.from_diff(src, new).patch
 
     def add_alias_patch(self, client: Client):

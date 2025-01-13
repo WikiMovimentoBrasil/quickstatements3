@@ -105,6 +105,14 @@ class BaseParser(object):
         """
         return value is not None and re.match("^S[a-z]+$", value) is not None
 
+    def is_valid_statement_rank(self, value):
+        """
+        Returns True if value is a valid statemen rank
+        Rdeprecated,  Rnormal,  Rpreferred
+        R1, R2, R3
+        """
+        return value is not None and re.match("^R(1|2|3|deprecated|normal|preferred)$", value) is not None
+
     def get_entity_type(self, entity):
         """
         Detects the entity type based on the pattern. 

@@ -142,6 +142,22 @@ class TestBaseParser(TestCase):
         self.assertFalse(parser.is_valid_sitelink("S2121212"))
         self.assertFalse(parser.is_valid_sitelink(None))
 
+    def test_sense_valid_statement_rank(self):
+        parser = BaseParser()
+        self.assertTrue(parser.is_valid_statement_rank("R1"))
+        self.assertTrue(parser.is_valid_statement_rank("R2"))
+        self.assertTrue(parser.is_valid_statement_rank("R3"))
+        self.assertTrue(parser.is_valid_statement_rank("Rdeprecated"))
+        self.assertTrue(parser.is_valid_statement_rank("Rnormal"))
+        self.assertTrue(parser.is_valid_statement_rank("Rpreferred"))
+        self.assertFalse(parser.is_valid_statement_rank("R"))
+        self.assertFalse(parser.is_valid_statement_rank("R-"))
+        self.assertFalse(parser.is_valid_statement_rank("R="))
+        self.assertFalse(parser.is_valid_statement_rank("R+"))
+        self.assertFalse(parser.is_valid_statement_rank("P123"))
+        self.assertFalse(parser.is_valid_statement_rank("S123"))
+        self.assertFalse(parser.is_valid_statement_rank(None))
+
     def test_get_entity_type(self):
         parser = BaseParser()
         self.assertEqual(parser.get_entity_type("Q1222132"), "item")
