@@ -109,9 +109,9 @@ class BaseParser(object):
         """
         Returns True if value is a valid statemen rank
         Rdeprecated,  Rnormal,  Rpreferred
-        R1, R2, R3
+        R=, R0, R+
         """
-        return value is not None and re.match("^R(1|2|3|deprecated|normal|preferred)$", value) is not None
+        return value is not None and re.match("^R(-|0|\+|deprecated|normal|preferred)$", value) is not None
 
     def get_entity_type(self, entity):
         """

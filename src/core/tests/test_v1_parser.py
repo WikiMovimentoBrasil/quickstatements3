@@ -567,7 +567,7 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_statement_rank(self):
         parser = V1CommandParser()
-        data = parser.parse_command('Q1234\tP1\t"this is a string"\tR3')
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tR+')
         self.assertEqual(
             data,
             {
@@ -579,3 +579,13 @@ class TestV1ParserCommand(TestCase):
                 "what": "statement",
             },
         )
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tR0')
+        self.assertEqual(data["rank"], "normal")
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tR-')
+        self.assertEqual(data["rank"], "deprecated")
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tRpreferred')
+        self.assertEqual(data["rank"], "preferred")
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tRnormal')
+        self.assertEqual(data["rank"], "normal")
+        data = parser.parse_command('Q1234\tP1\t"this is a string"\tRdeprecated')
+        self.assertEqual(data["rank"], "deprecated")

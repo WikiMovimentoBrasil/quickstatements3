@@ -145,9 +145,9 @@ class V1CommandParser(BaseParser):
             if len(elements) >= 4 and self.is_valid_statement_rank(elements[3]):
                 rank = elements.pop(3).strip()
                 data["rank"] = {
-                    "R1": "deprecated",
-                    "R2": "normal",
-                    "R3": "preferred",
+                    "R-": "deprecated",
+                    "R0": "normal",
+                    "R+": "preferred",
                     "Rdeprecated": "deprecated",
                     "Rnormal": "normal",
                     "Rpreferred": "preferred",
