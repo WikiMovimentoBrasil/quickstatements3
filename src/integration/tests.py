@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 from core.client import Client
 from core.parsers.v1 import V1CommandParser
-from core.models import BatchCommand
+from core.models import Batch
 from web.models import Token
 
 TOKEN = os.environ.get("INTEGRATION_TEST_AUTH_TOKEN")
@@ -47,13 +47,14 @@ class IntegrationTests(TestCase):
         Q238107|Smetawiki|"QuickStatements 3.0"
         -Q238107|P65|42
         -Q238107|P31|somevalue
+        -Q238107|P18|novalue
         -Q238107|P196|novalue
-        Q238107|P65|42|P65|84|P84267|-5
+        Q238107|P65|42|R+|P65|84|P84267|-5
         Q238107|P31|somevalue|P18|+2025-01-15T00:00:00Z/11|S93|"https://kernel.org/"|S84267|42|!S93|"https://www.mediawiki.org/"|S74|+1980-10-21T00:00:00Z/11
-        Q238107|P196|novalue"""
+        Q238107|P18|novalue|R0|S65|999|!S74|+2012-12-21T00:00:00Z/11
+        Q238107|P196|novalue|R-"""
         batch = self.parse_run(raw)
-        for command in batch.commands():
-            self.assertEqual(command.status, BatchCommand.STATUS_DONE)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
         doc = self.api_client.get_entity("Q238107")
         self.assertEqual(doc["type"], "item")
         self.assertEqual(doc["id"], "Q238107")
@@ -81,7 +82,7 @@ class IntegrationTests(TestCase):
             doc["statements"]["P65"][0],
             {
                 "id": doc["statements"]["P65"][0]["id"],
-                "rank": "normal",
+                "rank": "preferred",
                 "qualifiers": [
                     {
                         "property": {"id": "P65", "data_type": "quantity"},
@@ -175,10 +176,51 @@ class IntegrationTests(TestCase):
             doc["statements"]["P196"][0],
             {
                 "id": doc["statements"]["P196"][0]["id"],
-                "rank": "normal",
+                "rank": "deprecated",
                 "qualifiers": [],
                 "references": [],
                 "property": {"id": "P196", "data_type": "wikibase-item"},
+                "value": {"type": "novalue"},
+            },
+        )
+        self.assertEqual(len(doc["statements"]["P18"]), 1)
+        self.assertEqual(
+            doc["statements"]["P18"][0],
+            {
+                "id": doc["statements"]["P18"][0]["id"],
+                "rank": "normal",
+                "qualifiers": [],
+                "references": [
+                    {
+                        "hash": "9bc946e5761bc2db49998dbe208f9390d88d0188",
+                        "parts": [
+                            {
+                                "property": {"id": "P65", "data_type": "quantity"},
+                                "value": {
+                                    "type": "value",
+                                    "content": {"amount": "+999", "unit": "1"},
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "hash": "6c3a2860c535c7a5b280fcfce413b39343aeda37",
+                        "parts": [
+                            {
+                                "property": {"id": "P74", "data_type": "time"},
+                                "value": {
+                                    "type": "value",
+                                    "content": {
+                                        "time": "+2012-12-21T00:00:00Z",
+                                        "precision": 11,
+                                        "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                                    },
+                                },
+                            }
+                        ],
+                    },
+                ],
+                "property": {"id": "P18", "data_type": "time"},
                 "value": {"type": "novalue"},
             },
         )
