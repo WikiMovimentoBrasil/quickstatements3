@@ -442,20 +442,18 @@ class BatchCommand(models.Model):
             raise NotImplementedError()
         return self.parser_value_to_api_value(value)
 
-    def statement_for_api(self):
-        statement = {
-            "property": {
-                "id": self.prop,
-            },
-            "value": self.statement_api_value,
-        }
-        if self.qualifiers():
-            statement["qualifiers"] = self.qualifiers_for_api()
-        if self.references():
-            statement["references"] = self.references_for_api()
-        if self.statement_rank():
-            statement["rank"] = self.statement_rank()
-        return statement
+    def update_statement(self, st):
+        st.setdefault("property", {"id": self.prop})
+        st.setdefault("value", self.statement_api_value)
+        quals, refs, rank = self.qualifiers_for_api(), self.references_for_api(), self.statement_rank()
+        if quals:
+            st.setdefault("qualifiers", [])
+            st["qualifiers"].extend(quals)
+        if refs:
+            st.setdefault("references", [])
+            st["references"].extend(refs)
+        if rank:
+            st["rank"] = rank
 
     def qualifiers_for_api(self):
         return [
@@ -615,21 +613,15 @@ class BatchCommand(models.Model):
         This is done by modifying the entity's json document.
         """
         src, new = self.get_two_entity_json(client)
-        statements = new["statements"].get(self.prop, [])
         index = None
+        statements = new["statements"].setdefault(self.prop, [])
         for i, statement in enumerate(statements):
             if statement["value"] == self.statement_api_value:
                 index = i
-        new["statements"].setdefault(self.prop, [])
         if index is None:
-            new["statements"][self.prop].append(self.statement_for_api())
-        else:
-            if self.qualifiers():
-                new["statements"][self.prop][i]["qualifiers"].extend(self.qualifiers_for_api())
-            if self.references():
-                new["statements"][self.prop][i]["references"].extend(self.references_for_api())
-            if self.statement_rank():
-                new["statements"][self.prop][i]["rank"] = self.statement_rank()
+            new["statements"][self.prop].append(dict())
+            index = -1
+        self.update_statement(new["statements"][self.prop][index])
         return jsonpatch.JsonPatch.from_diff(src, new).patch
 
     def add_alias_patch(self, client: Client):
