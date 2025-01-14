@@ -262,7 +262,7 @@ class BatchCommand(models.Model):
         #
         SET_SITELINK = "set_sitelink", _("Set sitelink")
         SET_LABEL = "set_label", _("Set label")
-        SET_DESCRIPTION = "set_description", _("Set label")
+        SET_DESCRIPTION = "set_description", _("Set description")
         #
         REMOVE_SITELINK = "remove_sitelink", _("Remove sitelink")
         REMOVE_LABEL = "remove_label", _("Remove label")
