@@ -273,9 +273,6 @@ class TestBaseParser(TestCase):
             "type": "time",
             "value": {
                 "time": "+1967-01-17T00:00:00Z",
-                "timezone": 0,
-                "before": 0,
-                "after": 0,
                 "precision": 11,
                 "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
             },
@@ -285,9 +282,6 @@ class TestBaseParser(TestCase):
             "type": "time",
             "value": {
                 "time": "+1967-01-00T00:00:00Z",
-                "timezone": 0,
-                "before": 0,
-                "after": 0,
                 "precision": 10,
                 "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
             },
@@ -297,9 +291,6 @@ class TestBaseParser(TestCase):
             "type": "time",
             "value": {
                 "time": "+1967-00-00T00:00:00Z",
-                "timezone": 0,
-                "before": 0,
-                "after": 0,
                 "precision": 9,
                 "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
             },

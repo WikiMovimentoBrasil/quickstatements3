@@ -47,11 +47,11 @@ class IntegrationTests(TestCase):
         Q238107|Smetawiki|"QuickStatements 3.0"
         -Q238107|P65|42
         -Q238107|P31|somevalue
-        -Q238107|P18|novalue
+        -Q238107|P18|+2001-01-15T00:00:00Z/11
         -Q238107|P196|novalue
         Q238107|P65|42|R+|P65|84|P84267|-5
         Q238107|P31|somevalue|P18|+2025-01-15T00:00:00Z/11|S93|"https://kernel.org/"|S84267|42|!S93|"https://www.mediawiki.org/"|S74|+1980-10-21T00:00:00Z/11
-        Q238107|P18|novalue|R0|S65|999|!S74|+2012-12-21T00:00:00Z/11
+        Q238107|P18|+2001-01-15T00:00:00Z/11|R0|S65|999|!S74|+2012-12-21T00:00:00Z/11
         Q238107|P196|novalue|R-"""
         batch = self.parse_run(raw)
         self.assertEqual(batch.status, Batch.STATUS_DONE)
@@ -221,6 +221,13 @@ class IntegrationTests(TestCase):
                     },
                 ],
                 "property": {"id": "P18", "data_type": "time"},
-                "value": {"type": "novalue"},
+                "value": {
+                    "type": "value",
+                    "content": {
+                        "time": "+2001-01-15T00:00:00Z",
+                        "precision": 11,
+                        "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                    },
+                },
             },
         )
