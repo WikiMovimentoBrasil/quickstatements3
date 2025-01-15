@@ -1,7 +1,9 @@
 import logging
 import jsonpatch
 from typing import Optional
+from typing import List
 from datetime import datetime
+from dataclasses import dataclass
 
 from django.conf import settings
 from django.db import models
@@ -19,6 +21,21 @@ from .exceptions import NoStatementsWithThatValue
 from .exceptions import NonexistantPropertyOrNoDataType
 
 logger = logging.getLogger("qsts3")
+
+@dataclass
+class CombiningState:
+    """
+    Utility class to manage state between combining commands.
+
+    Saves the current entity json document and the previous
+    commands that have altered it.
+    """
+    commands: List["BatchCommand"]
+    entity: Optional[dict]
+
+    @classmethod
+    def empty(cls):
+        return cls(commands=[], entity=None)
 
 
 class Batch(models.Model):
@@ -89,7 +106,7 @@ class Batch(models.Model):
                     return self.block_by(command)
 
         last_id = None
-        previous_entity_json = None
+        state = CombiningState.empty()
         commands = self.commands()
         count = commands.count()
 
@@ -102,13 +119,13 @@ class Batch(models.Model):
             next = commands[i+1] if (i + 1) < count else None
 
             command.update_last_id(last_id)
-            command.check_combination(previous_entity_json, next)
+            command.check_combination(state, next)
             command.run(client)
 
             if command.is_error_status() and self.block_on_errors:
                 return self.block_by(command)
 
-            previous_entity_json = getattr(command, "final_entity_json", None)
+            state = command.final_combining_state
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
@@ -303,6 +320,7 @@ class BatchCommand(models.Model):
         NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
         SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
+        COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
 
     error = models.TextField(
         null=True,
@@ -326,6 +344,7 @@ class BatchCommand(models.Model):
         logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
         self.save()
+        self.propagate_status_to_previous_commands()
 
     def error_with_value(self, value: Error):
         self.error = value
@@ -340,6 +359,15 @@ class BatchCommand(models.Model):
         self.message = message
         self.status = BatchCommand.STATUS_ERROR
         self.save()
+        self.propagate_status_to_previous_commands()
+
+    def propagate_status_to_previous_commands(self):
+        for cmd in getattr(self, "previous_commands", []):
+            if self.is_error_status():
+                cmd.error = self.Error.COMBINING_COMMAND_FAILED
+                cmd.message = cmd.error.label
+            cmd.status = self.status
+            cmd.save()
 
     # -----------------
     # Entity id methods
@@ -572,10 +600,10 @@ class BatchCommand(models.Model):
         try:
             self.verify_value_types(client)
             if self.can_combine_with_next:
-                self.final_entity_json = self.get_final_entity_json(client)
+                self.update_combining_state(client)
             else:
                 self.response_json = self.send_to_api(client)
-            self.finish()
+                self.finish()
         except NotImplementedError:
             self.error_with_value(self.Error.OP_NOT_IMPLEMENTED)
         except NoStatementsForThatProperty:
@@ -642,14 +670,11 @@ class BatchCommand(models.Model):
         """
         return getattr(self, "_can_combine_with_next", False)
 
-    def check_combination(self, previous_entity_json: Optional[dict], next: Optional["BatchCommand"]):
+    def check_combination(self, state: CombiningState, next: Optional["BatchCommand"]):
         """
         Caches the previous_entity_json as given, even if None.
 
         Checks combination with next command if available.
-
-        Callers should always pass to previous_entity_json
-        the previous command's `final_entity_json` property.
         """
         self._can_combine_with_next = (
             self.batch.combine_commands
@@ -659,7 +684,8 @@ class BatchCommand(models.Model):
             and self.entity_id() == next.entity_id()
             and self.is_operation_compatible(next)
         )
-        self.previous_entity_json = previous_entity_json
+        self.previous_entity_json = state.entity
+        self.previous_commands = state.commands
 
     def is_operation_compatible(self, next: Optional["BatchCommand"]):
         INCOMPATBILE_OPERATIONS = (
@@ -670,6 +696,24 @@ class BatchCommand(models.Model):
         first = self.operation
         second = getattr(next, "operation", None)
         return (first, second) not in INCOMPATBILE_OPERATIONS
+
+    def update_combining_state(self, client: Client):
+        """
+        Updates the combining state, appending itself
+        as a command and updating the current entity json
+        with the command's modifications.
+        """
+        entity = self.get_final_entity_json(client)
+        commands = getattr(self, "previous_commands", [])
+        commands.append(self)
+        self._final_combining_state = CombiningState(
+            entity=entity,
+            commands=commands,
+        )
+
+    @property
+    def final_combining_state(self):
+        return getattr(self, "_final_combining_state", CombiningState.empty())
 
     def get_original_entity_json(self, client: Client):
         """
@@ -692,7 +736,7 @@ class BatchCommand(models.Model):
         to the next command.
         """
         cached = getattr(self, "previous_entity_json", None)
-        entity = cached if cached is not None else client.get_entity(self.entity_id())
+        entity = cached if cached else client.get_entity(self.entity_id())
         logger.debug(f"[{self}] previous_entity_json={entity}")
         return entity
 
