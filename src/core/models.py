@@ -715,7 +715,8 @@ class BatchCommand(models.Model):
         elif self.operation == self.Operation.ADD_ALIAS:
             entity["aliases"].setdefault(self.language, [])
             for alias in self.value_value:
-                entity["aliases"][self.language].append(alias)
+                if alias not in entity["aliases"][self.language]:
+                    entity["aliases"][self.language].append(alias)
         elif self.operation == self.Operation.SET_SITELINK:
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
         elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
