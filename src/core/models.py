@@ -1,6 +1,6 @@
 import logging
 import jsonpatch
-import copy
+from typing import Optional
 from datetime import datetime
 
 from django.conf import settings
@@ -88,18 +88,26 @@ class Batch(models.Model):
                     return self.block_by(command)
 
         last_id = None
+        previous_entity_json = None
+        commands = self.commands()
+        count = commands.count()
 
-        for command in self.commands():
+        for i, command in enumerate(commands):
             self.refresh_from_db()
             if self.is_stopped:
                 # The status changed, so we have to stop
                 return
 
+            next = commands[i+1] if (i + 1) < count else None
+
             command.update_last_id(last_id)
+            command.check_combination(previous_entity_json, next)
             command.run(client)
+
             if command.is_error_status() and self.block_on_errors:
                 return self.block_by(command)
 
+            previous_entity_json = getattr(command, "final_entity_json", None)
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
@@ -562,7 +570,10 @@ class BatchCommand(models.Model):
 
         try:
             self.verify_value_types(client)
-            self.response_json = self.send_to_api(client)
+            if self.can_combine_with_next:
+                self.final_entity_json = self.get_final_entity_json(client)
+            else:
+                self.response_json = self.send_to_api(client)
             self.finish()
         except NotImplementedError:
             self.error_with_value(self.Error.OP_NOT_IMPLEMENTED)
@@ -604,41 +615,121 @@ class BatchCommand(models.Model):
         else:
             return ""
 
-    def get_two_entity_json(self, client: Client):
+    def is_entity_json_patch(self):
         """
-        Returns two entity json documents to calculate patches.
+        Returns True for commands that work by modifying the entity's json,
+        creating a json patch.
         """
-        src = client.get_entity(self.entity_id())
-        new = copy.deepcopy(src)
-        return (src, new)
+        return self.operation in (
+            self.Operation.SET_STATEMENT,
+            self.Operation.ADD_ALIAS,
+        )
 
-    def set_statement_patch(self, client: Client):
+    @property
+    def can_combine_with_next(self):
         """
-        Computes the json patch for SET_STATEMENT operation.
+        Defines if the command should just return the
+        modified entity json, because connecting to the API
+        will be done by the next command.
+        """
+        return getattr(self, "_can_combine_with_next", False)
 
-        This is done by modifying the entity's json document.
+    def check_combination(self, previous_entity_json: Optional[dict], next: Optional["BatchCommand"]):
         """
-        src, new = self.get_two_entity_json(client)
+        Caches the previous_entity_json as given, even if None.
+
+        Checks combination with next command if available.
+
+        Callers should always pass to previous_entity_json
+        the previous command's `final_entity_json` property.
+        """
+        self._can_combine_with_next = (
+            self.is_entity_json_patch()
+            and next is not None
+            and next.is_entity_json_patch()
+            and self.entity_id() == next.entity_id()
+        )
+        self.previous_entity_json = previous_entity_json
+
+    def get_original_entity_json(self, client: Client):
+        """
+        Returns the original entity json.
+
+        Used for calculating the final patch send to the API.
+
+        TODO: think of a way of caching this. The first command
+        in the sequence would have to store that somewhere.
+        Or Batch.run becomes more complicated or we save it
+        in a dedicated cache.
+        """
+        return client.get_entity(self.entity_id())
+
+    def get_previous_entity_json(self, client: Client):
+        """
+        Returns the previous entity json. Has cache.
+
+        Used for calculating the final entity json to pass along
+        to the next command.
+        """
+        cached = getattr(self, "previous_entity_json", None)
+        entity = cached if cached is not None else client.get_entity(self.entity_id())
+        logger.debug(f"[{self}] previous_entity_json={entity}")
+        return entity
+
+    def get_final_entity_json(self, client: Client) -> dict:
+        """
+        Returns the final entity json, applying the operations.
+        """
+        entity = self.get_previous_entity_json(client)
+        self.update_entity_json(entity)
+        return entity
+
+    def update_entity_json(self, entity: dict):
+        """
+        Modifies the entity json in-place.
+        """
+        if self.operation == self.Operation.SET_STATEMENT:
+            self._update_entity_statements(entity)
+        elif self.operation == self.Operation.ADD_ALIAS:
+            self._update_entity_aliases(entity)
+
+    def _update_entity_statements(self, entity: dict):
+        """
+        Modifies the entity json statements in-place.
+        """
         index = None
-        statements = new["statements"].setdefault(self.prop, [])
+        statements = entity["statements"].setdefault(self.prop, [])
         for i, statement in enumerate(statements):
             if statement["value"] == self.statement_api_value:
                 index = i
         if index is None:
-            new["statements"][self.prop].append(dict())
+            entity["statements"][self.prop].append(dict())
             index = -1
-        self.update_statement(new["statements"][self.prop][index])
-        return jsonpatch.JsonPatch.from_diff(src, new).patch
+        self.update_statement(entity["statements"][self.prop][index])
 
-    def add_alias_patch(self, client: Client):
+    def _update_entity_aliases(self, entity: dict):
         """
-        Computes the json patch for ADD_ALIAS operation.
+        Modifies the entity aliases in-place.
         """
-        src, new = self.get_two_entity_json(client)
-        new["aliases"].setdefault(self.language, [])
+        entity["aliases"].setdefault(self.language, [])
         for alias in self.value_value:
-            new["aliases"][self.language].append(alias)
-        return jsonpatch.JsonPatch.from_diff(src, new).patch
+            entity["aliases"][self.language].append(alias)
+
+    def entity_patch(self, client: Client):
+        """
+        Calculates the entity json patch to send to the API.
+
+        The cached entity json will be the baseline to work with,
+        but the patch needs to be calculated using the original
+        entity json, since that's what exists in the wikibase server.
+
+        TODO: maybe cache that original as well to not make
+        two requests?
+        """
+        original = self.get_original_entity_json(client)
+        entity = self.get_previous_entity_json(client)
+        self.update_entity_json(entity)
+        return jsonpatch.JsonPatch.from_diff(original, entity).patch
 
     def api_payload(self, client: Client):
         """
@@ -648,7 +739,7 @@ class BatchCommand(models.Model):
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
             case self.Operation.SET_STATEMENT:
-                return {"patch": self.set_statement_patch(client)}
+                return {"patch": self.entity_patch(client)}
             case self.Operation.SET_SITELINK:
                 return {
                     "sitelink": {
@@ -661,7 +752,7 @@ class BatchCommand(models.Model):
             case self.Operation.SET_DESCRIPTION:
                 return {"description": self.value_value}
             case self.Operation.ADD_ALIAS:
-                return {"patch": self.add_alias_patch(client)}
+                return {"patch": self.entity_patch(client)}
             case _:
                 return {}
 
