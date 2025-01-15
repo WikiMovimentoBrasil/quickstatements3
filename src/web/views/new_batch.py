@@ -150,6 +150,9 @@ def new_batch(request):
             if "block_on_errors" in request.POST:
                 batch.block_on_errors = True
 
+            # TODO: this will be a toggle?
+            batch.combine_commands = True
+
             serialized_batch = serializers.serialize("json", [batch])
             serialized_commands = serializers.serialize("json", batch.get_preview_commands())
 

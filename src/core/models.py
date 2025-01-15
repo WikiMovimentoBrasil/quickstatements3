@@ -49,6 +49,7 @@ class Batch(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
     block_on_errors = models.BooleanField(default=False)
+    combine_commands = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -644,7 +645,8 @@ class BatchCommand(models.Model):
         the previous command's `final_entity_json` property.
         """
         self._can_combine_with_next = (
-            self.is_entity_json_patch()
+            self.batch.combine_commands
+            and self.is_entity_json_patch()
             and next is not None
             and next.is_entity_json_patch()
             and self.entity_id() == next.entity_id()
