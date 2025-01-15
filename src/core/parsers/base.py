@@ -111,7 +111,7 @@ class BaseParser(object):
         Rdeprecated,  Rnormal,  Rpreferred
         R=, R0, R+
         """
-        return value is not None and re.match("^R(-|0|\+|deprecated|normal|preferred)$", value) is not None
+        return value is not None and re.match(r"^R(-|0|\+|deprecated|normal|preferred)$", value) is not None
 
     def get_entity_type(self, entity):
         """
