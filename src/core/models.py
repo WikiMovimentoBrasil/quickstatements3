@@ -623,6 +623,7 @@ class BatchCommand(models.Model):
         """
         return self.operation in (
             self.Operation.SET_STATEMENT,
+            self.Operation.REMOVE_STATEMENT_BY_VALUE,
             self.Operation.ADD_ALIAS,
         )
 
@@ -650,8 +651,19 @@ class BatchCommand(models.Model):
             and next is not None
             and next.is_entity_json_patch()
             and self.entity_id() == next.entity_id()
+            and self.is_operation_compatible(next)
         )
         self.previous_entity_json = previous_entity_json
+
+    def is_operation_compatible(self, next: Optional["BatchCommand"]):
+        INCOMPATBILE_OPERATIONS = (
+            # Removing and then creating can cause weird patches
+            # regarding the statement íd's
+            (self.Operation.REMOVE_STATEMENT_BY_VALUE, self.Operation.SET_STATEMENT),
+        )
+        first = self.operation
+        second = getattr(next, "operation", None)
+        return (first, second) not in INCOMPATBILE_OPERATIONS
 
     def get_original_entity_json(self, client: Client):
         """
@@ -692,6 +704,8 @@ class BatchCommand(models.Model):
         """
         if self.operation == self.Operation.SET_STATEMENT:
             self._update_entity_statements(entity)
+        elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
+            self._remove_entity_statement(entity)
         elif self.operation == self.Operation.ADD_ALIAS:
             self._update_entity_aliases(entity)
 
@@ -708,6 +722,18 @@ class BatchCommand(models.Model):
             entity["statements"][self.prop].append(dict())
             index = -1
         self.update_statement(entity["statements"][self.prop][index])
+
+    def _remove_entity_statement(self, entity: dict):
+        """
+        Removes an entity statement with the command's value, in-place.
+        """
+        statements = entity["statements"].get(self.prop, [])
+        if len(statements) == 0:
+            raise NoStatementsForThatProperty(self.entity_id(), self.prop)
+        for i, statement in enumerate(statements):
+            if statement["value"] == self.statement_api_value:
+                return entity["statements"][self.prop].pop(i)
+        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
 
     def _update_entity_aliases(self, entity: dict):
         """
@@ -737,11 +763,11 @@ class BatchCommand(models.Model):
         """
         Returns the data that is sent to the Wikibase API through the body.
         """
+        if self.is_entity_json_patch():
+            return {"patch": self.entity_patch(client)}
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
-            case self.Operation.SET_STATEMENT:
-                return {"patch": self.entity_patch(client)}
             case self.Operation.SET_SITELINK:
                 return {
                     "sitelink": {
@@ -753,8 +779,6 @@ class BatchCommand(models.Model):
                 return {"label": self.value_value}
             case self.Operation.SET_DESCRIPTION:
                 return {"description": self.value_value}
-            case self.Operation.ADD_ALIAS:
-                return {"patch": self.entity_patch(client)}
             case _:
                 return {}
 
@@ -804,47 +828,16 @@ class BatchCommand(models.Model):
     # Auxiliary methods for Wikibase API interaction
     # -----------------
 
-    def statement_id(self, client: Client) -> str:
-        """
-        Returns the ID of the statement related to this command.
-        """
-        if self.operation == self.Operation.REMOVE_STATEMENT_BY_ID:
-            return self.json["id"]
-        elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
-            return self.get_statement_id_by_value(client)
-
-    def get_statement_id_by_value(self, client: Client) -> str:
-        """
-        Gets the first statement from the API that matches
-        this commmand's property and value.
-
-        # Raises
-
-        - `NoStatementsForThatProperty`
-        - `NoStatementsWithThatValue`
-        """
-        all = client.get_statements(self.entity_id())
-        statements = all.get(self.prop, [])
-
-        if len(statements) == 0:
-            raise NoStatementsForThatProperty(self.entity_id(), self.prop)
-
-        for statement in statements:
-            if statement["value"] == self.statement_api_value:
-                return statement["id"]
-
-        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
-
     def operation_method_and_endpoint(self, client: Client):
         """
         Returns a tuple of HTTP method and the endpoint
         necessary for the operation.
         """
+        if self.is_entity_json_patch():
+            return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return ("POST", "/entities/items")
-            case self.Operation.SET_STATEMENT:
-                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
             case self.Operation.SET_LABEL:
                 return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
             case self.Operation.SET_DESCRIPTION:
@@ -857,10 +850,8 @@ class BatchCommand(models.Model):
                 return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
             case self.Operation.REMOVE_SITELINK:
                 return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
-            case self.Operation.ADD_ALIAS:
-                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
-            case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
-                statement_id = self.statement_id(client)
+            case self.Operation.REMOVE_STATEMENT_BY_ID:
+                statement_id = self.json["id"]
                 return ("DELETE", f"/statements/{statement_id}")
 
     def send_basic(self, client: Client):
