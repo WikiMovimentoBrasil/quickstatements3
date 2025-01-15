@@ -625,6 +625,12 @@ class BatchCommand(models.Model):
             self.Operation.SET_STATEMENT,
             self.Operation.REMOVE_STATEMENT_BY_VALUE,
             self.Operation.ADD_ALIAS,
+            self.Operation.SET_LABEL,
+            self.Operation.SET_DESCRIPTION,
+            self.Operation.SET_SITELINK,
+            self.Operation.REMOVE_LABEL,
+            self.Operation.REMOVE_DESCRIPTION,
+            self.Operation.REMOVE_SITELINK,
         )
 
     @property
@@ -707,7 +713,16 @@ class BatchCommand(models.Model):
         elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
             self._remove_entity_statement(entity)
         elif self.operation == self.Operation.ADD_ALIAS:
-            self._update_entity_aliases(entity)
+            entity["aliases"].setdefault(self.language, [])
+            for alias in self.value_value:
+                entity["aliases"][self.language].append(alias)
+        elif self.operation == self.Operation.SET_SITELINK:
+            entity["sitelinks"][self.sitelink] = {"title": self.value_value}
+        elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
+            entity[self.what_plural_lowercase][self.language] = self.value_value
+        elif self.operation in (self.Operation.REMOVE_LABEL, self.Operation.REMOVE_DESCRIPTION, self.Operation.REMOVE_SITELINK):
+            # the "" is there to make the `pop` safe
+            entity[self.what_plural_lowercase].pop(self.language_or_sitelink, "")
 
     def _update_entity_statements(self, entity: dict):
         """
@@ -735,14 +750,6 @@ class BatchCommand(models.Model):
                 return entity["statements"][self.prop].pop(i)
         raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
 
-    def _update_entity_aliases(self, entity: dict):
-        """
-        Modifies the entity aliases in-place.
-        """
-        entity["aliases"].setdefault(self.language, [])
-        for alias in self.value_value:
-            entity["aliases"][self.language].append(alias)
-
     def entity_patch(self, client: Client):
         """
         Calculates the entity json patch to send to the API.
@@ -768,17 +775,6 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
-            case self.Operation.SET_SITELINK:
-                return {
-                    "sitelink": {
-                        "title": self.value_value,
-                        "badges": [],
-                    },
-                }
-            case self.Operation.SET_LABEL:
-                return {"label": self.value_value}
-            case self.Operation.SET_DESCRIPTION:
-                return {"description": self.value_value}
             case _:
                 return {}
 
@@ -805,23 +801,8 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_PROPERTY | self.Operation.REMOVE_ALIAS:
                 raise NotImplementedError()
-            case (
-                    self.Operation.CREATE_ITEM |
-                    self.Operation.SET_STATEMENT |
-                    self.Operation.REMOVE_STATEMENT_BY_ID | 
-                    self.Operation.REMOVE_STATEMENT_BY_VALUE |
-                    self.Operation.SET_LABEL |
-                    self.Operation.SET_DESCRIPTION |
-                    self.Operation.SET_SITELINK |
-                    self.Operation.ADD_ALIAS
-                ):
+            case _:
                 return self.send_basic(client)
-            case (
-                    self.Operation.REMOVE_LABEL |
-                    self.Operation.REMOVE_DESCRIPTION |
-                    self.Operation.REMOVE_SITELINK
-                ):
-                return self.send_ignoring_404(client)
         return {}
 
     # -----------------
@@ -838,18 +819,6 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return ("POST", "/entities/items")
-            case self.Operation.SET_LABEL:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
-            case self.Operation.SET_DESCRIPTION:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
-            case self.Operation.SET_SITELINK:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
-            case self.Operation.REMOVE_LABEL:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
-            case self.Operation.REMOVE_DESCRIPTION:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
-            case self.Operation.REMOVE_SITELINK:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
             case self.Operation.REMOVE_STATEMENT_BY_ID:
                 statement_id = self.json["id"]
                 return ("DELETE", f"/statements/{statement_id}")
@@ -861,18 +830,6 @@ class BatchCommand(models.Model):
         method, endpoint = self.operation_method_and_endpoint(client)
         body = self.api_body(client)
         return client.wikibase_request_wrapper(method, endpoint, body)
-
-    def send_ignoring_404(self, client: Client):
-        """
-        Sends the request ignoring 404 error codes.
-        """
-        try:
-            return self.send_basic(client)
-        except UserError as e:
-            if e.status == 404:
-                return e.response_json
-            else:
-                raise e
 
     # -----------------
     # Visualization/label methods
