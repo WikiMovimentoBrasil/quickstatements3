@@ -190,8 +190,8 @@ class ApiMocker:
 
     @classmethod
     def add_statement_failed_server(cls, mocker, item_id):
-        mocker.post(
-            cls.wikibase_url(f"/entities/items/{item_id}/statements"),
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
             json={"error": "my-error-code"},
             status_code=500,
         )
@@ -215,27 +215,27 @@ class ApiMocker:
     @classmethod
     def statements(cls, mocker, item_id, statements):
         mocker.get(
-            cls.wikibase_url(f"/entities/items/{item_id}/statements"),
-            json=statements,
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json={"statements": statements},
             status_code=200,
         )
 
     @classmethod
     def sitelink_success(cls, mocker, item_id, sitelink, value):
-        mocker.put(
-            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
-            json={
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json={"sitelinks": {sitelink: {
                 "title": value,
                 "badges": [],
                 "url": "ignored",
-            },
+            }}},
             status_code=200,
         )
 
     @classmethod
     def sitelink_invalid(cls, mocker, item_id, sitelink):
-        mocker.put(
-            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
             json={
                 "code": "invalid-path-parameter",
                 "message": "Invalid path parameter: 'site_id'",
@@ -247,41 +247,17 @@ class ApiMocker:
     @classmethod
     def sitelinks(cls, mocker, item_id, sitelinks):
         mocker.get(
-            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks"),
-            json=sitelinks,
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json={"sitelinks": sitelinks},
             status_code=200,
         )
 
     @classmethod
     def remove_sitelink_success(cls, mocker, item_id, sitelink):
-        mocker.delete(
-            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
             json="Sitelink deleted",
             status_code=200,
-        )
-
-    @classmethod
-    def remove_sitelink_error_404(cls, mocker, item_id, sitelink):
-        mocker.delete(
-            cls.wikibase_url(f"/entities/items/{item_id}/sitelinks/{sitelink}"),
-            json={"code": "not-foud", "message": "message"},
-            status_code=404,
-        )
-
-    @classmethod
-    def remove_description_error_404(cls, mocker, item_id, lang):
-        mocker.delete(
-            cls.wikibase_url(f"/entities/items/{item_id}/descriptions/{lang}"),
-            json={"code": "not-foud", "message": "message"},
-            status_code=404,
-        )
-
-    @classmethod
-    def remove_label_error_404(cls, mocker, item_id, lang):
-        mocker.delete(
-            cls.wikibase_url(f"/entities/items/{item_id}/labels/{lang}"),
-            json={"code": "not-foud", "message": "message"},
-            status_code=404,
         )
 
     @classmethod

@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 
 from core.tests.test_api import ApiMocker
+from core.client import Client as ApiClient
 from core.models import Batch
 from core.models import BatchCommand
 from core.parsers.v1 import V1CommandParser
@@ -307,12 +308,9 @@ class ProcessingTests(TestCase):
         ApiMocker.statements(mocker, "Q1234", statements)
         ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
         batch = self.parse("-Q1234|P5|Q12")
-        batch.run()
-        self.assertEqual(batch.status, Batch.STATUS_DONE)
-        commands = batch.commands()
-        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
-        self.assertEqual(commands[0].response_json, "Statement deleted")
+        client = ApiClient.from_username(batch.user)
+        res = batch.commands()[0].get_final_entity_json(client)
+        self.assertEqual(len(res["statements"]["P5"]), 0)
 
     @requests_mock.Mocker()
     def test_remove_statement_by_value_success_will_pick_first(self, mocker):
@@ -339,12 +337,9 @@ class ProcessingTests(TestCase):
         ApiMocker.delete_statement_sucessful(mocker, "Q1234$abcdefgh-uijkl")
         ApiMocker.delete_statement_fail(mocker, "Q1234$defgh-xyzabc")
         batch = self.parse("-Q1234|P5|Q12")
-        batch.run()
-        self.assertEqual(batch.status, Batch.STATUS_DONE)
-        commands = batch.commands()
-        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
-        self.assertEqual(commands[0].response_json, "Statement deleted")
+        client = ApiClient.from_username(batch.user)
+        res = batch.commands()[0].get_final_entity_json(client)
+        self.assertEqual(res["statements"]["P5"][0]["id"], "Q1234$defgh-xyzabc")
 
     @requests_mock.Mocker()
     def test_remove_statement_by_value_fail_no_statements_property(self, mocker):
@@ -383,6 +378,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_set_sitelink_success(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.sitelink_success(mocker, "Q1234", "ptwiki", "Cool article")
         batch = self.parse("""Q1234|Sptwiki|"Cool article" """)
         batch.run()
@@ -394,6 +390,7 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_set_sitelink_invalid(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.sitelink_invalid(mocker, "Q1234", "ptwikix")
         batch = self.parse("""Q1234|Sptwikix|"Cool article" """)
         batch.run()
@@ -402,22 +399,3 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
-
-    @requests_mock.Mocker()
-    def test_remove_ok_if_non_existant(self, mocker):
-        ApiMocker.is_autoconfirmed(mocker)
-        ApiMocker.remove_sitelink_error_404(mocker, "Q1234", "ptwiki")
-        ApiMocker.remove_description_error_404(mocker, "Q1234", "pt")
-        ApiMocker.remove_label_error_404(mocker, "Q1234", "pt")
-        batch = self.parse_run("""Q1234|Sptwiki|""
-        Q1234|Dpt|""
-        Q1234|Lpt|"" """)
-        self.assertEqual(batch.status, Batch.STATUS_DONE)
-        commands = batch.commands()
-        self.assertEqual(commands[0].operation, BatchCommand.Operation.REMOVE_SITELINK)
-        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
-        self.assertEqual(commands[1].operation, BatchCommand.Operation.REMOVE_DESCRIPTION)
-        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
-        self.assertEqual(commands[2].operation, BatchCommand.Operation.REMOVE_LABEL)
-        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
-        self.assertEqual(len(commands), 3)
