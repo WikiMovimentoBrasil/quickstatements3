@@ -706,6 +706,20 @@ Q4115189,Q5,
         cmd = BatchCommand.objects.get(batch=batch, index=1)
         self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
 
+    @override_settings(TOOLFORGE_TOOL_NAME=None)
+    def test_edit_summary_without_editgroups(self):
+        COMMAND = """qid,P31,#
+Q4115189,Q5,my comment
+Q4115189,Q5, 
+"""
+        par = CSVCommandParser()
+        batch = par.parse("b", "u", COMMAND)
+        batch.save_batch_and_preview_commands()
+        cmd = BatchCommand.objects.get(batch=batch, index=0)
+        self.assertEqual(cmd.edit_summary(), "my comment")
+        cmd = BatchCommand.objects.get(batch=batch, index=1)
+        self.assertEqual(cmd.edit_summary(), "")
+
     def test_remove_statemeny_by_value(self):
         COMMAND = """qid,P31,-P31
 Q4115189,Q5,Q6"""

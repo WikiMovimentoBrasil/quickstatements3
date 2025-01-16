@@ -380,9 +380,6 @@ class TestV1ParserCommand(TestCase):
                     "type": "time",
                     "value": {
                         "time": "+1967-01-17T00:00:00Z",
-                        "timezone": 0,
-                        "before": 0,
-                        "after": 0,
                         "precision": 11,
                         "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                     },
@@ -410,9 +407,6 @@ class TestV1ParserCommand(TestCase):
                                 "type": "time",
                                 "value": {
                                     "time": "+1967-01-17T00:00:00Z",
-                                    "timezone": 0,
-                                    "before": 0,
-                                    "after": 0,
                                     "precision": 11,
                                     "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                                 },
@@ -451,9 +445,6 @@ class TestV1ParserCommand(TestCase):
                                 "type": "time",
                                 "value": {
                                     "time": "+1967-01-17T00:00:00Z",
-                                    "timezone": 0,
-                                    "before": 0,
-                                    "after": 0,
                                     "precision": 11,
                                     "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                                 },
@@ -483,9 +474,6 @@ class TestV1ParserCommand(TestCase):
                             "type": "time",
                             "value": {
                                 "time": "+1970-01-17T00:00:00Z",
-                                "timezone": 0,
-                                "before": 0,
-                                "after": 0,
                                 "precision": 11,
                                 "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                             },
@@ -516,9 +504,6 @@ class TestV1ParserCommand(TestCase):
                             "type": "time",
                             "value": {
                                 "time": "+1970-01-17T00:00:00Z",
-                                "timezone": 0,
-                                "before": 0,
-                                "after": 0,
                                 "precision": 11,
                                 "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                             },
@@ -534,9 +519,6 @@ class TestV1ParserCommand(TestCase):
                                 "type": "time",
                                 "value": {
                                     "time": "+1967-01-17T00:00:00Z",
-                                    "timezone": 0,
-                                    "before": 0,
-                                    "after": 0,
                                     "precision": 11,
                                     "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                                 },

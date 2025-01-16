@@ -77,6 +77,14 @@ After receveing the consumer id and secret, setup `OAUTH_CLIENT_ID` and `OAUTH_C
 
 If you want to login with a developer access token, you need to register for yourself an owner-only consumer application for OAuth2. Follow the form and be sure to tick "This consumer is for use only by <YOUR USERNAME>".
 
+### Integration tests
+
+To run Integration tests on https://test.wikidata.org, you'll need a developer access token (owner-only) to edit on `test.wikidata.org`.
+
+After obtaining it, define the environment variable `INTEGRATION_TEST_AUTH_TOKEN` in `etc/env` file as your developer access token. Then, run the tests with `make integration`.
+
+Alternatively, define that environment varibale inside the container shell and run the tests directly with `python3 manage.py test integration`.
+
 ## Toolforge deployment
 
 * Login and enter into the tool user

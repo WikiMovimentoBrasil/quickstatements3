@@ -17,3 +17,6 @@ run:
 
 test:
 	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test"
+
+integration:
+	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test integration"

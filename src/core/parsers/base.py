@@ -280,9 +280,6 @@ class BaseParser(object):
                 "type": "time",
                 "value": {
                     "time": re.sub(r"/\d+$", "", v),
-                    "timezone": 0,
-                    "before": 0,
-                    "after": 0,
                     "precision": prec,
                     "calendarmodel": "http://www.wikidata.org/entity/Q1985786"
                     if is_julian

@@ -182,5 +182,15 @@ LANGUAGES = [
 
 LANGUAGE_CODE = "en"
 
+# -----------------
+# App configuration
+# -----------------
+
+# Base REST url
+BASE_REST_URL = os.getenv(
+    "BASE_REST_URL",
+    "https://www.wikidata.org/w/rest.php",
+)
+
 # To use with EditGroups integration
-TOOLFORGE_TOOL_NAME = os.getenv("TOOLFORGE_TOOL_NAME", "qs-dev")
+TOOLFORGE_TOOL_NAME = os.getenv("TOOLFORGE_TOOL_NAME")
