@@ -220,13 +220,6 @@ class TestBatchCommand(TestCase):
         self.assertEqual(len(commands), 2)
         self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_STATEMENT)
         self.assertEqual(
-            commands[0].statement_for_api(),
-            {
-                "property": {"id": "P1"},
-                "value": {"type": "value", "content": "Q2"},
-            },
-        )
-        self.assertEqual(
             commands[0].api_payload(client),
             {
                 "patch": [

@@ -142,6 +142,17 @@ class V1CommandParser(BaseParser):
 
             qualifiers = []
 
+            if len(elements) >= 4 and self.is_valid_statement_rank(elements[3]):
+                rank = elements.pop(3).strip()
+                data["rank"] = {
+                    "R-": "deprecated",
+                    "R0": "normal",
+                    "R+": "preferred",
+                    "Rdeprecated": "deprecated",
+                    "Rnormal": "normal",
+                    "Rpreferred": "preferred",
+                }[rank]
+
             # ITERATE OVER qualifiers or previous_references (key, value) pairs
             index = 3
             while index + 1 < llen:
