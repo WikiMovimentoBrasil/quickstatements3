@@ -29,7 +29,12 @@
       <input type="checkbox" name="block_on_errors" role="switch" >
       {% translate "Block batch if a command fails" %}
     </label>
-    
+
+    <label>
+      <input type="checkbox" name="do_not_combine_commands" role="switch" >
+      {% translate "Do not combine commands" %}
+    </label>
+
     <textarea name="commands" aria-label="commands" placeholder="{% translate 'Enter your commands here...' %}"
       style="height: 400px">{% if commands %}{{commands}}{% endif %}</textarea>
   </fieldset>
