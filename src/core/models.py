@@ -682,20 +682,9 @@ class BatchCommand(models.Model):
             and next is not None
             and next.is_entity_json_patch()
             and self.entity_id() == next.entity_id()
-            and self.is_operation_compatible(next)
         )
         self.previous_entity_json = state.entity
         self.previous_commands = state.commands
-
-    def is_operation_compatible(self, next: Optional["BatchCommand"]):
-        INCOMPATBILE_OPERATIONS = (
-            # Removing and then creating can cause weird patches
-            # regarding the statement íd's
-            (self.Operation.REMOVE_STATEMENT_BY_VALUE, self.Operation.SET_STATEMENT),
-        )
-        first = self.operation
-        second = getattr(next, "operation", None)
-        return (first, second) not in INCOMPATBILE_OPERATIONS
 
     def update_combining_state(self, client: Client):
         """
@@ -703,12 +692,10 @@ class BatchCommand(models.Model):
         as a command and updating the current entity json
         with the command's modifications.
         """
-        entity = self.get_final_entity_json(client)
-        commands = getattr(self, "previous_commands", [])
-        commands.append(self)
+        commands = [self, *getattr(self, "previous_commands", [])]
         self._final_combining_state = CombiningState(
-            entity=entity,
             commands=commands,
+            entity=self.get_final_entity_json(client),
         )
 
     @property
