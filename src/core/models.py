@@ -694,10 +694,12 @@ class BatchCommand(models.Model):
         with the command's modifications.
         """
         commands = [self, *getattr(self, "previous_commands", [])]
+        entity = self.get_final_entity_json(client)
         self._final_combining_state = CombiningState(
             commands=commands,
-            entity=self.get_final_entity_json(client),
+            entity=entity,
         )
+        logger.debug(f"[{self}] combined. final entity={entity}")
 
     @property
     def final_combining_state(self):
@@ -727,7 +729,6 @@ class BatchCommand(models.Model):
         """
         cached = getattr(self, "previous_entity_json", None)
         entity = cached if cached else client.get_entity(self.entity_id())
-        logger.debug(f"[{self}] previous_entity_json={entity}")
         return entity
 
     def get_final_entity_json(self, client: Client) -> dict:
