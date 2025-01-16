@@ -1,3 +1,4 @@
+import copy
 import logging
 import jsonpatch
 from typing import Optional
@@ -708,12 +709,14 @@ class BatchCommand(models.Model):
 
         Used for calculating the final patch send to the API.
 
-        TODO: think of a way of caching this. The first command
-        in the sequence would have to store that somewhere.
-        Or Batch.run becomes more complicated or we save it
-        in a dedicated cache.
+        If the command has no previous_entity_json, will use this
+        to save a copy into it, so that the get_previous_entity_json
+        method does not have to call the API agian.
         """
-        return client.get_entity(self.entity_id())
+        entity = client.get_entity(self.entity_id())
+        if not hasattr(self, "previous_entity_json"):
+            setattr(self, "previous_entity_json", copy.deepcopy(entity))
+        return entity
 
     def get_previous_entity_json(self, client: Client):
         """
