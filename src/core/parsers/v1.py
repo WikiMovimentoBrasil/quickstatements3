@@ -96,14 +96,14 @@ class V1CommandParser(BaseParser):
         vvalue = self.parse_value(elements[2])
 
         if llen >= 3 and elements[1][0] == "A":
-            labels = []
+            aliases = []
             lang = elements[1][1:]
             for el in elements[2:]:
-                vlabel = self.parse_value(el.strip())
-                if not vlabel or vlabel["type"] != "string":
+                valias = self.parse_value(el.strip())
+                if not valias or valias["type"] != "string":
                     raise ParserException("alias must be a string instance")
-                labels.append(vlabel["value"])
-            data = {"action": "add", "what": "alias", "language": lang, "item": entity, "value": {"type": "labels", "value": labels}}
+                aliases.append(valias["value"])
+            data = {"action": "add", "what": "alias", "language": lang, "item": entity, "value": {"type": "aliases", "value": aliases}}
 
         elif llen == 3 and elements[1][0] in ["L", "D", "S"]:
             # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property

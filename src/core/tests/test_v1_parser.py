@@ -215,7 +215,7 @@ class TestV1ParserCommand(TestCase):
                 "what": "alias",
                 "item": "Q1234",
                 "language": "pt",
-                "value": {"type": "labels", "value": ["Texto brasileiro"]},
+                "value": {"type": "aliases", "value": ["Texto brasileiro"]},
             },
         )
 

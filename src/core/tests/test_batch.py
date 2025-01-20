@@ -505,7 +505,7 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Sandbox 3"},
+                "value": {"type": "aliases", "value": ["Sandbox 3"]},
                 "what": "alias",
                 "language": "pt",
             },
@@ -516,7 +516,7 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Patterns, Predictors, and Outcome and Questions"},
+                "value": {"type": "aliases", "value": ["Patterns, Predictors, and Outcome and Questions"]},
                 "what": "alias",
                 "language": "pt",
             },
@@ -608,7 +608,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
             {
                 "action": "add",
                 "item": "Q4115189",
-                "value": {"type": "string", "value": "Douglas Noël Adams"},
+                "value": {"type": "aliases", "value": ["Douglas Noël Adams"]},
                 "what": "alias",
                 "language": "en",
             },
