@@ -30,6 +30,7 @@ class IntegrationTests(TestCase):
     def parse_run(self, text):
         v1 = V1CommandParser()
         batch = v1.parse("Integration", self.username, text)
+        batch.combine_commands = True
         batch.save_batch_and_preview_commands()
         batch.run()
         return batch

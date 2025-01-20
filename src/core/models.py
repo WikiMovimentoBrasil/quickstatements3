@@ -1,7 +1,10 @@
+import copy
 import logging
 import jsonpatch
-import copy
+from typing import Optional
+from typing import List
 from datetime import datetime
+from dataclasses import dataclass
 
 from django.conf import settings
 from django.db import models
@@ -19,6 +22,21 @@ from .exceptions import NoStatementsWithThatValue
 from .exceptions import NonexistantPropertyOrNoDataType
 
 logger = logging.getLogger("qsts3")
+
+@dataclass
+class CombiningState:
+    """
+    Utility class to manage state between combining commands.
+
+    Saves the current entity json document and the previous
+    commands that have altered it.
+    """
+    commands: List["BatchCommand"]
+    entity: Optional[dict]
+
+    @classmethod
+    def empty(cls):
+        return cls(commands=[], entity=None)
 
 
 class Batch(models.Model):
@@ -49,6 +67,7 @@ class Batch(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
     block_on_errors = models.BooleanField(default=False)
+    combine_commands = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Batch #{self.pk}"
@@ -88,18 +107,26 @@ class Batch(models.Model):
                     return self.block_by(command)
 
         last_id = None
+        state = CombiningState.empty()
+        commands = self.commands()
+        count = commands.count()
 
-        for command in self.commands():
+        for i, command in enumerate(commands):
             self.refresh_from_db()
             if self.is_stopped:
                 # The status changed, so we have to stop
                 return
 
+            next = commands[i+1] if (i + 1) < count else None
+
             command.update_last_id(last_id)
+            command.check_combination(state, next)
             command.run(client)
+
             if command.is_error_status() and self.block_on_errors:
                 return self.block_by(command)
 
+            state = command.final_combining_state
             if command.action == BatchCommand.ACTION_CREATE:
                 last_id = command.response_id()
 
@@ -294,6 +321,7 @@ class BatchCommand(models.Model):
         NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
         SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
+        COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
 
     error = models.TextField(
         null=True,
@@ -317,6 +345,7 @@ class BatchCommand(models.Model):
         logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
         self.save()
+        self.propagate_status_to_previous_commands()
 
     def error_with_value(self, value: Error):
         self.error = value
@@ -331,6 +360,15 @@ class BatchCommand(models.Model):
         self.message = message
         self.status = BatchCommand.STATUS_ERROR
         self.save()
+        self.propagate_status_to_previous_commands()
+
+    def propagate_status_to_previous_commands(self):
+        for cmd in getattr(self, "previous_commands", []):
+            if self.is_error_status():
+                cmd.error = self.Error.COMBINING_COMMAND_FAILED
+                cmd.message = cmd.error.label
+            cmd.status = self.status
+            cmd.save()
 
     # -----------------
     # Entity id methods
@@ -562,8 +600,11 @@ class BatchCommand(models.Model):
 
         try:
             self.verify_value_types(client)
-            self.response_json = self.send_to_api(client)
-            self.finish()
+            if self.can_combine_with_next:
+                self.update_combining_state(client)
+            else:
+                self.response_json = self.send_to_api(client)
+                self.finish()
         except NotImplementedError:
             self.error_with_value(self.Error.OP_NOT_IMPLEMENTED)
         except NoStatementsForThatProperty:
@@ -604,64 +645,172 @@ class BatchCommand(models.Model):
         else:
             return ""
 
-    def get_two_entity_json(self, client: Client):
+    def is_entity_json_patch(self):
         """
-        Returns two entity json documents to calculate patches.
+        Returns True for commands that work by modifying the entity's json,
+        creating a json patch.
         """
-        src = client.get_entity(self.entity_id())
-        new = copy.deepcopy(src)
-        return (src, new)
+        return self.operation in (
+            self.Operation.SET_STATEMENT,
+            self.Operation.REMOVE_STATEMENT_BY_VALUE,
+            self.Operation.ADD_ALIAS,
+            self.Operation.SET_LABEL,
+            self.Operation.SET_DESCRIPTION,
+            self.Operation.SET_SITELINK,
+            self.Operation.REMOVE_LABEL,
+            self.Operation.REMOVE_DESCRIPTION,
+            self.Operation.REMOVE_SITELINK,
+        )
 
-    def set_statement_patch(self, client: Client):
+    @property
+    def can_combine_with_next(self):
         """
-        Computes the json patch for SET_STATEMENT operation.
+        Defines if the command should just return the
+        modified entity json, because connecting to the API
+        will be done by the next command.
+        """
+        return getattr(self, "_can_combine_with_next", False)
 
-        This is done by modifying the entity's json document.
+    def check_combination(self, state: CombiningState, next: Optional["BatchCommand"]):
         """
-        src, new = self.get_two_entity_json(client)
+        Caches the previous_entity_json as given, even if None.
+
+        Checks combination with next command if available.
+        """
+        self._can_combine_with_next = (
+            self.batch.combine_commands
+            and self.is_entity_json_patch()
+            and next is not None
+            and next.is_entity_json_patch()
+            and self.entity_id() == next.entity_id()
+        )
+        self.previous_entity_json = state.entity
+        self.previous_commands = state.commands
+
+    def update_combining_state(self, client: Client):
+        """
+        Updates the combining state, appending itself
+        as a command and updating the current entity json
+        with the command's modifications.
+        """
+        commands = [self, *getattr(self, "previous_commands", [])]
+        entity = self.get_final_entity_json(client)
+        self._final_combining_state = CombiningState(
+            commands=commands,
+            entity=entity,
+        )
+        logger.debug(f"[{self}] combined. final entity={entity}")
+
+    @property
+    def final_combining_state(self):
+        return getattr(self, "_final_combining_state", CombiningState.empty())
+
+    def get_original_entity_json(self, client: Client):
+        """
+        Returns the original entity json.
+
+        Used for calculating the final patch send to the API.
+
+        If the command has no previous_entity_json, will use this
+        to save a copy into it, so that the get_previous_entity_json
+        method does not have to call the API agian.
+        """
+        entity = client.get_entity(self.entity_id())
+        if not hasattr(self, "previous_entity_json"):
+            setattr(self, "previous_entity_json", copy.deepcopy(entity))
+        return entity
+
+    def get_previous_entity_json(self, client: Client):
+        """
+        Returns the previous entity json. Has cache.
+
+        Used for calculating the final entity json to pass along
+        to the next command.
+        """
+        cached = getattr(self, "previous_entity_json", None)
+        entity = cached if cached else client.get_entity(self.entity_id())
+        return entity
+
+    def get_final_entity_json(self, client: Client) -> dict:
+        """
+        Returns the final entity json, applying the operations.
+        """
+        entity = self.get_previous_entity_json(client)
+        self.update_entity_json(entity)
+        return entity
+
+    def update_entity_json(self, entity: dict):
+        """
+        Modifies the entity json in-place.
+        """
+        if self.operation == self.Operation.SET_STATEMENT:
+            self._update_entity_statements(entity)
+        elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
+            self._remove_entity_statement(entity)
+        elif self.operation == self.Operation.ADD_ALIAS:
+            entity["aliases"].setdefault(self.language, [])
+            for alias in self.value_value:
+                if alias not in entity["aliases"][self.language]:
+                    entity["aliases"][self.language].append(alias)
+        elif self.operation == self.Operation.SET_SITELINK:
+            entity["sitelinks"][self.sitelink] = {"title": self.value_value}
+        elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
+            entity[self.what_plural_lowercase][self.language] = self.value_value
+        elif self.operation in (self.Operation.REMOVE_LABEL, self.Operation.REMOVE_DESCRIPTION, self.Operation.REMOVE_SITELINK):
+            # the "" is there to make the `pop` safe
+            entity[self.what_plural_lowercase].pop(self.language_or_sitelink, "")
+
+    def _update_entity_statements(self, entity: dict):
+        """
+        Modifies the entity json statements in-place.
+        """
         index = None
-        statements = new["statements"].setdefault(self.prop, [])
+        statements = entity["statements"].setdefault(self.prop, [])
         for i, statement in enumerate(statements):
             if statement["value"] == self.statement_api_value:
                 index = i
         if index is None:
-            new["statements"][self.prop].append(dict())
+            entity["statements"][self.prop].append(dict())
             index = -1
-        self.update_statement(new["statements"][self.prop][index])
-        return jsonpatch.JsonPatch.from_diff(src, new).patch
+        self.update_statement(entity["statements"][self.prop][index])
 
-    def add_alias_patch(self, client: Client):
+    def _remove_entity_statement(self, entity: dict):
         """
-        Computes the json patch for ADD_ALIAS operation.
+        Removes an entity statement with the command's value, in-place.
         """
-        src, new = self.get_two_entity_json(client)
-        new["aliases"].setdefault(self.language, [])
-        for alias in self.value_value:
-            new["aliases"][self.language].append(alias)
-        return jsonpatch.JsonPatch.from_diff(src, new).patch
+        statements = entity["statements"].get(self.prop, [])
+        if len(statements) == 0:
+            raise NoStatementsForThatProperty(self.entity_id(), self.prop)
+        for i, statement in enumerate(statements):
+            if statement["value"] == self.statement_api_value:
+                return entity["statements"][self.prop].pop(i)
+        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
+
+    def entity_patch(self, client: Client):
+        """
+        Calculates the entity json patch to send to the API.
+
+        The cached entity json will be the baseline to work with,
+        but the patch needs to be calculated using the original
+        entity json, since that's what exists in the wikibase server.
+
+        TODO: maybe cache that original as well to not make
+        two requests?
+        """
+        original = self.get_original_entity_json(client)
+        entity = self.get_previous_entity_json(client)
+        self.update_entity_json(entity)
+        return jsonpatch.JsonPatch.from_diff(original, entity).patch
 
     def api_payload(self, client: Client):
         """
         Returns the data that is sent to the Wikibase API through the body.
         """
+        if self.is_entity_json_patch():
+            return {"patch": self.entity_patch(client)}
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return {"item": {}}
-            case self.Operation.SET_STATEMENT:
-                return {"patch": self.set_statement_patch(client)}
-            case self.Operation.SET_SITELINK:
-                return {
-                    "sitelink": {
-                        "title": self.value_value,
-                        "badges": [],
-                    },
-                }
-            case self.Operation.SET_LABEL:
-                return {"label": self.value_value}
-            case self.Operation.SET_DESCRIPTION:
-                return {"description": self.value_value}
-            case self.Operation.ADD_ALIAS:
-                return {"patch": self.add_alias_patch(client)}
             case _:
                 return {}
 
@@ -688,86 +837,26 @@ class BatchCommand(models.Model):
         match self.operation:
             case self.Operation.CREATE_PROPERTY | self.Operation.REMOVE_ALIAS:
                 raise NotImplementedError()
-            case (
-                    self.Operation.CREATE_ITEM |
-                    self.Operation.SET_STATEMENT |
-                    self.Operation.REMOVE_STATEMENT_BY_ID | 
-                    self.Operation.REMOVE_STATEMENT_BY_VALUE |
-                    self.Operation.SET_LABEL |
-                    self.Operation.SET_DESCRIPTION |
-                    self.Operation.SET_SITELINK |
-                    self.Operation.ADD_ALIAS
-                ):
+            case _:
                 return self.send_basic(client)
-            case (
-                    self.Operation.REMOVE_LABEL |
-                    self.Operation.REMOVE_DESCRIPTION |
-                    self.Operation.REMOVE_SITELINK
-                ):
-                return self.send_ignoring_404(client)
         return {}
 
     # -----------------
     # Auxiliary methods for Wikibase API interaction
     # -----------------
 
-    def statement_id(self, client: Client) -> str:
-        """
-        Returns the ID of the statement related to this command.
-        """
-        if self.operation == self.Operation.REMOVE_STATEMENT_BY_ID:
-            return self.json["id"]
-        elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
-            return self.get_statement_id_by_value(client)
-
-    def get_statement_id_by_value(self, client: Client) -> str:
-        """
-        Gets the first statement from the API that matches
-        this commmand's property and value.
-
-        # Raises
-
-        - `NoStatementsForThatProperty`
-        - `NoStatementsWithThatValue`
-        """
-        all = client.get_statements(self.entity_id())
-        statements = all.get(self.prop, [])
-
-        if len(statements) == 0:
-            raise NoStatementsForThatProperty(self.entity_id(), self.prop)
-
-        for statement in statements:
-            if statement["value"] == self.statement_api_value:
-                return statement["id"]
-
-        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
-
     def operation_method_and_endpoint(self, client: Client):
         """
         Returns a tuple of HTTP method and the endpoint
         necessary for the operation.
         """
+        if self.is_entity_json_patch():
+            return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
         match self.operation:
             case self.Operation.CREATE_ITEM:
                 return ("POST", "/entities/items")
-            case self.Operation.SET_STATEMENT:
-                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
-            case self.Operation.SET_LABEL:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
-            case self.Operation.SET_DESCRIPTION:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
-            case self.Operation.SET_SITELINK:
-                return ("PUT", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
-            case self.Operation.REMOVE_LABEL:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/labels/{self.language}"))
-            case self.Operation.REMOVE_DESCRIPTION:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/descriptions/{self.language}"))
-            case self.Operation.REMOVE_SITELINK:
-                return ("DELETE", Client.wikibase_entity_endpoint(self.entity_id(), f"/sitelinks/{self.sitelink}"))
-            case self.Operation.ADD_ALIAS:
-                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
-            case self.Operation.REMOVE_STATEMENT_BY_ID | self.Operation.REMOVE_STATEMENT_BY_VALUE:
-                statement_id = self.statement_id(client)
+            case self.Operation.REMOVE_STATEMENT_BY_ID:
+                statement_id = self.json["id"]
                 return ("DELETE", f"/statements/{statement_id}")
 
     def send_basic(self, client: Client):
@@ -777,18 +866,6 @@ class BatchCommand(models.Model):
         method, endpoint = self.operation_method_and_endpoint(client)
         body = self.api_body(client)
         return client.wikibase_request_wrapper(method, endpoint, body)
-
-    def send_ignoring_404(self, client: Client):
-        """
-        Sends the request ignoring 404 error codes.
-        """
-        try:
-            return self.send_basic(client)
-        except UserError as e:
-            if e.status == 404:
-                return e.response_json
-            else:
-                raise e
 
     # -----------------
     # Visualization/label methods

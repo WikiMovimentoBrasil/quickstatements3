@@ -147,8 +147,8 @@ def new_batch(request):
 
             batch = parser.parse(batch_name, batch_owner, batch_commands)
 
-            if "block_on_errors" in request.POST:
-                batch.block_on_errors = True
+            batch.block_on_errors = "block_on_errors" in request.POST
+            batch.combine_commands = "do_not_combine_commands" not in request.POST
 
             serialized_batch = serializers.serialize("json", [batch])
             serialized_commands = serializers.serialize("json", batch.get_preview_commands())

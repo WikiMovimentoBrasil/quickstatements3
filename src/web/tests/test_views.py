@@ -468,18 +468,16 @@ class ViewsTest(TestCase):
         c = Client()
         user = User.objects.create_user(username="john")
         c.force_login(user)
-
         response = c.post(
             "/batch/new/",
             data={
-                "name": "should block",
+                "name": "should NOT block",
                 "type": "v1",
                 "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
             },
         )
         response = c.get(response.url)
         self.assertFalse(response.context["batch"].block_on_errors)
-
         response = c.post(
             "/batch/new/",
             data={
@@ -491,6 +489,32 @@ class ViewsTest(TestCase):
         )
         response = c.get(response.url)
         self.assertTrue(response.context["batch"].block_on_errors)
+
+    def test_create_do_not_combine_commands(self):
+        c = Client()
+        user = User.objects.create_user(username="john")
+        c.force_login(user)
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should combine",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        response = c.get(response.url)
+        self.assertTrue(response.context["batch"].combine_commands)
+        response = c.post(
+            "/batch/new/",
+            data={
+                "name": "should NOT combine",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+                "do_not_combine_commands": "do_not_combine_commands",
+            },
+        )
+        response = c.get(response.url)
+        self.assertFalse(response.context["batch"].combine_commands)
 
     @requests_mock.Mocker()
     def test_restart_after_stopped_buttons(self, mocker):
