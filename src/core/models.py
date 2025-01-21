@@ -716,8 +716,8 @@ class BatchCommand(models.Model):
         method does not have to call the API agian.
         """
         entity = client.get_entity(self.entity_id())
-        if not hasattr(self, "previous_entity_json"):
-            setattr(self, "previous_entity_json", copy.deepcopy(entity))
+        if getattr(self, "previous_entity_json", None) is None:
+            self.previous_entity_json = copy.deepcopy(entity)
         return entity
 
     def get_previous_entity_json(self, client: Client):
