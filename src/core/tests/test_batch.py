@@ -240,7 +240,6 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.sitelink, "ptwiki")
         self.assertEqual(cmd.value_value, "Cool article")
 
-
     def test_remove_sitelink(self):
         v1 = V1CommandParser()
         batch = v1.parse("b", "u", """Q1234|Sptwiki|"" """)
@@ -268,6 +267,32 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_LABEL)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(cmd.language, "pt")
+
+    def test_remove_qualifier(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """REMOVE_QUAL|Q1234|P1|Q2|P3|Q4""")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_QUALIFIER)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(len(cmd.references()), 0)
+        self.assertEqual(cmd.qualifiers_for_api(), [
+            {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
+        ])
+
+    def test_remove_reference(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """REMOVE_REF|Q1234|P1|Q2|S3|Q4""")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_REFERENCE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(len(cmd.qualifiers()), 0)
+        self.assertEqual(cmd.references_for_api(), [
+            {"parts":  [
+                {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
+            ]}
+        ])
 
 
 class TestCSVBatch(TestCase):
