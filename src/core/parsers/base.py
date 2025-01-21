@@ -301,9 +301,13 @@ class BaseParser(object):
             return {
                 "type": "globecoordinate",
                 "value": {
-                    "latitude": gps_match.group(1),
-                    "longitude": gps_match.group(2),
-                    "precision": "0.000001",
+                    "latitude": float(gps_match.group(1)),
+                    "longitude": float(gps_match.group(2)),
+                    # original quickstatements precision
+                    # is always fixed as well
+                    "precision": 0.000001,
+                    # Even in test.wikidata.org the globe used
+                    # is wikidata's Q2, so we can keep it fixed
                     "globe": "http://www.wikidata.org/entity/Q2",
                 },
             }
