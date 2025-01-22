@@ -635,12 +635,17 @@ class BatchCommand(models.Model):
 
         It joins the user supplied summary with
         the identification necessary for EditGroups.
+
+        Also joins the summary from the previous combined commands.
         """
+        summaries = [self.user_summary]
+        summaries.extend([c.user_summary for c in getattr(self, "previous_commands", [])])
+        combined = " | ".join([s for s in summaries[::-1] if bool(s)])
         editgroups = self.editgroups_summary()
         if editgroups:
-            return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+            return f"{editgroups}: {combined}" if combined else editgroups
         else:
-            return self.user_summary if self.user_summary else ""
+            return combined
 
     def editgroups_summary(self):
         """
