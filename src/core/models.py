@@ -297,6 +297,9 @@ class BatchCommand(models.Model):
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
         #
+        REMOVE_QUALIFIER = "remove_qualifier", _("Remove qualifier")
+        REMOVE_REFERENCE = "remove_reference", _("Remove reference")
+        #
         SET_SITELINK = "set_sitelink", _("Set sitelink")
         SET_LABEL = "set_label", _("Set label")
         SET_DESCRIPTION = "set_description", _("Set description")
@@ -539,6 +542,29 @@ class BatchCommand(models.Model):
     def statement_rank(self):
         return self.json.get("rank")
 
+    def is_in_qualifiers(self, qualifier: dict):
+        """
+        Checks if a qualifier is contained within the command's qualifiers.
+        """
+        property_id = qualifier["property"]["id"]
+        api_value = qualifier["value"]
+        for q in self.qualifiers_for_api():
+            if q["property"]["id"] == property_id and q["value"] == api_value:
+                return True
+        return False
+
+    def is_part_in_references(self, reference_part: dict):
+        """
+        Checks if a reference part is contained within the command's references.
+        """
+        property_id = reference_part["property"]["id"]
+        api_value = reference_part["value"]
+        for r in self.references_for_api():
+            for part in r.get("parts", []):
+                if part["property"]["id"] == property_id and part["value"] == api_value:
+                    return True
+        return False
+
     # -----------------
     # verification methods
     # -----------------
@@ -668,6 +694,8 @@ class BatchCommand(models.Model):
         return self.operation in (
             self.Operation.SET_STATEMENT,
             self.Operation.REMOVE_STATEMENT_BY_VALUE,
+            self.Operation.REMOVE_QUALIFIER,
+            self.Operation.REMOVE_REFERENCE,
             self.Operation.ADD_ALIAS,
             self.Operation.SET_LABEL,
             self.Operation.SET_DESCRIPTION,
@@ -732,8 +760,8 @@ class BatchCommand(models.Model):
         method does not have to call the API agian.
         """
         entity = client.get_entity(self.entity_id())
-        if not hasattr(self, "previous_entity_json"):
-            setattr(self, "previous_entity_json", copy.deepcopy(entity))
+        if getattr(self, "previous_entity_json", None) is None:
+            self.previous_entity_json = copy.deepcopy(entity)
         return entity
 
     def get_previous_entity_json(self, client: Client):
@@ -765,6 +793,8 @@ class BatchCommand(models.Model):
             self._remove_entity_statement(entity)
         elif self.operation in (self.Operation.ADD_ALIAS, self.Operation.REMOVE_ALIAS):
             self._update_entity_aliases(entity)
+        elif self.operation in (self.Operation.REMOVE_QUALIFIER, self.Operation.REMOVE_REFERENCE):
+            self._remove_qualifier_or_reference(entity)
         elif self.operation == self.Operation.SET_SITELINK:
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
         elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
@@ -773,19 +803,43 @@ class BatchCommand(models.Model):
             # the "" is there to make the `pop` safe
             entity[self.what_plural_lowercase].pop(self.language_or_sitelink, "")
 
+    def _get_statement(self, entity: dict) -> Optional[dict]:
+        """
+        Returns the statement that matches the command's value.
+
+        Returns `None` if there is no matching statement.
+        """
+        statements = entity["statements"].setdefault(self.prop, [])
+        for i, statement in enumerate(statements):
+            if statement["value"] == self.statement_api_value:
+                return statement
+        return None
+
     def _update_entity_statements(self, entity: dict):
         """
         Modifies the entity json statements in-place.
         """
-        index = None
-        statements = entity["statements"].setdefault(self.prop, [])
-        for i, statement in enumerate(statements):
-            if statement["value"] == self.statement_api_value:
-                index = i
-        if index is None:
+        statement = self._get_statement(entity)
+        if statement is None:
+            entity["statements"].setdefault(self.prop, [])
             entity["statements"][self.prop].append(dict())
-            index = -1
-        self.update_statement(entity["statements"][self.prop][index])
+            statement = entity["statements"][self.prop][-1]
+        self.update_statement(statement)
+
+    def _remove_qualifier_or_reference(self, entity: dict):
+        """
+        Removes a qualifier or a reference from the entity.
+        """
+        statement = self._get_statement(entity)
+        if statement is None:
+            return
+        for i, qual in enumerate(statement.get("qualifiers", [])):
+            if self.is_in_qualifiers(qual):
+                statement["qualifiers"].pop(i)
+        for i, ref in enumerate(statement.get("references", [])):
+            for j, part in enumerate(ref["parts"]):
+                if self.is_part_in_references(part):
+                    statement["references"][i]["parts"].pop(j)
 
     def _remove_entity_statement(self, entity: dict):
         """
@@ -828,9 +882,13 @@ class BatchCommand(models.Model):
         TODO: maybe cache that original as well to not make
         two requests?
         """
+        logger.debug(f"[{self}] BEFORE ORIGINAL...")
         original = self.get_original_entity_json(client)
+        logger.debug(f"[{self}] BEFORE PREVIOUS...")
         entity = self.get_previous_entity_json(client)
+        logger.debug(f"[{self}] AFTER BOTH...")
         self.update_entity_json(entity)
+        logger.debug(f"[{self}] AFTER UPDATE...")
         return jsonpatch.JsonPatch.from_diff(original, entity).patch
 
     def api_payload(self, client: Client):

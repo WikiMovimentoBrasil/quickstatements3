@@ -240,7 +240,6 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.sitelink, "ptwiki")
         self.assertEqual(cmd.value_value, "Cool article")
 
-
     def test_remove_sitelink(self):
         v1 = V1CommandParser()
         batch = v1.parse("b", "u", """Q1234|Sptwiki|"" """)
@@ -268,6 +267,32 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_LABEL)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(cmd.language, "pt")
+
+    def test_remove_qualifier(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """REMOVE_QUAL|Q1234|P1|Q2|P3|Q4""")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_QUALIFIER)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(len(cmd.references()), 0)
+        self.assertEqual(cmd.qualifiers_for_api(), [
+            {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
+        ])
+
+    def test_remove_reference(self):
+        v1 = V1CommandParser()
+        batch = v1.parse("b", "u", """REMOVE_REF|Q1234|P1|Q2|S3|Q4""")
+        batch.save_batch_and_preview_commands()
+        cmd = batch.commands()[0]
+        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_REFERENCE)
+        self.assertEqual(cmd.entity_id(), "Q1234")
+        self.assertEqual(len(cmd.qualifiers()), 0)
+        self.assertEqual(cmd.references_for_api(), [
+            {"parts":  [
+                {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
+            ]}
+        ])
 
 
 class TestCSVBatch(TestCase):
@@ -505,7 +530,7 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Sandbox 3"},
+                "value": {"type": "aliases", "value": ["Sandbox 3"]},
                 "what": "alias",
                 "language": "pt",
             },
@@ -516,7 +541,7 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Patterns, Predictors, and Outcome and Questions"},
+                "value": {"type": "aliases", "value": ["Patterns, Predictors, and Outcome and Questions"]},
                 "what": "alias",
                 "language": "pt",
             },
@@ -608,7 +633,7 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
             {
                 "action": "add",
                 "item": "Q4115189",
-                "value": {"type": "string", "value": "Douglas Noël Adams"},
+                "value": {"type": "aliases", "value": ["Douglas Noël Adams"]},
                 "what": "alias",
                 "language": "en",
             },

@@ -59,7 +59,7 @@ def cache_with_first_arg(cache_name):
 class Client:
     BASE_REST_URL = settings.BASE_REST_URL
     ENDPOINT_PROFILE = f"{BASE_REST_URL}/oauth2/resource/profile"
-    WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v0"
+    WIKIBASE_URL = f"{BASE_REST_URL}/wikibase/v1"
 
     def __init__(self, token: Token):
         self.token = token

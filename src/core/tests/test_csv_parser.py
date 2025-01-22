@@ -556,7 +556,7 @@ class TestCSVParser(TestCase):
                 {
                     "action": "add",
                     "item": "Q4115189",
-                    "value": {"type": "string", "value": "Chacara Santo Antonio"},
+                    "value": {"type": "aliases", "value": ["Chacara Santo Antonio"]},
                     "what": "alias",
                     "language": "pt",
                 },
