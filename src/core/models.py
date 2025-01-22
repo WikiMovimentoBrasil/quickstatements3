@@ -667,6 +667,7 @@ class BatchCommand(models.Model):
             self.Operation.SET_LABEL,
             self.Operation.SET_DESCRIPTION,
             self.Operation.SET_SITELINK,
+            self.Operation.REMOVE_ALIAS,
             self.Operation.REMOVE_LABEL,
             self.Operation.REMOVE_DESCRIPTION,
             self.Operation.REMOVE_SITELINK,
@@ -757,11 +758,8 @@ class BatchCommand(models.Model):
             self._update_entity_statements(entity)
         elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
             self._remove_entity_statement(entity)
-        elif self.operation == self.Operation.ADD_ALIAS:
-            entity["aliases"].setdefault(self.language, [])
-            for alias in self.value_value:
-                if alias not in entity["aliases"][self.language]:
-                    entity["aliases"][self.language].append(alias)
+        elif self.operation in (self.Operation.ADD_ALIAS, self.Operation.REMOVE_ALIAS):
+            self._update_entity_aliases(entity)
         elif self.operation == self.Operation.SET_SITELINK:
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
         elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
@@ -795,6 +793,24 @@ class BatchCommand(models.Model):
             if statement["value"] == self.statement_api_value:
                 return entity["statements"][self.prop].pop(i)
         raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
+
+    def _update_entity_aliases(self, entity: dict):
+        """
+        Update the entity's aliases, adding or removing.
+        """
+        entity["aliases"].setdefault(self.language, [])
+        aliases = entity["aliases"][self.language]
+        if self.operation == self.Operation.ADD_ALIAS:
+            for alias in self.value_value:
+                if alias not in aliases:
+                    aliases.append(alias)
+        elif self.operation == self.Operation.REMOVE_ALIAS:
+            new = [a for a in aliases if a not in self.value_value]
+            if len(new) > 0:
+                entity["aliases"][self.language] = new
+            else:
+                # It is not possible to leave a language with 0 aliases
+                entity["aliases"].pop(self.language)
 
     def entity_patch(self, client: Client):
         """
@@ -845,7 +861,7 @@ class BatchCommand(models.Model):
         is not implemented.
         """
         match self.operation:
-            case self.Operation.CREATE_PROPERTY | self.Operation.REMOVE_ALIAS:
+            case self.Operation.CREATE_PROPERTY:
                 raise NotImplementedError()
             case _:
                 return self.send_basic(client)

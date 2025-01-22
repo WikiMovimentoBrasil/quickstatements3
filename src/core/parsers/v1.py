@@ -103,7 +103,7 @@ class V1CommandParser(BaseParser):
                 if not vlabel or vlabel["type"] != "string":
                     raise ParserException("alias must be a string instance")
                 labels.append(vlabel["value"])
-            data = {"action": "add", "what": "alias", "language": lang, "item": entity, "value": {"type": "labels", "value": labels}}
+            data = {"action": action, "what": "alias", "language": lang, "item": entity, "value": {"type": "labels", "value": labels}}
 
         elif llen == 3 and elements[1][0] in ["L", "D", "S"]:
             # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property

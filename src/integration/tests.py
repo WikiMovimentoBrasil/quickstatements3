@@ -42,9 +42,11 @@ class IntegrationTests(TestCase):
         Q238107|Len|"QuickStatements 3.0 test item"
         Q238107|Den|"A test item for the QuickStatements 3.0 project"
         Q238107|Aen|"A test item for QuickStatements"
+        Q238107|Aen|"Removable alias"
         Q238107|Dpt|"Um item de teste do projeto QuickStatements 3.0"
         Q238107|Lpt|"Teste - rótulo a ser removido posteriormente"
         Q238107|Lpt|""
+        -Q238107|Aen|"Removable alias"
         Q238107|Smetawiki|"QuickStatements 3.0"
         -Q238107|P65|42
         -Q238107|P372|1.5U71737
