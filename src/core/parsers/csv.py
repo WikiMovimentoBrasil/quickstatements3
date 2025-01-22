@@ -127,6 +127,10 @@ class CSVCommandParser(BaseParser):
                             current_command["site"] = lang
                         else:
                             current_command["language"] = lang
+                        # Code expects aliases to be a list of alias, like in v1
+                        if current_command["what"] == "alias":
+                            current_command["value"]["type"] = "aliases"
+                            current_command["value"]["value"] = [current_command["value"]["value"]]
 
                     commands.append(current_command)
 
