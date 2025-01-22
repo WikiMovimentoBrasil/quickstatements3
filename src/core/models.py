@@ -882,13 +882,9 @@ class BatchCommand(models.Model):
         TODO: maybe cache that original as well to not make
         two requests?
         """
-        logger.debug(f"[{self}] BEFORE ORIGINAL...")
         original = self.get_original_entity_json(client)
-        logger.debug(f"[{self}] BEFORE PREVIOUS...")
         entity = self.get_previous_entity_json(client)
-        logger.debug(f"[{self}] AFTER BOTH...")
         self.update_entity_json(entity)
-        logger.debug(f"[{self}] AFTER UPDATE...")
         return jsonpatch.JsonPatch.from_diff(original, entity).patch
 
     def api_payload(self, client: Client):
