@@ -571,3 +571,51 @@ class TestV1ParserCommand(TestCase):
         self.assertEqual(data["rank"], "normal")
         data = parser.parse_command('Q1234\tP1\t"this is a string"\tRdeprecated')
         self.assertEqual(data["rank"], "deprecated")
+
+    def test_v1_bad_remove_qualifier(self):
+        parser = V1CommandParser()
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tP4")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tP4\tQ5\tP6")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tS4\tQ5")
+        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 1 qualifier")
+
+    def test_v1_bad_remove_reference(self):
+        parser = V1CommandParser()
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1\tP2")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tS4")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tS4\tQ5\tS6")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 6 columns")
+        with self.assertRaises(Exception) as context:
+            _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tP4\tQ5")
+        self.assertEqual(context.exception.message, "REMOVE_REF command must have 1 reference")

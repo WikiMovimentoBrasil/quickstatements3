@@ -65,6 +65,37 @@ class V1CommandParser(BaseParser):
             except ValueError:
                 raise ParserException(f"MERGE items wrong format item1=[{item1}] item2=[{item2}]")
 
+    def parse_remove_qualifier(self, elements):
+        # We are blocking with 6 columns, but, in the future,
+        # we may accept removing multiple qualifiers if we want to
+        # same for references
+        llen = len(elements)
+        if llen != 6:
+            raise ParserException("REMOVE_QUAL command must have 6 columns")
+        elements.pop(0)
+        data = self.parse_statement(elements, elements[0].upper())
+        data["action"] = "remove"
+        data["what"] = "qualifier"
+        if len(data.get("qualifiers", [])) != 1:
+            raise ParserException("REMOVE_QUAL command must have 1 qualifier")
+        if len(data.get("references", [])) != 0:
+            raise ParserException("REMOVE_QUAL command must have no references")
+        return data
+
+    def parse_remove_reference(self, elements):
+        llen = len(elements)
+        if llen != 6:
+            raise ParserException("REMOVE_REF command must have 6 columns")
+        elements.pop(0)
+        data = self.parse_statement(elements, elements[0].upper())
+        data["action"] = "remove"
+        data["what"] = "reference"
+        if len(data.get("references", [])) != 1:
+            raise ParserException("REMOVE_REF command must have 1 reference")
+        if len(data.get("qualifiers", [])) != 0:
+            raise ParserException("REMOVE_REF command must have no qualifiers")
+        return data
+
     def parse_statement_by_id(self, elements):
         llen = len(elements)
         if llen != 2:
@@ -212,6 +243,10 @@ class V1CommandParser(BaseParser):
             data = self.parse_merge(elements)
         elif first_command == "-STATEMENT":
             data = self.parse_statement_by_id(elements)
+        elif first_command == "REMOVE_QUAL":
+            data = self.parse_remove_qualifier(elements)
+        elif first_command == "REMOVE_REF":
+            data = self.parse_remove_reference(elements)
         else:
             data = self.parse_statement(elements, first_command)
 
@@ -264,6 +299,10 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.REMOVE_DESCRIPTION
                     elif what == "alias":
                         bc.operation = bc.Operation.REMOVE_ALIAS
+                    elif what == "qualifier":
+                        bc.operation = bc.Operation.REMOVE_QUALIFIER
+                    elif what == "reference":
+                        bc.operation = bc.Operation.REMOVE_REFERENCE
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     if command["type"] == "item":
