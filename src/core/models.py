@@ -224,6 +224,16 @@ class Batch(models.Model):
                 batch_command.batch = self
                 batch_command.save()
 
+    def wikibase_url(self):
+        """
+        Returns the wikibase url of this batch.
+
+        In the future this could be a field, so that batches targeting
+        different wikibases (like wikidata and test.wikidata) are
+        possible in the same server.
+        """
+        return settings.BASE_REST_URL.replace("https://", "http://").split("/w/rest.php")[0]
+
 
 class BatchCommand(models.Model):
     """
@@ -477,10 +487,10 @@ class BatchCommand(models.Model):
     def statement_api_value(self):
         value = self.json["value"]
         if value["type"] == "quantity" and value["value"]["unit"] != "1":
-            # TODO: the unit is an entity and we need to put the
-            # full entity URL... so we need the client
-            # to process the URL
-            raise NotImplementedError()
+            base = self.batch.wikibase_url()
+            unit_id = value["value"]["unit"]
+            full_unit = f"{base}/entity/Q{unit_id}"
+            value["value"]["unit"] = full_unit
         return self.parser_value_to_api_value(value)
 
     def update_statement(self, st):
@@ -651,12 +661,17 @@ class BatchCommand(models.Model):
 
         It joins the user supplied summary with
         the identification necessary for EditGroups.
+
+        Also joins the summary from the previous combined commands.
         """
+        summaries = [self.user_summary]
+        summaries.extend([c.user_summary for c in getattr(self, "previous_commands", [])])
+        combined = " | ".join([s for s in summaries[::-1] if bool(s)])
         editgroups = self.editgroups_summary()
         if editgroups:
-            return f"{editgroups}: {self.user_summary}" if self.user_summary else editgroups
+            return f"{editgroups}: {combined}" if combined else editgroups
         else:
-            return self.user_summary if self.user_summary else ""
+            return combined
 
     def editgroups_summary(self):
         """
@@ -685,6 +700,7 @@ class BatchCommand(models.Model):
             self.Operation.SET_LABEL,
             self.Operation.SET_DESCRIPTION,
             self.Operation.SET_SITELINK,
+            self.Operation.REMOVE_ALIAS,
             self.Operation.REMOVE_LABEL,
             self.Operation.REMOVE_DESCRIPTION,
             self.Operation.REMOVE_SITELINK,
@@ -775,13 +791,10 @@ class BatchCommand(models.Model):
             self._update_entity_statements(entity)
         elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
             self._remove_entity_statement(entity)
+        elif self.operation in (self.Operation.ADD_ALIAS, self.Operation.REMOVE_ALIAS):
+            self._update_entity_aliases(entity)
         elif self.operation in (self.Operation.REMOVE_QUALIFIER, self.Operation.REMOVE_REFERENCE):
             self._remove_qualifier_or_reference(entity)
-        elif self.operation == self.Operation.ADD_ALIAS:
-            entity["aliases"].setdefault(self.language, [])
-            for alias in self.value_value:
-                if alias not in entity["aliases"][self.language]:
-                    entity["aliases"][self.language].append(alias)
         elif self.operation == self.Operation.SET_SITELINK:
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
         elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
@@ -840,6 +853,24 @@ class BatchCommand(models.Model):
                 return entity["statements"][self.prop].pop(i)
         raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
 
+    def _update_entity_aliases(self, entity: dict):
+        """
+        Update the entity's aliases, adding or removing.
+        """
+        entity["aliases"].setdefault(self.language, [])
+        aliases = entity["aliases"][self.language]
+        if self.operation == self.Operation.ADD_ALIAS:
+            for alias in self.value_value:
+                if alias not in aliases:
+                    aliases.append(alias)
+        elif self.operation == self.Operation.REMOVE_ALIAS:
+            new = [a for a in aliases if a not in self.value_value]
+            if len(new) > 0:
+                entity["aliases"][self.language] = new
+            else:
+                # It is not possible to leave a language with 0 aliases
+                entity["aliases"].pop(self.language)
+
     def entity_patch(self, client: Client):
         """
         Calculates the entity json patch to send to the API.
@@ -851,13 +882,9 @@ class BatchCommand(models.Model):
         TODO: maybe cache that original as well to not make
         two requests?
         """
-        logger.debug(f"[{self}] BEFORE ORIGINAL...")
         original = self.get_original_entity_json(client)
-        logger.debug(f"[{self}] BEFORE PREVIOUS...")
         entity = self.get_previous_entity_json(client)
-        logger.debug(f"[{self}] AFTER BOTH...")
         self.update_entity_json(entity)
-        logger.debug(f"[{self}] AFTER UPDATE...")
         return jsonpatch.JsonPatch.from_diff(original, entity).patch
 
     def api_payload(self, client: Client):
@@ -893,7 +920,7 @@ class BatchCommand(models.Model):
         is not implemented.
         """
         match self.operation:
-            case self.Operation.CREATE_PROPERTY | self.Operation.REMOVE_ALIAS:
+            case self.Operation.CREATE_PROPERTY:
                 raise NotImplementedError()
             case _:
                 return self.send_basic(client)

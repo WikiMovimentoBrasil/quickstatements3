@@ -42,15 +42,19 @@ class IntegrationTests(TestCase):
         Q238107|Len|"QuickStatements 3.0 test item"
         Q238107|Den|"A test item for the QuickStatements 3.0 project"
         Q238107|Aen|"A test item for QuickStatements"
+        Q238107|Aen|"Removable alias"
         Q238107|Dpt|"Um item de teste do projeto QuickStatements 3.0"
         Q238107|Lpt|"Teste - rótulo a ser removido posteriormente"
         Q238107|Lpt|""
+        -Q238107|Aen|"Removable alias"
         Q238107|Smetawiki|"QuickStatements 3.0"
         -Q238107|P65|42
+        -Q238107|P372|1.5U71737
         -Q238107|P31|somevalue
         -Q238107|P18|+2001-01-15T00:00:00Z/11
         -Q238107|P196|novalue
         Q238107|P65|42|R+|P65|84|P84267|-5|P93|"https://toberemoved.org/"
+        Q238107|P372|1.5U71737
         REMOVE_QUAL|Q238107|P65|42|P93|"https://toberemoved.org/"
         Q238107|P31|somevalue|P18|+2025-01-15T00:00:00Z/11|S93|"https://kernel.org/"|S84267|42|!S93|"https://www.mediawiki.org/"|S74|+1980-10-21T00:00:00Z/11
         Q238107|P18|+2001-01-15T00:00:00Z/11|R0|S65|999|!S74|+2012-12-21T00:00:00Z/11

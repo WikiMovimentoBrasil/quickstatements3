@@ -275,9 +275,9 @@ class TestCSVParser(TestCase):
                         "type": "globecoordinate",
                         "value": {
                             "globe": "http://www.wikidata.org/entity/Q2",
-                            "latitude": "43.26193",
-                            "longitude": "10.92708",
-                            "precision": "0.000001",
+                            "latitude": 43.26193,
+                            "longitude": 10.92708,
+                            "precision": 0.000001,
                         },
                     },
                     "what": "statement",
