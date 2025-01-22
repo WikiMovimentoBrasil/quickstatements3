@@ -224,6 +224,16 @@ class Batch(models.Model):
                 batch_command.batch = self
                 batch_command.save()
 
+    def wikibase_url(self):
+        """
+        Returns the wikibase url of this batch.
+
+        In the future this could be a field, so that batches targeting
+        different wikibases (like wikidata and test.wikidata) are
+        possible in the same server.
+        """
+        return settings.BASE_REST_URL.replace("https://", "http://").split("/w/rest.php")[0]
+
 
 class BatchCommand(models.Model):
     """
@@ -474,10 +484,10 @@ class BatchCommand(models.Model):
     def statement_api_value(self):
         value = self.json["value"]
         if value["type"] == "quantity" and value["value"]["unit"] != "1":
-            # TODO: the unit is an entity and we need to put the
-            # full entity URL... so we need the client
-            # to process the URL
-            raise NotImplementedError()
+            base = self.batch.wikibase_url()
+            unit_id = value["value"]["unit"]
+            full_unit = f"{base}/entity/Q{unit_id}"
+            value["value"]["unit"] = full_unit
         return self.parser_value_to_api_value(value)
 
     def update_statement(self, st):
