@@ -118,12 +118,15 @@ class RemoveQualRefTests(TestCase):
         batch.save_batch_and_preview_commands()
         return batch
 
+    def assertStmtnCount(self, entity: dict, property_id: str, length: int):
+        self.assertEqual(len(entity["statements"][property_id]), length)
+
     def assertQualCount(self, entity: dict, property_id: str, length: int, i: int = 0):
         quals = entity["statements"][property_id][i]["qualifiers"]
         self.assertEqual(len(quals), length)
 
     def assertRefCount(self, entity: dict, property_id: str, length: int, i: int = 0):
-        refs = entity["statements"][property_id][i]["references"]
+        refs = entity["statements"][property_id][i].get("references", [])
         self.assertEqual(len(refs), length)
 
     def assertRefPartsCount(
@@ -135,6 +138,43 @@ class RemoveQualRefTests(TestCase):
     # -----
     # TESTS
     # -----
+
+    def test_create_statement(self):
+        text = """
+        Q12345678|P65|42
+        +Q12345678|P65|42|S12|"https://kernel.org"
+        Q12345678|P65|-10
+        """
+        batch = self.parse(text)
+        entity = copy.deepcopy(self.INITIAL)
+        # -----
+        create_statement = batch.commands()[0]
+        self.assertStmtnCount(entity, "P65", 1)
+        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        create_statement.update_entity_json(entity)
+        self.assertEqual(entity, copy.deepcopy(self.INITIAL))
+        # -----
+        create_statement = batch.commands()[1]
+        self.assertStmtnCount(entity, "P65", 1)
+        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        create_statement.update_entity_json(entity)
+        self.assertStmtnCount(entity, "P65", 2)
+        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertRefCount(entity, "P65", 0, 0)
+        self.assertEqual(entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42")
+        self.assertRefCount(entity, "P65", 1, 1)
+        # -----
+        set_statement2 = batch.commands()[2]
+        self.assertStmtnCount(entity, "P65", 2)
+        set_statement2.update_entity_json(entity)
+        self.assertStmtnCount(entity, "P65", 3)
+        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertRefCount(entity, "P65", 0, 0)
+        self.assertEqual(entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42")
+        self.assertRefCount(entity, "P65", 1, 1)
+        self.assertEqual(entity["statements"]["P65"][2]["value"]["content"]["amount"], "-10")
+        self.assertRefCount(entity, "P65", 0, 2)
+
 
     def test_remove_qualifier(self):
         text = """

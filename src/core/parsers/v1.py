@@ -34,6 +34,7 @@ class V1CommandParser(BaseParser):
         if llen != 1:
             raise ParserException("CREATE command can have only 1 column")
         else:
+            # TODO: maybe change this 'type' to 'what', to be like the others
             return {"action": "create", "type": "item"}
 
     def parse_create_property(self, elements):
@@ -114,6 +115,9 @@ class V1CommandParser(BaseParser):
 
         if first_command[0] == "-":
             action = "remove"
+            entity = first_command[1:]
+        elif first_command[0] == "+":
+            action = "create"
             entity = first_command[1:]
         else:
             action = "add"
@@ -271,6 +275,8 @@ class V1CommandParser(BaseParser):
             )
             try:
                 command = self.parse_command(raw_command)
+                if command["action"] == "force_add" and command["what"] == "statement":
+                    bc.action = BatchCommand.ACTION_ADD
                 if command["action"] == "add":
                     bc.action = BatchCommand.ACTION_ADD
                     what = command.get("what")
@@ -306,10 +312,13 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.REMOVE_REFERENCE
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
-                    if command["type"] == "item":
+                    what_or_type = command.get("type", command.get("what"))
+                    if what_or_type == "item":
                         bc.operation = bc.Operation.CREATE_ITEM
-                    elif command["type"] == "property":
+                    elif what_or_type == "property":
                         bc.operation = bc.Operation.CREATE_PROPERTY
+                    elif what_or_type == "statement":
+                        bc.operation = bc.Operation.CREATE_STATEMENT
                 else:
                     bc.action = BatchCommand.ACTION_MERGE
                 bc.user_summary = command.pop("summary", None)
