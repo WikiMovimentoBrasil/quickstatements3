@@ -1,9 +1,7 @@
 import copy
 from django.test import TestCase
-from django.contrib.auth.models import User
 
 from core.parsers.v1 import V1CommandParser
-from web.models import Token
 
 
 class RemoveQualRefTests(TestCase):
@@ -139,8 +137,10 @@ class RemoveQualRefTests(TestCase):
     # -----
 
     def test_remove_qualifier(self):
-        text = """REMOVE_QUAL|Q12345678|P65|42|P84267|-5
-        REMOVE_QUAL|Q12345678|P31|somevalue|P18|+2025-01-15T00:00:00Z/11"""
+        text = """
+        REMOVE_QUAL|Q12345678|P65|42|P84267|-5
+        REMOVE_QUAL|Q12345678|P31|somevalue|P18|+2025-01-15T00:00:00Z/11
+        """
         batch = self.parse(text)
         entity = copy.deepcopy(self.INITIAL)
         # -----
@@ -158,8 +158,10 @@ class RemoveQualRefTests(TestCase):
         self.assertQualCount(entity, "P31", 0)
 
     def test_remove_reference(self):
-        text = """REMOVE_REF|Q12345678|P65|42|S31|somevalue
-        REMOVE_REF|Q12345678|P31|somevalue|S93|"https://www.mediawiki.org/" """
+        text = """
+        REMOVE_REF|Q12345678|P65|42|S31|somevalue
+        REMOVE_REF|Q12345678|P31|somevalue|S93|"https://www.mediawiki.org/"
+        """
         batch = self.parse(text)
         entity = copy.deepcopy(self.INITIAL)
         # -----

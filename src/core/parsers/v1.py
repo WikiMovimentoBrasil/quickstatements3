@@ -257,9 +257,10 @@ class V1CommandParser(BaseParser):
 
     def parse(self, batch_name, batch_owner, raw_commands):
         batch = Batch(name=batch_name, user=batch_owner)
-        batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
+        commands = raw_commands.replace("||", "\n").replace("|", "\t")
+        commands = [c.strip() for c in commands.split("\n") if c.strip()]
 
-        for index, raw_command in enumerate(batch_commands.split("\n")):
+        for index, raw_command in enumerate(commands):
             bc = BatchCommand(
                 batch=batch,
                 index=index,
