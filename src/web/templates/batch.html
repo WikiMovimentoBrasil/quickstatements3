@@ -30,6 +30,10 @@
       {% csrf_token %}
       <input type="submit" value="Restart">
     </form>
+    {% elif batch.is_done %}
+    <form method="GET" action="{% url 'batch_report' pk=batch.pk %}">
+      <input type="submit" value="Report">
+    </form>
     {% endif %}
   {% endif %}
 </div>

@@ -3,6 +3,8 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET
+from django.http import HttpResponse
 
 from core.client import Client
 from core.models import Batch
@@ -78,6 +80,23 @@ def batch_restart(request, pk):
         if current_owner:
             batch.restart()
         return redirect(reverse("batch", args=[batch.pk]))
+    except Batch.DoesNotExist:
+        return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+
+@require_GET
+def batch_report(request, pk):
+    try:
+        batch = Batch.objects.get(pk=pk)
+        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        if current_owner and batch.is_done:
+            res = HttpResponse(
+                content_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="batch-{pk}-report.csv"'},
+            )
+            batch.write_report(res)
+            return res
+        else:
+            return render(request, "batch_not_found.html", {"pk": pk}, status=404)
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
 

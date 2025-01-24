@@ -1,4 +1,5 @@
 import copy
+import csv
 import logging
 import jsonpatch
 from typing import Optional
@@ -201,6 +202,10 @@ class Batch(models.Model):
     def is_preview_initial_or_running(self):
         return self.is_preview or self.is_initial or self.is_running
 
+    @property
+    def is_done(self):
+        return self.status == Batch.STATUS_DONE
+
     def add_preview_command(self, preview_command: "BatchCommand") -> bool:
         if not hasattr(self, "_preview_commands"):
             self._preview_commands = []
@@ -234,6 +239,43 @@ class Batch(models.Model):
         """
         return settings.BASE_REST_URL.replace("https://", "http://").split("/w/rest.php")[0]
 
+    # ------
+    # REPORT
+    # ------
+
+    def write_report(self, csvfile):
+        """
+        Uses `csvfile` as the csv writer's file to write the batch report.
+        """
+        writer = csv.writer(csvfile)
+        writer.writerow(
+            [
+                "batch_id",
+                "index",
+                "operation",
+                "status",
+                "error",
+                "message",
+                "entity_id",
+                "raw_input",
+                "api_response",
+            ]
+        )
+        for cmd in self.commands():
+            called_api = bool(cmd.response_json)
+            writer.writerow(
+                [
+                    self.pk,
+                    cmd.index,
+                    cmd.operation,
+                    cmd.get_status_display(),
+                    cmd.error,
+                    cmd.message,
+                    cmd.entity_id(),
+                    cmd.raw.replace("\t", "|"), # tabs are weird in csv
+                    cmd.response_json if called_api else None,
+                ]
+            )
 
 class BatchCommand(models.Model):
     """
