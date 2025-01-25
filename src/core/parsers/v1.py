@@ -72,7 +72,7 @@ class V1CommandParser(BaseParser):
         # same for references
         llen = len(elements)
         if llen != 6:
-            raise ParserException("REMOVE_QUAL command must have 6 columns")
+            raise ParserException("REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
         elements.pop(0)
         data = self.parse_statement(elements, elements[0].upper())
         data["action"] = "remove"
@@ -86,7 +86,7 @@ class V1CommandParser(BaseParser):
     def parse_remove_reference(self, elements):
         llen = len(elements)
         if llen != 6:
-            raise ParserException("REMOVE_REF command must have 6 columns")
+            raise ParserException("REMOVE_REF command must be Qid|Pid|value|Sid|value")
         elements.pop(0)
         data = self.parse_statement(elements, elements[0].upper())
         data["action"] = "remove"
