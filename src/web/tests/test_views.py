@@ -18,6 +18,7 @@ from core.parsers.v1 import V1CommandParser
 
 class ViewsTest(TestCase):
     URL_NAME = "profile"
+    maxDiff = None
 
     def assertInRes(self, substring, response):
         """Checks if a substring is contained in response content"""
@@ -560,3 +561,44 @@ class ViewsTest(TestCase):
         self.assertInRes("Save and run batch", res)
         res = self.client.get("/batch/new/preview/commands/")
         self.assertEqual(res.status_code, 200)
+
+    @requests_mock.Mocker()
+    def test_batch_report(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.property_data_type(mocker, "P2", "wikibase-item")
+        ApiMocker.item_empty(mocker, "Q1234")
+        ApiMocker.item_empty(mocker, "Q11")
+        ApiMocker.patch_item_successful(mocker, "Q1234", {"id": "Q1234$stuff"})
+        ApiMocker.patch_item_successful(mocker, "Q11", {"id": "Q11", "labels": {"en": "label"}})
+        user, api_client = self.login_user_and_get_token("wikiuser")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", """Q1234\tP2\tQ1||Q11|Len|"label" """)
+        batch.save_batch_and_preview_commands()
+        pk = batch.pk
+
+        response = self.client.get(f"/batch/{pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        self.assertNotInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+
+        batch.run()
+
+        response = self.client.get(f"/batch/{pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        self.assertInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+
+        response = self.client.post(f"/batch/{pk}/report/")
+        self.assertEqual(response.status_code, 405)
+
+        response = self.client.get(f"/batch/{pk}/report/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Content-Disposition"], f'attachment; filename="batch-{pk}-report.csv"')
+        result = (
+            """b'batch_id,index,operation,status,error,message,entity_id,raw_input,api_response\\r\\n"""
+            """1,0,set_statement,Done,,,Q1234,Q1234|P2|Q1,{\\\'id\\\': \\\'Q1234$stuff\\\'}\\r\\n"""
+            """1,1,set_label,Done,,,Q11,"Q11|Len|""label"" ","""
+            """"{\\\'id\\\': \\\'Q11\\\', \\\'labels\\\': {\\\'en\\\': \\\'label\\\'}}"\\r\\n\'"""
+        )
+        self.assertEqual(result, str(response.content).strip())
