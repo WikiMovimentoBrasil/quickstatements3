@@ -293,6 +293,7 @@ class BatchCommand(models.Model):
         CREATE_PROPERTY = "create_property", _("Create property")
         #
         SET_STATEMENT = "set_statement", _("Set statement")
+        CREATE_STATEMENT = "create_statement", _("Create statement")
         #
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
         REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
@@ -693,6 +694,7 @@ class BatchCommand(models.Model):
         """
         return self.operation in (
             self.Operation.SET_STATEMENT,
+            self.Operation.CREATE_STATEMENT,
             self.Operation.REMOVE_STATEMENT_BY_VALUE,
             self.Operation.REMOVE_QUALIFIER,
             self.Operation.REMOVE_REFERENCE,
@@ -787,7 +789,7 @@ class BatchCommand(models.Model):
         """
         Modifies the entity json in-place.
         """
-        if self.operation == self.Operation.SET_STATEMENT:
+        if self.operation in (self.Operation.SET_STATEMENT, self.Operation.CREATE_STATEMENT):
             self._update_entity_statements(entity)
         elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
             self._remove_entity_statement(entity)
@@ -818,9 +820,15 @@ class BatchCommand(models.Model):
     def _update_entity_statements(self, entity: dict):
         """
         Modifies the entity json statements in-place.
+
+        If it's SET_STATEMENT, tries to get the current statement to edit it,
+        creating if there is none.
+
+        If it's CREATE_STATEMENT, always creates the statement
         """
-        statement = self._get_statement(entity)
-        if statement is None:
+        if self.operation == self.Operation.SET_STATEMENT:
+            statement = self._get_statement(entity)
+        if self.operation == self.Operation.CREATE_STATEMENT or statement is None:
             entity["statements"].setdefault(self.prop, [])
             entity["statements"][self.prop].append(dict())
             statement = entity["statements"][self.prop][-1]

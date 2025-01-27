@@ -34,6 +34,7 @@ class V1CommandParser(BaseParser):
         if llen != 1:
             raise ParserException("CREATE command can have only 1 column")
         else:
+            # TODO: maybe change this 'type' to 'what', to be like the others
             return {"action": "create", "type": "item"}
 
     def parse_create_property(self, elements):
@@ -71,7 +72,7 @@ class V1CommandParser(BaseParser):
         # same for references
         llen = len(elements)
         if llen != 6:
-            raise ParserException("REMOVE_QUAL command must have 6 columns")
+            raise ParserException("REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
         elements.pop(0)
         data = self.parse_statement(elements, elements[0].upper())
         data["action"] = "remove"
@@ -85,7 +86,7 @@ class V1CommandParser(BaseParser):
     def parse_remove_reference(self, elements):
         llen = len(elements)
         if llen != 6:
-            raise ParserException("REMOVE_REF command must have 6 columns")
+            raise ParserException("REMOVE_REF command must be Qid|Pid|value|Sid|value")
         elements.pop(0)
         data = self.parse_statement(elements, elements[0].upper())
         data["action"] = "remove"
@@ -114,6 +115,9 @@ class V1CommandParser(BaseParser):
 
         if first_command[0] == "-":
             action = "remove"
+            entity = first_command[1:]
+        elif first_command[0] == "+":
+            action = "create"
             entity = first_command[1:]
         else:
             action = "add"
@@ -257,9 +261,10 @@ class V1CommandParser(BaseParser):
 
     def parse(self, batch_name, batch_owner, raw_commands):
         batch = Batch(name=batch_name, user=batch_owner)
-        batch_commands = raw_commands.replace("||", "\n").replace("|", "\t")
+        commands = raw_commands.replace("||", "\n").replace("|", "\t")
+        commands = [c.strip() for c in commands.split("\n") if c.strip()]
 
-        for index, raw_command in enumerate(batch_commands.split("\n")):
+        for index, raw_command in enumerate(commands):
             bc = BatchCommand(
                 batch=batch,
                 index=index,
@@ -270,6 +275,8 @@ class V1CommandParser(BaseParser):
             )
             try:
                 command = self.parse_command(raw_command)
+                if command["action"] == "force_add" and command["what"] == "statement":
+                    bc.action = BatchCommand.ACTION_ADD
                 if command["action"] == "add":
                     bc.action = BatchCommand.ACTION_ADD
                     what = command.get("what")
@@ -305,10 +312,13 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.REMOVE_REFERENCE
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
-                    if command["type"] == "item":
+                    what_or_type = command.get("type", command.get("what"))
+                    if what_or_type == "item":
                         bc.operation = bc.Operation.CREATE_ITEM
-                    elif command["type"] == "property":
+                    elif what_or_type == "property":
                         bc.operation = bc.Operation.CREATE_PROPERTY
+                    elif what_or_type == "statement":
+                        bc.operation = bc.Operation.CREATE_STATEMENT
                 else:
                     bc.action = BatchCommand.ACTION_MERGE
                 bc.user_summary = command.pop("summary", None)
