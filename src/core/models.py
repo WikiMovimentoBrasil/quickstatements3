@@ -85,8 +85,8 @@ class Batch(models.Model):
         Sends all the batch commands to the Wikidata API. This method should not fail.
         Sets the batch status to BLOCKED when a command fails.
         """
-        # Ignore when not INITIAL
-        if not self.is_initial:
+        # Ignore when not INITIAL or RUNNING
+        if not self.is_initial_or_running:
             return
 
         self.start()
