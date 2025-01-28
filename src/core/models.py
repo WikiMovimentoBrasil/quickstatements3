@@ -386,7 +386,7 @@ class BatchCommand(models.Model):
     )
 
     def __str__(self):
-        return f"Batch #{self.batch.pk} Command #{self.pk} ({self.index})"
+        return f"Batch #{self.batch.pk} Command #{self.pk} ##{self.index}"
 
     # -----------------
     # Status-changing methods
