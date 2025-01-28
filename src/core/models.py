@@ -146,10 +146,13 @@ class Batch(models.Model):
         self.save()
 
     def stop(self):
-        logger.debug(f"[{self}] stop...")
-        self.message = f"Batch stopped processing by owner at {datetime.now()}"
-        self.status = self.STATUS_STOPPED
-        self.save()
+        if not self.is_done:
+            logger.debug(f"[{self}] stop...")
+            self.message = f"Batch stopped processing by owner at {datetime.now()}"
+            self.status = self.STATUS_STOPPED
+            self.save()
+        else:
+            logger.debug(f"[{self}] user tried to stop but batch is done.")
 
     def restart(self):
         if self.is_stopped:
