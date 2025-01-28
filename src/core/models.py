@@ -528,13 +528,21 @@ class BatchCommand(models.Model):
 
     @property
     def statement_api_value(self):
+        self.update_quantity_units_if_needed()
+        return self.parser_value_to_api_value(self.json["value"])
+
+    def update_quantity_units_if_needed(self):
+        # TODO: maybe we can add this elsewhere,
+        # because `statement_api_value` above is called a lot
         value = self.json["value"]
-        if value["type"] == "quantity" and value["value"]["unit"] != "1":
-            base = self.batch.wikibase_url()
+        base = self.batch.wikibase_url()
+        if (value["type"] == "quantity"
+            and value["value"]["unit"] != "1"
+            and base not in value["value"]["unit"]
+        ):
             unit_id = value["value"]["unit"]
             full_unit = f"{base}/entity/Q{unit_id}"
             value["value"]["unit"] = full_unit
-        return self.parser_value_to_api_value(value)
 
     def update_statement(self, st):
         st.setdefault("property", {"id": self.prop})
