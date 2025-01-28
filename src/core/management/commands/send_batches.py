@@ -1,3 +1,4 @@
+import os
 import time
 
 from django.core.management.base import BaseCommand
@@ -20,7 +21,9 @@ class Command(BaseCommand):
                 time.sleep(self.TIMEOUT_SEC)
 
     def send_start_message(self):
-        msg = self.style.SUCCESS("==> send_batches management command started!")
+        msg = self.style.SUCCESS(
+            f"[pid={os.getpid()}] ==> send_batches management command started!"
+        )
         self.stdout.write(msg)
 
     def get_first_batch(self):

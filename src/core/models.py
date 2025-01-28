@@ -386,7 +386,7 @@ class BatchCommand(models.Model):
     )
 
     def __str__(self):
-        return f"Batch #{self.batch.pk} Command #{self.pk}"
+        return f"Batch #{self.batch.pk} Command #{self.pk} ({self.index})"
 
     # -----------------
     # Status-changing methods
@@ -787,7 +787,7 @@ class BatchCommand(models.Model):
             commands=commands,
             entity=entity,
         )
-        logger.debug(f"[{self}] combined. final entity={entity}")
+        logger.debug(f"[{self}] combined with next")
 
     @property
     def final_combining_state(self):
