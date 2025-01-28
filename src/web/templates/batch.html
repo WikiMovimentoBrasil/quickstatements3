@@ -41,12 +41,8 @@
 
 <div id="batchProgressDiv" 
       hx-get="{% url 'batch_summary' pk=batch.pk %}"
-      {% if batch.is_initial_or_running %}
-      hx-trigger="load, every 3s"
-      {% else %}
       hx-trigger="load"
-      {% endif %}
-      hx-swap="innerHTML" 
+      hx-swap="outerHTML"
       hx-indicator="#spinner"
       style="margin: 20px 0; font-size: 14px;">
       {% translate "Loading summary..." %}

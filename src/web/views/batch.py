@@ -174,11 +174,12 @@ def batch_summary(request, pk):
         )
         show_block_on_errors_notice = batch.is_preview_initial_or_running and batch.block_on_errors
 
-        return render(
+        response = render(
             request,
             "batch_summary.html",
             {
                 "pk": batch.pk,
+                "batch": batch,
                 "status": batch.get_status_display(),
                 "error_count": batch.error_commands,
                 "initial_count": batch.initial_commands,
@@ -191,5 +192,12 @@ def batch_summary(request, pk):
                 "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )
+        if batch.is_done:
+            previous_status = request.GET.get("previous_status")
+            if previous_status and previous_status != str(batch.STATUS_DONE):
+                # Refreshing the page to load the correct buttons
+                # and reload the command list if it's the first DONE
+                response.headers["HX-Refresh"] = "true"
+        return response
     except Batch.DoesNotExist:
         return render(request, "batch_summary.html", {}, status=404)

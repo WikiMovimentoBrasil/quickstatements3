@@ -1,5 +1,14 @@
 {% load i18n %}
 
+<div id="batchProgressDiv"
+      {% if batch.is_initial_or_running %}
+      hx-get="{% url 'batch_summary' pk=pk %}?previous_status={{ batch.status }}"
+      hx-trigger="load delay:3s"
+      hx-swap="outerHTML"
+      hx-indicator="#spinner"
+      {% endif %}
+      style="margin: 20px 0; font-size: 14px;">
+
 <div class="progress" id="batchprogress">
   <div class="progress-status">{% translate "BATCH STATUS" %}
     <b class="status status_{{ status | lower }}">{{status | upper}}</b>
@@ -30,4 +39,6 @@
       {% translate "This batch will be blocked if a command fails." %}
     </small>
     {% endif %}
+</div>
+
 </div>

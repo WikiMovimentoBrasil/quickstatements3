@@ -30,7 +30,7 @@
   </p>
 </div>
 <div id="batchProgressDiv" style="margin: 20px 0; font-size: 14px; ">
-    {% include 'batch_summary.html' with done_count=0 done_percentage=0 status="Preview" show_block_on_errors_notice=batch.block_on_errors %}
+    {% include 'batch_summary.html' with batch=batch done_count=0 done_percentage=0 status="Preview" show_block_on_errors_notice=batch.block_on_errors %}
 </div>
 <h4>{% translate "Commands" %}</h4>
 <div class="overflow-auto" id="batchCommandsDiv" hx-get="{% url 'preview_batch_commands' %}" hx-trigger="load, reload" hx-indicator="#spinner" hx-swap="innerHTML">
