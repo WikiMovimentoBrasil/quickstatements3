@@ -378,6 +378,8 @@ class BatchCommand(models.Model):
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
         SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
         COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
+        API_USER_ERROR = "api_user_error", _("API returned a User error")
+        API_SERVER_ERROR = "api_server_error", _("API returned a server error")
 
     error = models.TextField(
         null=True,
@@ -403,9 +405,12 @@ class BatchCommand(models.Model):
         self.save()
         self.propagate_status_to_previous_commands()
 
-    def error_with_value(self, value: Error):
+    def error_with_value(self, value: Error, message: str = None):
         self.error = value
-        self.error_with_message(value.label)
+        if message is not None:
+            self.error_with_message(message)
+        else:
+            self.error_with_message(value.label)
 
     def error_with_exception(self, exception: Exception):
         message = getattr(exception, "message", str(exception))
@@ -694,7 +699,9 @@ class BatchCommand(models.Model):
             if e.response_message == "Invalid path parameter: 'site_id'":
                 self.error_with_value(self.Error.SITELINK_INVALID)
             else:
-                self.error_with_exception(e)
+                self.error_with_value(self.Error.API_USER_ERROR, e.message)
+        except ServerError as e:
+            self.error_with_value(self.Error.API_SERVER_ERROR, e.message)
         except (ApiException, Exception) as e:
             self.error_with_exception(e)
 
