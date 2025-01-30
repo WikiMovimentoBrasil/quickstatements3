@@ -1029,7 +1029,11 @@ class BatchCommand(models.Model):
         if id is None or id == "LAST":
             return None
 
-        labels = client.get_labels(id)
+        try:
+            labels = client.get_labels(id)
+        except ApiException as e:
+            logger.warning(f"[{self}] label call failed: {e.message}")
+            return None
 
         preferred = labels.get(preferred_language)
 
