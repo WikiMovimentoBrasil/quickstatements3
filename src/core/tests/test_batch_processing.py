@@ -399,3 +399,55 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
+
+    @requests_mock.Mocker()
+    def test_all_errors(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.item_empty(mocker, "Q1234")
+        ApiMocker.item_empty(mocker, "Q5")
+        ApiMocker.item_empty(mocker, "Q7")
+        ApiMocker.property_data_type(mocker, "P5", "quantity")
+        ApiMocker.sitelink_invalid(mocker, "Q1234", "ptwikix")
+        ApiMocker.patch_item_fail(mocker, "Q5", 400,  {"code": "code", "message": "message"})
+        ApiMocker.patch_item_fail(mocker, "Q7", 500,  {"code": "code", "message": "message"})
+        ApiMocker.statements(mocker, "Q9", {})
+        ApiMocker.statements(mocker, "Q11", {
+            "P5": [{
+                "id": "Q1234$abcdefgh-uijkl",
+                "value": {
+                    "type": "value",
+                    "content": {"amount": "+32", "unit": "1"},
+                },
+            }],
+        })
+        batch = self.parse("""
+        CREATE_PROPERTY|url
+        Q1234|P5|12
+        Q1234|Sptwikix|"Cool article"
+        Q5|P5|123
+        Q7|P5|321
+        -Q9|P5|123
+        -Q11|P5|123
+        """)
+        batch.combine_commands = True
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].operation, BatchCommand.Operation.CREATE_PROPERTY)
+        self.assertEqual(commands[0].error, BatchCommand.Error.OP_NOT_IMPLEMENTED)
+        self.assertEqual(commands[1].operation, BatchCommand.Operation.SET_STATEMENT)
+        self.assertEqual(commands[1].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[2].operation, BatchCommand.Operation.SET_SITELINK)
+        self.assertEqual(commands[2].error, BatchCommand.Error.SITELINK_INVALID)
+        self.assertEqual(commands[3].operation, BatchCommand.Operation.SET_STATEMENT)
+        self.assertEqual(commands[3].error, BatchCommand.Error.API_USER_ERROR)
+        self.assertEqual(commands[4].operation, BatchCommand.Operation.SET_STATEMENT)
+        self.assertEqual(commands[4].error, BatchCommand.Error.API_SERVER_ERROR)
+        self.assertEqual(commands[5].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[5].error, BatchCommand.Error.NO_STATEMENTS_PROPERTY)
+        self.assertEqual(commands[6].operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(commands[6].error, BatchCommand.Error.NO_STATEMENTS_VALUE)
+        self.assertEqual(len(commands), 7)
+        for command in commands:
+            self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
