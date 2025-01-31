@@ -402,6 +402,8 @@ class BatchCommand(models.Model):
     def finish(self):
         logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
+        if self.operation == BatchCommand.Operation.CREATE_ITEM:
+            self.set_entity_id(self.response_id())
         self.save()
         self.propagate_status_to_previous_commands()
 
@@ -449,10 +451,9 @@ class BatchCommand(models.Model):
     def set_entity_id(self, value):
         if self.json.get("item", None):
             self.json["item"] = value
-        elif self.json.get("entity", {}).get("id", None):
-            self.json["entity"]["id"] = value
         else:
-            raise ValueError("This command has no entity to update its id.")
+            self.json.setdefault("entity", {})
+            self.json["entity"]["id"] = value
 
     def entity_url(self):
         entity_id = self.entity_id()

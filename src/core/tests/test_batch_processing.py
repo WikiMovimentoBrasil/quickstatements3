@@ -490,3 +490,43 @@ class ProcessingTests(TestCase):
         self.assertEqual(len(commands), 7)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
+
+    @requests_mock.Mocker()
+    def test_get_label(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.create_item(mocker, "Q1")
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.item_empty(mocker, "Q2")
+        ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        ApiMocker.patch_item_successful(mocker, "Q2", {})
+        batch = self.parse("""
+        CREATE
+        LAST|P1|12
+        Q2|P1|15
+        """)
+        batch.combine_commands = True
+        commands = batch.commands()
+        client = ApiClient.from_username(batch.user)
+        ApiMocker.labels(mocker, client, "Q1", {"pt": "pt1", "en": "en1"})
+        ApiMocker.labels(mocker, client, "Q2", {"pt": "pt2", "en": "en2"})
+        self.assertEqual(commands[0].get_label(client, "pt"), None)
+        self.assertEqual(commands[1].get_label(client, "pt"), None)
+        self.assertEqual(commands[2].get_label(client, "pt"), "pt2")
+        self.assertEqual(commands[0].get_label(client, "de"), None)
+        self.assertEqual(commands[1].get_label(client, "de"), None)
+        self.assertEqual(commands[2].get_label(client, "de"), "en2")
+        self.assertEqual(commands[0].get_label(client, "en"), None)
+        self.assertEqual(commands[1].get_label(client, "en"), None)
+        self.assertEqual(commands[2].get_label(client, "en"), "en2")
+        batch.run() # -> load Q1 into commands[0] and commands[1]
+        self.assertEqual(commands[0].get_label(client, "pt"), "pt1")
+        self.assertEqual(commands[1].get_label(client, "pt"), "pt1")
+        self.assertEqual(commands[2].get_label(client, "pt"), "pt2")
+        self.assertEqual(commands[0].get_label(client, "de"), "en1")
+        self.assertEqual(commands[1].get_label(client, "de"), "en1")
+        self.assertEqual(commands[2].get_label(client, "de"), "en2")
+        self.assertEqual(commands[0].get_label(client, "en"), "en1")
+        self.assertEqual(commands[1].get_label(client, "en"), "en1")
+        self.assertEqual(commands[2].get_label(client, "en"), "en2")
