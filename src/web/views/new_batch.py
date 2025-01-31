@@ -147,6 +147,7 @@ def new_batch(request):
 
             batch = parser.parse(batch_name, batch_owner, batch_commands)
 
+            batch.status = batch.STATUS_PREVIEW
             batch.block_on_errors = "block_on_errors" in request.POST
             batch.combine_commands = "do_not_combine_commands" not in request.POST
 

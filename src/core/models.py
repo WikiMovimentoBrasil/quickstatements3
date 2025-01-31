@@ -85,8 +85,8 @@ class Batch(models.Model):
         Sends all the batch commands to the Wikidata API. This method should not fail.
         Sets the batch status to BLOCKED when a command fails.
         """
-        # Ignore when not INITIAL
-        if not self.is_initial:
+        # Ignore when not INITIAL or RUNNING
+        if not self.is_initial_or_running:
             return
 
         self.start()
@@ -146,10 +146,13 @@ class Batch(models.Model):
         self.save()
 
     def stop(self):
-        logger.debug(f"[{self}] stop...")
-        self.message = f"Batch stopped processing by owner at {datetime.now()}"
-        self.status = self.STATUS_STOPPED
-        self.save()
+        if not self.is_done:
+            logger.debug(f"[{self}] stop...")
+            self.message = f"Batch stopped processing by owner at {datetime.now()}"
+            self.status = self.STATUS_STOPPED
+            self.save()
+        else:
+            logger.debug(f"[{self}] user tried to stop but batch is done.")
 
     def restart(self):
         if self.is_stopped:
@@ -386,7 +389,7 @@ class BatchCommand(models.Model):
     )
 
     def __str__(self):
-        return f"Batch #{self.batch.pk} Command #{self.pk}"
+        return f"Batch #{self.batch.pk} Command #{self.pk} ##{self.index}"
 
     # -----------------
     # Status-changing methods
@@ -528,13 +531,21 @@ class BatchCommand(models.Model):
 
     @property
     def statement_api_value(self):
+        self.update_quantity_units_if_needed()
+        return self.parser_value_to_api_value(self.json["value"])
+
+    def update_quantity_units_if_needed(self):
+        # TODO: maybe we can add this elsewhere,
+        # because `statement_api_value` above is called a lot
         value = self.json["value"]
-        if value["type"] == "quantity" and value["value"]["unit"] != "1":
-            base = self.batch.wikibase_url()
+        base = self.batch.wikibase_url()
+        if (value["type"] == "quantity"
+            and value["value"]["unit"] != "1"
+            and base not in value["value"]["unit"]
+        ):
             unit_id = value["value"]["unit"]
             full_unit = f"{base}/entity/Q{unit_id}"
             value["value"]["unit"] = full_unit
-        return self.parser_value_to_api_value(value)
 
     def update_statement(self, st):
         st.setdefault("property", {"id": self.prop})
@@ -787,7 +798,7 @@ class BatchCommand(models.Model):
             commands=commands,
             entity=entity,
         )
-        logger.debug(f"[{self}] combined. final entity={entity}")
+        logger.debug(f"[{self}] combined with next")
 
     @property
     def final_combining_state(self):
