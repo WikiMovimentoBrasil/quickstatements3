@@ -189,6 +189,14 @@ class ApiMocker:
         )
 
     @classmethod
+    def patch_item_fail(cls, mocker, item_id, status_code, json_result):
+        mocker.patch(
+            cls.wikibase_url(f"/entities/items/{item_id}"),
+            json=json_result,
+            status_code=status_code,
+        )
+
+    @classmethod
     def add_statement_successful(cls, mocker, item_id):
         mocker.patch(
             cls.wikibase_url(f"/entities/items/{item_id}"),

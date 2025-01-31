@@ -11,9 +11,18 @@
           </span>
         </td>
 
+        <td >
+            {% if command.display_label %}
+            {{ command.display_label }}
+            {% endif %}
+            {% if command.entity_url %}<a href="{{ command.entity_url }}">{% endif %}
+            {{ command.entity_info }}
+            {% if command.entity_url %}</a>{% endif %}
+        </td>
+
         {% if command.is_error_status %}
 
-          <td colspan="2">
+          <td>
             {{command.message}}
           </td>
           <td>
@@ -21,15 +30,6 @@
           </td>
 
         {% else %}
-
-          <td >
-              {% if command.display_label %}
-              {{ command.display_label }}
-              {% endif %}
-              {% if command.entity_url %}<a href="{{ command.entity_url }}">{% endif %}
-              {{ command.entity_info }}
-              {% if command.entity_url %}</a>{% endif %}
-          </td>
           
           <td >
             <span class="action action_{{ command.get_action_display.lower }}">
