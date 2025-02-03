@@ -230,6 +230,19 @@ class ViewsTest(TestCase):
         self.assertTrue(batch.is_initial)
 
     @requests_mock.Mocker()
+    def test_create_empty_name(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+        response = self.client.post("/batch/new/", data={"type": "v1", "commands": "CREATE"})
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post("/batch/new/preview/allow_start/")
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(response.url)
+        self.assertTemplateUsed("batch.html")
+
+    @requests_mock.Mocker()
     def test_create_csv_batch_logged_user(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
