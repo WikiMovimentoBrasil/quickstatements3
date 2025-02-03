@@ -54,7 +54,7 @@
           </a>
         </td>
         {% endif %}
-        <td>{{ batch.name }}</td>
+        <td>{% if batch.name %}{{ batch.name }}{% else %}-{% endif %}</td>
         <td><span class="status status_{{ batch.get_status_display | lower }}">{{ batch.get_status_display | upper }}</td>
         <td>{{ batch.modified }}</td>
         <td>

@@ -261,11 +261,9 @@ class Batch(models.Model):
                 "message",
                 "entity_id",
                 "raw_input",
-                "api_response",
             ]
         )
         for cmd in self.commands():
-            called_api = bool(cmd.response_json)
             writer.writerow(
                 [
                     self.pk,
@@ -276,7 +274,6 @@ class Batch(models.Model):
                     cmd.message,
                     cmd.entity_id(),
                     cmd.raw.replace("\t", "|"), # tabs are weird in csv
-                    cmd.response_json if called_api else None,
                 ]
             )
 

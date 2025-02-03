@@ -137,8 +137,6 @@ def new_batch(request):
                 raise ParserException("Command string cannot be empty")
 
             batch_name = batch_name.strip()
-            if not batch_name:
-                raise ParserException("Batch name cannot be empty")
 
             if batch_type == "v1":
                 parser = V1CommandParser()
