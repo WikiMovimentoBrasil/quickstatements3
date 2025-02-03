@@ -596,9 +596,8 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Disposition"], f'attachment; filename="batch-{pk}-report.csv"')
         result = (
-            """b'batch_id,index,operation,status,error,message,entity_id,raw_input,api_response\\r\\n"""
-            """1,0,set_statement,Done,,,Q1234,Q1234|P2|Q1,{\\\'id\\\': \\\'Q1234$stuff\\\'}\\r\\n"""
-            """1,1,set_label,Done,,,Q11,"Q11|Len|""label""\","""
-            """"{\\\'id\\\': \\\'Q11\\\', \\\'labels\\\': {\\\'en\\\': \\\'label\\\'}}"\\r\\n\'"""
+            """b'batch_id,index,operation,status,error,message,entity_id,raw_input\\r\\n"""
+            """1,0,set_statement,Done,,,Q1234,Q1234|P2|Q1\\r\\n"""
+            """1,1,set_label,Done,,,Q11,"Q11|Len|""label""\"\\r\\n\'"""
         )
         self.assertEqual(result, str(response.content).strip())
