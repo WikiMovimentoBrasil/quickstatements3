@@ -173,6 +173,10 @@ def batch_summary(request, pk):
             .get(pk=pk)
         )
         show_block_on_errors_notice = batch.is_preview_initial_or_running and batch.block_on_errors
+        finished_commands = batch.done_commands + batch.error_commands
+
+        def percentage(val, max):
+            return round(float(100 * val / max)) if max else 0
 
         response = render(
             request,
@@ -186,9 +190,9 @@ def batch_summary(request, pk):
                 "running_count": batch.running_commands,
                 "done_count": batch.done_commands,
                 "total_count": batch.total_commands,
-                "done_percentage": round(float(100 * batch.done_commands) / batch.total_commands, 1)
-                if batch.total_commands
-                else 0,
+                "done_percentage": percentage(batch.done_commands, batch.total_commands),
+                "finish_percentage": percentage(finished_commands, batch.total_commands),
+                "done_to_finish_percentage": percentage(batch.done_commands, finished_commands),
                 "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )

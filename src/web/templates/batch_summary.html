@@ -16,15 +16,16 @@
   <div class="progress-meter">
     <div id="progress-done-meter"
       class="progress-done-meter"
-      style="width: {{done_percentage|floatformat:'0'}}%;"
+      style="width: {{finish_percentage|floatformat:'0'}}%;
+      background: linear-gradient(to right, green {{done_to_finish_percentage|floatformat:'0'}}%, #C52F21 0);"
+      aria-valuenow="{{finish_percentage}}"
       role="progressbar"
       aria-valuemin="0"
       aria-valuemax="100"
-      aria-valuenow="{{done_percentage}}"
     >
     </div>
   </div>
-  <div class="progress-summary">{{done_percentage}}% {% translate "DONE" %} ({% blocktranslate %}{{done_count}} of {{total_count}}{% endblocktranslate %})</div>
+  <div class="progress-summary">{{finish_percentage}}% ({% blocktranslate %}{{done_count}} of {{total_count}} done{% endblocktranslate %})</div>
 </div>
 
 <div>
