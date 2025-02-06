@@ -1,6 +1,7 @@
 import requests_mock
 
 from django.test import TestCase
+from django.test import override_settings
 from django.contrib.auth.models import User
 
 from core.tests.test_api import ApiMocker
@@ -401,6 +402,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
 
     @requests_mock.Mocker()
+    @override_settings(BASE_REST_URL="https://test.wikidata.org/w/rest.php")
     def test_remove_quantity_tolerance(self, mocker):
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.is_autoconfirmed(mocker)
