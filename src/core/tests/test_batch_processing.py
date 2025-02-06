@@ -1,6 +1,7 @@
 import requests_mock
 
 from django.test import TestCase
+from django.test import override_settings
 from django.contrib.auth.models import User
 
 from core.tests.test_api import ApiMocker
@@ -399,6 +400,44 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].operation, BatchCommand.Operation.SET_SITELINK)
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
+
+    @requests_mock.Mocker()
+    @override_settings(BASE_REST_URL="https://test.wikidata.org/w/rest.php")
+    def test_remove_quantity_tolerance(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.property_data_type(mocker, "P89982", "quantity")
+        ApiMocker.statements(mocker, "Q1", {
+        "P89982": [
+          {
+            "id": "Q208235$79D23941-64B1-4260-A962-8AB10E84B2C2",
+            "rank": "normal",
+            "qualifiers": [],
+            "references": [],
+            "property": {
+              "id": "P89982",
+              "data_type": "quantity"
+            },
+            "value": {
+              "type": "value",
+              "content": {
+                "amount": "+30",
+                "unit": "http://test.wikidata.org/entity/Q208592",
+                "upperBound": "+40",
+                "lowerBound": "+10"
+              }
+            }
+          }
+        ]})
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        batch = self.parse("-Q1|P89982|30[10,40]U208592")
+        batch.run()
+        client = ApiClient.from_username(batch.user)
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        command = batch.commands()[0]
+        self.assertEqual(command.status, command.STATUS_DONE)
+        entity = command.get_final_entity_json(client)
+        self.assertEqual(len(entity["statements"]["P89982"]), 0)
 
     @requests_mock.Mocker()
     def test_all_errors(self, mocker):

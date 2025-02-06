@@ -492,7 +492,7 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "2.2", "lowerBound": "1.9", "upperBound": "2.5", "unit": "1"},
+                        "value": {"amount": "+2.2", "lowerBound": "+1.9", "upperBound": "+2.5", "unit": "1"},
                     },
                     "what": "statement",
                 },
@@ -508,7 +508,7 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "1.2", "lowerBound": "0.9", "upperBound": "1.5", "unit": "1"},
+                        "value": {"amount": "+1.2", "lowerBound": "+0.9", "upperBound": "+1.5", "unit": "1"},
                     },
                     "what": "statement",
                 },

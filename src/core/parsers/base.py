@@ -321,15 +321,16 @@ class BaseParser(object):
 
         Returns None otherwise
         """
+        def str_amount(amount):
+            return f"+{amount}" if amount >= 0 else f"{amount}"
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
             amount = Decimal(quantity_match.group(1))
             unit = quantity_match.group(4)
-            str_amount = f"+{amount}" if amount >= 0 else f"{amount}"
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": str_amount,
+                    "amount": str_amount(amount),
                     "unit": unit if unit else "1",
 
                 },
@@ -350,9 +351,9 @@ class BaseParser(object):
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": str(value),
-                    "lowerBound": str(lowerBound),
-                    "upperBound": str(upperBound),
+                    "amount": str_amount(value),
+                    "lowerBound": str_amount(lowerBound),
+                    "upperBound": str_amount(upperBound),
                     "unit": unit if unit else "1",
                 },
             }
@@ -367,9 +368,9 @@ class BaseParser(object):
             return {
                 "type": "quantity",
                 "value": {
-                    "amount": str(value),
-                    "upperBound": str(value + error),
-                    "lowerBound": str(value - error),
+                    "amount": str_amount(value),
+                    "upperBound": str_amount(value + error),
+                    "lowerBound": str_amount(value - error),
                     "unit": unit if unit else "1",
                 },
             }
