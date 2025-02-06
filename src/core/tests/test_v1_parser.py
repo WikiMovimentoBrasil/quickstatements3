@@ -143,7 +143,7 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {"amount": "9", "upperBound": "9.1", "lowerBound": "8.9", "unit": "1"},
+                    "value": {"amount": "+9", "upperBound": "+9.1", "lowerBound": "+8.9", "unit": "1"},
                 },
                 "what": "statement",
             },
@@ -198,7 +198,7 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {"amount": "9", "upperBound": "9.1", "lowerBound": "8.9", "unit": "1"},
+                    "value": {"amount": "+9", "upperBound": "+9.1", "lowerBound": "+8.9", "unit": "1"},
                 },
                 "what": "statement",
             },
