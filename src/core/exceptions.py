@@ -60,6 +60,16 @@ class NoStatementsWithThatValue(ApiException):
         return super().__init__(message)
 
 
+class NoQualifiers(ApiException):
+    def __init__(self):
+        return super().__init__("There are no qualifiers with the given value")
+
+
+class NoReferenceParts(ApiException):
+    def __init__(self):
+        return super().__init__("There are no reference parts with the given value")
+
+
 class UserError(ApiException):
     def __init__(self, status, response_code, response_message, response_json):
         self.status = status

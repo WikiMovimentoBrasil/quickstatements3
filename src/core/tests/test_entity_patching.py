@@ -2,6 +2,8 @@ import copy
 from django.test import TestCase
 
 from core.parsers.v1 import V1CommandParser
+from core.exceptions import NoQualifiers
+from core.exceptions import NoReferenceParts
 
 
 class RemoveQualRefTests(TestCase):
@@ -180,6 +182,7 @@ class RemoveQualRefTests(TestCase):
         text = """
         REMOVE_QUAL|Q12345678|P65|42|P84267|-5
         REMOVE_QUAL|Q12345678|P31|somevalue|P18|+2025-01-15T00:00:00Z/11
+        REMOVE_QUAL|Q12345678|P65|42|P84267|999
         """
         batch = self.parse(text)
         entity = copy.deepcopy(self.INITIAL)
@@ -196,6 +199,12 @@ class RemoveQualRefTests(TestCase):
         self.assertQualCount(entity, "P31", 1)
         remove_p31_qual.update_entity_json(entity)
         self.assertQualCount(entity, "P31", 0)
+        # -----
+        remove_nothing = batch.commands()[2]
+        self.assertQualCount(entity, "P65", 1)
+        with self.assertRaises(NoQualifiers):
+            remove_nothing.update_entity_json(entity)
+        self.assertQualCount(entity, "P65", 1)
 
     def test_remove_reference(self):
         text = """
@@ -207,7 +216,8 @@ class RemoveQualRefTests(TestCase):
         # -----
         remove_nothing = batch.commands()[0]
         self.assertRefCount(entity, "P65", 0)
-        remove_nothing.update_entity_json(entity)
+        with self.assertRaises(NoReferenceParts):
+            remove_nothing.update_entity_json(entity)
         self.assertRefCount(entity, "P65", 0)
         # -----
         remove_part_mediawiki = batch.commands()[1]

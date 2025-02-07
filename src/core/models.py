@@ -20,6 +20,8 @@ from .exceptions import ServerError
 from .exceptions import UserError
 from .exceptions import NoStatementsForThatProperty
 from .exceptions import NoStatementsWithThatValue
+from .exceptions import NoQualifiers
+from .exceptions import NoReferenceParts
 from .exceptions import NonexistantPropertyOrNoDataType
 
 logger = logging.getLogger("qsts3")
@@ -376,6 +378,8 @@ class BatchCommand(models.Model):
         OP_NOT_IMPLEMENTED = "op_not_implemented", _("Operation not implemented")
         NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
+        NO_QUALIIFERS = "no_qualifiers", _("No qualifiers with given value")
+        NO_REFERENCE_PARTS = "no_reference_parts", _("No reference parts with given value")
         SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
         COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
         API_USER_ERROR = "api_user_error", _("API returned a User error")
@@ -704,6 +708,10 @@ class BatchCommand(models.Model):
             self.error_with_value(self.Error.NO_STATEMENTS_PROPERTY)
         except NoStatementsWithThatValue:
             self.error_with_value(self.Error.NO_STATEMENTS_VALUE)
+        except NoQualifiers:
+            self.error_with_value(self.Error.NO_QUALIIFERS)
+        except NoReferenceParts:
+            self.error_with_value(self.Error.NO_REFERENCE_PARTS)
         except UserError as e:
             if e.response_message == "Invalid path parameter: 'site_id'":
                 self.error_with_value(self.Error.SITELINK_INVALID)
@@ -897,15 +905,22 @@ class BatchCommand(models.Model):
         Removes a qualifier or a reference from the entity.
         """
         statement = self._get_statement(entity)
-        if statement is None:
-            return
+        statement = statement if statement else {}
+        found_qualifier = False
+        found_ref_part = False
         for i, qual in enumerate(statement.get("qualifiers", [])):
             if self.is_in_qualifiers(qual):
                 statement["qualifiers"].pop(i)
+                found_qualifier = True
         for i, ref in enumerate(statement.get("references", [])):
             for j, part in enumerate(ref["parts"]):
                 if self.is_part_in_references(part):
                     statement["references"][i]["parts"].pop(j)
+                    found_ref_part = True
+        if not found_qualifier and len(self.qualifiers_for_api()) > 0:
+            raise NoQualifiers()
+        if not found_ref_part and len(self.references_for_api()) > 0:
+            raise NoReferenceParts()
 
     def _remove_entity_statement(self, entity: dict):
         """
