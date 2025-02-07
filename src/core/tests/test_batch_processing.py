@@ -490,3 +490,112 @@ class ProcessingTests(TestCase):
         self.assertEqual(len(commands), 7)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_ERROR)
+
+    @requests_mock.Mocker()
+    def test_get_label(self, mocker):
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.create_item(mocker, "Q1")
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.item_empty(mocker, "Q2")
+        ApiMocker.property_data_type(mocker, "P1", "quantity")
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        ApiMocker.patch_item_successful(mocker, "Q2", {})
+        batch = self.parse("""
+        CREATE
+        LAST|P1|12
+        Q2|P1|15
+        """)
+        batch.combine_commands = True
+        commands = batch.commands()
+        client = ApiClient.from_username(batch.user)
+        ApiMocker.labels(mocker, client, "Q1", {"pt": "pt1", "en": "en1"})
+        ApiMocker.labels(mocker, client, "Q2", {"pt": "pt2", "en": "en2"})
+        self.assertEqual(commands[0].get_label(client, "pt"), None)
+        self.assertEqual(commands[1].get_label(client, "pt"), None)
+        self.assertEqual(commands[2].get_label(client, "pt"), "pt2")
+        self.assertEqual(commands[0].get_label(client, "de"), None)
+        self.assertEqual(commands[1].get_label(client, "de"), None)
+        self.assertEqual(commands[2].get_label(client, "de"), "en2")
+        self.assertEqual(commands[0].get_label(client, "en"), None)
+        self.assertEqual(commands[1].get_label(client, "en"), None)
+        self.assertEqual(commands[2].get_label(client, "en"), "en2")
+        batch.run() # -> load Q1 into commands[0] and commands[1]
+        self.assertEqual(commands[0].get_label(client, "pt"), "pt1")
+        self.assertEqual(commands[1].get_label(client, "pt"), "pt1")
+        self.assertEqual(commands[2].get_label(client, "pt"), "pt2")
+        self.assertEqual(commands[0].get_label(client, "de"), "en1")
+        self.assertEqual(commands[1].get_label(client, "de"), "en1")
+        self.assertEqual(commands[2].get_label(client, "de"), "en2")
+        self.assertEqual(commands[0].get_label(client, "en"), "en1")
+        self.assertEqual(commands[1].get_label(client, "en"), "en1")
+        self.assertEqual(commands[2].get_label(client, "en"), "en2")
+
+    @requests_mock.Mocker()
+    def test_remove_qual_or_ref_errors(self, mocker):
+        ApiMocker.item(
+            mocker,
+            "Q1",
+            {
+                "statements": {
+                    "P5": [
+                        {
+                            "id": "Q1234$abcdefgh-uijkl",
+                            "value": {
+                                "type": "value",
+                                "content": "Q12",
+                            },
+                            "qualifiers": [
+                                {
+                                    "property": {"id": "P65", "data_type": "quantity"},
+                                    "value": {
+                                        "type": "value",
+                                        "content": {"amount": "+84", "unit": "1"},
+                                    },
+                                },
+                            ],
+                            "references": [
+                                {
+                                    "hash": "i_am_ahash",
+                                    "parts": [
+                                        {
+                                            "property": {"id": "P93", "data_type": "url"},
+                                            "value": {
+                                                "type": "value",
+                                                "content": "https://kernel.org/",
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        )
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.property_data_type(mocker, "P5", "wikibase-item")
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        batch = self.parse("""
+        REMOVE_QUAL|Q1|P5|Q12|P123|123
+        REMOVE_QUAL|Q1|P5|Q999|P65|84
+        REMOVE_QUAL|Q1|P5|Q12|P65|84
+        REMOVE_REF|Q1|P5|Q12|S93|"https://kernel.xyz"
+        REMOVE_REF|Q1|P5|Q999|S93|"https://kernel.org/"
+        REMOVE_REF|Q1|P5|Q12|S93|"https://kernel.org/"
+        """)
+        commands = batch.commands()
+        batch.run()
+        # qualifiers
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.NO_QUALIIFERS)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.NO_QUALIIFERS)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        # references
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[3].error, BatchCommand.Error.NO_REFERENCE_PARTS)
+        self.assertEqual(commands[4].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[4].error, BatchCommand.Error.NO_REFERENCE_PARTS)
+        self.assertEqual(commands[5].status, BatchCommand.STATUS_DONE)
