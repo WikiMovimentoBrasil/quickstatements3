@@ -599,3 +599,50 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[4].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[4].error, BatchCommand.Error.NO_REFERENCE_PARTS)
         self.assertEqual(commands[5].status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_combine_with_create(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.create_item(mocker, "Q123")
+        ApiMocker.item_empty(mocker, "Q123")
+        ApiMocker.add_statement_successful(mocker, "Q123", {"id": "Q123$abcdef"})
+        ApiMocker.property_data_type(mocker, "P11", "string")
+        # ---
+        # COMBINING COMMANDS
+        # ---
+        raw = """
+        CREATE
+        LAST|P11|"should combine"
+        LAST|P11|"should combine"
+        LAST|P11|"should send!"
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        commands = batch.commands()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, {"id": "Q123"}) # with API connection
+        self.assertEqual(commands[1].response_json, {}) # no API connection
+        self.assertEqual(commands[2].response_json, {}) # no API connection
+        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(len(commands), 4)
+        for command in commands:
+            self.assertEqual(command.status, BatchCommand.STATUS_DONE)
+        # ---
+        # WITHOUT COMBINING COMMANDS
+        # ---
+        v1 = V1CommandParser()
+        batch = v1.parse("without", "user", raw)
+        batch.save_batch_and_preview_commands()
+        batch.combine_commands = False
+        batch.run()
+        commands = batch.commands()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].response_json, {"id": "Q123"}) # with API connection
+        self.assertEqual(commands[1].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(commands[2].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(len(commands), 4)
+        for command in commands:
+            self.assertEqual(command.status, BatchCommand.STATUS_DONE)

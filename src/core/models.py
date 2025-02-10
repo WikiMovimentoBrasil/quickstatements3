@@ -122,8 +122,8 @@ class Batch(models.Model):
 
             next = commands[i+1] if (i + 1) < count else None
 
-            command.update_last_id(last_id)
             command.check_combination(state, next)
+            command.update_last_id(last_id)
             command.run(client)
 
             if command.is_error_status() and self.block_on_errors:

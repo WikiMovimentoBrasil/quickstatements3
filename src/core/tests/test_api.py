@@ -197,10 +197,11 @@ class ApiMocker:
         )
 
     @classmethod
-    def add_statement_successful(cls, mocker, item_id):
+    def add_statement_successful(cls, mocker, item_id, response_json=None):
+        response_json = response_json if response_json else {"id": f"{item_id}$somestuff"}
         mocker.patch(
             cls.wikibase_url(f"/entities/items/{item_id}"),
-            json={"id": f"{item_id}$somestuff"},
+            json=response_json,
             status_code=200,
         )
 
