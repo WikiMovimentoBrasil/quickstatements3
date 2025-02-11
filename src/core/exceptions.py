@@ -70,6 +70,11 @@ class NoReferenceParts(ApiException):
         return super().__init__("There are no reference parts with the given value")
 
 
+class LastCouldNotBeEvaluated(ApiException):
+    def __init__(self):
+        return super().__init__("LAST could not be evaluated.")
+
+
 class UserError(ApiException):
     def __init__(self, status, response_code, response_message, response_json):
         self.status = status

@@ -164,7 +164,7 @@ class Client:
         return f"{self.WIKIBASE_URL}{endpoint}"
 
     @staticmethod
-    def wikibase_entity_endpoint(entity_id, entity_endpoint):
+    def wikibase_entity_endpoint(entity_id, entity_endpoint=""):
         if entity_id.startswith("Q"):
             base = "/entities/items"
         elif entity_id.startswith("P"):

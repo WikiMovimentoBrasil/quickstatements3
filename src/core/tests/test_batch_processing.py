@@ -223,8 +223,10 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.LAST_NOT_EVALUATED)
         self.assertEqual(commands[1].message, "LAST could not be evaluated.")
         self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].error, BatchCommand.Error.LAST_NOT_EVALUATED)
         self.assertEqual(commands[2].message, "LAST could not be evaluated.")
         self.assertEqual(commands[3].status, BatchCommand.STATUS_DONE)
 
@@ -622,10 +624,10 @@ class ProcessingTests(TestCase):
         commands = batch.commands()
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
-        self.assertEqual(commands[0].response_json, {"id": "Q123"}) # with API connection
+        self.assertEqual(commands[0].response_json, {}) # no API connection
         self.assertEqual(commands[1].response_json, {}) # no API connection
         self.assertEqual(commands[2].response_json, {}) # no API connection
-        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(commands[3].response_json, {"id": "Q123"}) # created: API connection
         self.assertEqual(len(commands), 4)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_DONE)
@@ -646,3 +648,133 @@ class ProcessingTests(TestCase):
         self.assertEqual(len(commands), 4)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_combine_failed_data_type_should_fail(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.property_data_type(mocker, "P11", "string")
+        ApiMocker.add_statement_successful(mocker, "Q1", {"id": "Q1$abcdef"})
+        raw = """
+        Q1|P11|"string"
+        Q1|P11|"string"
+        Q1|P11|123
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        batch.run()
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[0].response_json, {})
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[1].response_json, {})
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].response_json, {})
+        self.assertEqual(len(commands), 3)
+
+    @requests_mock.Mocker()
+    def test_create_and_last_should_combine(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.create_item(mocker, "Q123")
+        ApiMocker.item_empty(mocker, "Q123")
+        ApiMocker.property_data_type(mocker, "P11", "string")
+        ApiMocker.add_statement_successful(mocker, "Q123", {"id": "Q123$abcdef"})
+        # ---
+        # COMBINING COMMANDS
+        # ---
+        raw = """
+        LAST|P11|"string"
+        CREATE
+        CREATE
+        LAST|P11|"string"
+        CREATE
+        LAST|P11|"string"
+        LAST|P11|123
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        commands = batch.commands()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.LAST_NOT_EVALUATED)
+        self.assertEqual(commands[0].response_json, {})
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].response_json, {"id": "Q123"})
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[2].response_json, {})
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[3].response_json, {"id": "Q123"})
+        self.assertEqual(commands[4].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[4].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[4].response_json, {})
+        self.assertEqual(commands[5].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[5].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[5].response_json, {})
+        self.assertEqual(commands[6].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[6].response_json, {})
+        self.assertEqual(len(commands), 7)
+        # ---
+        # WITHOUT COMBINING COMMANDS
+        # ---
+        v1 = V1CommandParser()
+        batch = v1.parse("without", "user", raw)
+        batch.save_batch_and_preview_commands()
+        batch.combine_commands = False
+        batch.run()
+        commands = batch.commands()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.LAST_NOT_EVALUATED)
+        self.assertEqual(commands[0].response_json, {})
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].response_json, {"id": "Q123"})
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[2].response_json, {"id": "Q123"})
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"})
+        self.assertEqual(commands[4].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[4].response_json, {"id": "Q123"})
+        self.assertEqual(commands[5].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[5].response_json, {"id": "Q123$abcdef"})
+        self.assertEqual(commands[6].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[6].response_json, {})
+        self.assertEqual(len(commands), 7)
+
+    @requests_mock.Mocker()
+    def test_create_and_last_with_failure(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.property_data_type(mocker, "P11", "string")
+        ApiMocker.create_item_failed_server(mocker)
+        # ---
+        # COMBINING COMMANDS
+        # ---
+        raw = """
+        CREATE
+        LAST|P11|"a"
+        LAST|P11|"b"
+        LAST|P11|"c"
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        commands = batch.commands()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[0].response_json, {})
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[1].response_json, {})
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[2].response_json, {})
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[3].error, BatchCommand.Error.API_SERVER_ERROR)
+        self.assertEqual(commands[3].response_json, {})
+        self.assertEqual(len(commands), 4)
