@@ -223,8 +223,10 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
         self.assertTrue("The server failed to process the request" in commands[0].message)
         self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.LAST_NOT_EVALUATED)
         self.assertEqual(commands[1].message, "LAST could not be evaluated.")
         self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].error, BatchCommand.Error.LAST_NOT_EVALUATED)
         self.assertEqual(commands[2].message, "LAST could not be evaluated.")
         self.assertEqual(commands[3].status, BatchCommand.STATUS_DONE)
 
