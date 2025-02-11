@@ -685,6 +685,10 @@ class BatchCommand(models.Model):
         """
         Sends the command to the Wikidata API. This method should not raise exceptions.
         """
+        # If we alredy have an error, just propagate backwards
+        if self.status == BatchCommand.STATUS_ERROR:
+            return self.propagate_status_to_previous_commands()
+
         # Ignore when not INITIAL
         if self.status != BatchCommand.STATUS_INITIAL:
             return

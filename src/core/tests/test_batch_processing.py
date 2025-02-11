@@ -646,3 +646,29 @@ class ProcessingTests(TestCase):
         self.assertEqual(len(commands), 4)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_DONE)
+
+    @requests_mock.Mocker()
+    def test_combine_failed_data_type_should_fail(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.property_data_type(mocker, "P11", "string")
+        ApiMocker.add_statement_successful(mocker, "Q1", {"id": "Q1$abcdef"})
+        raw = """
+        Q1|P11|"string"
+        Q1|P11|"string"
+        Q1|P11|123
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        batch.run()
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[0].response_json, {})
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[1].error, BatchCommand.Error.COMBINING_COMMAND_FAILED)
+        self.assertEqual(commands[1].response_json, {})
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[2].response_json, {})
+        self.assertEqual(len(commands), 3)
