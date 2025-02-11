@@ -23,6 +23,7 @@ from .exceptions import NoStatementsWithThatValue
 from .exceptions import NoQualifiers
 from .exceptions import NoReferenceParts
 from .exceptions import NonexistantPropertyOrNoDataType
+from .exceptions import LastCouldNotBeEvaluated
 
 logger = logging.getLogger("qsts3")
 
@@ -384,6 +385,7 @@ class BatchCommand(models.Model):
         COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
         API_USER_ERROR = "api_user_error", _("API returned a User error")
         API_SERVER_ERROR = "api_server_error", _("API returned a server error")
+        LAST_NOT_EVALUATED = "last_not_evaluated", _("LAST could not be evaluated.")
 
     error = models.TextField(
         null=True,
@@ -716,6 +718,8 @@ class BatchCommand(models.Model):
             self.error_with_value(self.Error.NO_QUALIIFERS)
         except NoReferenceParts:
             self.error_with_value(self.Error.NO_REFERENCE_PARTS)
+        except LastCouldNotBeEvaluated:
+            self.error_with_value(self.Error.LAST_NOT_EVALUATED)
         except UserError as e:
             if e.response_message == "Invalid path parameter: 'site_id'":
                 self.error_with_value(self.Error.SITELINK_INVALID)
