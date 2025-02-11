@@ -408,10 +408,10 @@ class BatchCommand(models.Model):
     def finish(self):
         logger.info(f"[{self}] finished")
         self.status = BatchCommand.STATUS_DONE
-        if self.operation == BatchCommand.Operation.CREATE_ITEM:
+        if self.is_id_last_or_create_item():
             self.set_entity_id(self.response_id())
         self.save()
-        self.propagate_status_to_previous_commands()
+        self.propagate_to_previous_commands()
 
     def error_with_value(self, value: Error, message: str = None):
         self.error = value
@@ -429,14 +429,17 @@ class BatchCommand(models.Model):
         self.message = message
         self.status = BatchCommand.STATUS_ERROR
         self.save()
-        self.propagate_status_to_previous_commands()
+        self.propagate_to_previous_commands()
 
-    def propagate_status_to_previous_commands(self):
+    def propagate_to_previous_commands(self):
         for cmd in getattr(self, "previous_commands", []):
+            logger.debug(f"[{self}] propagating to [{cmd}]")
+            cmd.status = self.status
             if self.is_error_status():
                 cmd.error = self.Error.COMBINING_COMMAND_FAILED
                 cmd.message = cmd.error.label
-            cmd.status = self.status
+            elif cmd.is_id_last_or_create_item():
+                cmd.set_entity_id(self.entity_id())
             cmd.save()
 
     # -----------------
@@ -455,7 +458,7 @@ class BatchCommand(models.Model):
         return self.json.get("entity", {}).get("id", None)
 
     def set_entity_id(self, value):
-        if self.json.get("item", None):
+        if "item" in self.json:
             self.json["item"] = value
         else:
             self.json.setdefault("entity", {})
@@ -659,6 +662,15 @@ class BatchCommand(models.Model):
     def is_error_status(self):
         return self.status == BatchCommand.STATUS_ERROR
 
+    def is_not_create_item(self):
+        return self.operation != self.Operation.CREATE_ITEM
+
+    def is_id_last_or_create_item(self):
+        return (
+            self.entity_id() == "LAST"
+            or self.operation == self.Operation.CREATE_ITEM
+        )
+
     # -----------------
     # LAST related methods
     # -----------------
@@ -689,17 +701,13 @@ class BatchCommand(models.Model):
         """
         # If we alredy have an error, just propagate backwards
         if self.status == BatchCommand.STATUS_ERROR:
-            return self.propagate_status_to_previous_commands()
+            return self.propagate_to_previous_commands()
 
         # Ignore when not INITIAL
         if self.status != BatchCommand.STATUS_INITIAL:
             return
 
         self.start()
-
-        if self.entity_id() == "LAST":
-            self.error_with_message("LAST could not be evaluated.")
-            return
 
         try:
             self.verify_value_types(client)
@@ -761,12 +769,13 @@ class BatchCommand(models.Model):
         else:
             return ""
 
-    def is_entity_json_patch(self):
+    def operation_is_combinable(self):
         """
         Returns True for commands that work by modifying the entity's json,
-        creating a json patch.
+        thus being combinable with future commands.
         """
         return self.operation in (
+            self.Operation.CREATE_ITEM,
             self.Operation.SET_STATEMENT,
             self.Operation.CREATE_STATEMENT,
             self.Operation.REMOVE_STATEMENT_BY_VALUE,
@@ -799,13 +808,24 @@ class BatchCommand(models.Model):
         """
         self._can_combine_with_next = (
             self.batch.combine_commands
-            and self.is_entity_json_patch()
+            and self.operation_is_combinable()
             and next is not None
-            and next.is_entity_json_patch()
-            and self.entity_id() == next.entity_id()
+            and next.operation_is_combinable()
+            and next.is_not_create_item()
+            and self.has_combinable_id_with(next)
         )
         self.previous_entity_json = state.entity
         self.previous_commands = state.commands
+
+    def has_combinable_id_with(self, next: "BatchCommand"):
+        """
+        Returns True if `self` is CREATE_ITEM and `next`
+        has LAST as entity id, or if both have the same entity id.
+        """
+        return (
+            (self.operation == self.Operation.CREATE_ITEM and next.entity_id() == "LAST")
+            or (self.entity_id() == next.entity_id())
+        )
 
     def update_combining_state(self, client: Client):
         """
@@ -840,6 +860,26 @@ class BatchCommand(models.Model):
             self.previous_entity_json = copy.deepcopy(entity)
         return entity
 
+    def get_entity_or_empty_item(self, client: Client):
+        """
+        Calls the API to get the entity json or returns
+        an empty item if this command is a CREATE_ITEM.
+        """
+        if self.operation == self.Operation.CREATE_ITEM:
+            return {
+                "type": "item",
+                "labels": {},
+                "descriptions": {},
+                "aliases": {},
+                "statements": {},
+                "sitelinks": {},
+                "id": None,
+            }
+        else:
+            if self.entity_id() == "LAST":
+                raise LastCouldNotBeEvaluated()
+            return client.get_entity(self.entity_id())
+
     def get_previous_entity_json(self, client: Client):
         """
         Returns the previous entity json. Has cache.
@@ -848,7 +888,7 @@ class BatchCommand(models.Model):
         to the next command.
         """
         cached = getattr(self, "previous_entity_json", None)
-        entity = cached if cached else client.get_entity(self.entity_id())
+        entity = cached if cached else self.get_entity_or_empty_item(client)
         return entity
 
     def get_final_entity_json(self, client: Client) -> dict:
@@ -980,13 +1020,14 @@ class BatchCommand(models.Model):
         """
         Returns the data that is sent to the Wikibase API through the body.
         """
-        if self.is_entity_json_patch():
-            return {"patch": self.entity_patch(client)}
-        match self.operation:
-            case self.Operation.CREATE_ITEM:
-                return {"item": {}}
-            case _:
-                return {}
+        if self.operation == self.Operation.CREATE_ITEM:
+            return {"item": {}}
+        if self.operation_is_combinable():
+            if self.is_id_last_or_create_item():
+                return {"item": self.get_final_entity_json(client)}
+            else:
+                return {"patch": self.entity_patch(client)}
+        return {}
 
     def api_body(self, client: Client):
         """
@@ -1024,11 +1065,12 @@ class BatchCommand(models.Model):
         Returns a tuple of HTTP method and the endpoint
         necessary for the operation.
         """
-        if self.is_entity_json_patch():
-            return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id(), ""))
-        match self.operation:
-            case self.Operation.CREATE_ITEM:
+        if self.operation_is_combinable():
+            if self.is_id_last_or_create_item():
                 return ("POST", "/entities/items")
+            else:
+                return ("PATCH", Client.wikibase_entity_endpoint(self.entity_id()))
+        match self.operation:
             case self.Operation.REMOVE_STATEMENT_BY_ID:
                 statement_id = self.json["id"]
                 return ("DELETE", f"/statements/{statement_id}")
