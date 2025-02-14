@@ -10,13 +10,12 @@ git pull
 echo "==> Entering python shell..."
 toolforge webservice --backend=kubernetes python3.11 shell -- \
   webservice-python-bootstrap && \
-  source venv/bin/activate && \
   echo "==> Installing dependencies..." && \
-  pip install -r requirements.txt && \
+  pip install poetry && poetry install && \
   echo "==> Running migrations..." && \
-  python3 src/manage.py migrate && \
+  django-admin migrate && \
   echo "==> Collecting static files..." && \
-  python3 src/manage.py collectstatic --noinput
+  django-admin collectstatic --noinput
 
 echo "==> Restarting webservice..."
 toolforge webservice --backend=kubernetes python3.11 restart

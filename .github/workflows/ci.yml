@@ -4,15 +4,9 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
-
-env:
-  DJANGO_SECRET_KEY: dummysecretkey123
-  OAUTH_CLIENT_ID: dummyoauthclientid
-  OAUTH_CLIENT_SECRET: dummyoauthclientsecret
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
@@ -30,10 +24,9 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install poetry
+        poetry install -E dev
 
     - name: Run Tests
       run: |
-        cd src/
-        python manage.py test
-
+        poetry run pytest

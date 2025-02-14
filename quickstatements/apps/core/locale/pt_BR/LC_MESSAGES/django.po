@@ -1,0 +1,476 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-11-03 22:22+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: quickstatements/apps/core/models.py:31
+msgid "Stopped"
+msgstr "Parado"
+
+#: quickstatements/apps/core/models.py:32
+msgid "Blocked"
+msgstr "Bloqueado"
+
+#: quickstatements/apps/core/models.py:33
+msgid "Preview"
+msgstr "Pré-visualização"
+
+#: quickstatements/apps/core/models.py:34 quickstatements/apps/core/models.py:212
+msgid "Initial"
+msgstr "Inicial"
+
+#: quickstatements/apps/core/models.py:35 quickstatements/apps/core/models.py:213
+msgid "Running"
+msgstr "Em execução"
+
+#: quickstatements/apps/core/models.py:36 quickstatements/apps/core/models.py:214
+msgid "Done"
+msgstr "Finalizados"
+
+#: quickstatements/apps/core/models.py:51 quickstatements/apps/web/templates/batch.html:4
+#: quickstatements/apps/web/templates/batch.html:14 quickstatements/apps/web/templates/preview_batch.html:3
+msgid "Batch"
+msgstr "Lote"
+
+#: quickstatements/apps/core/models.py:52
+msgid "Batches"
+msgstr "Lotes"
+
+#: quickstatements/apps/core/models.py:211
+msgid "Error"
+msgstr "Erro"
+
+#: quickstatements/apps/core/models.py:481
+msgid "Batch Command"
+msgstr "Comando de lote"
+
+#: quickstatements/apps/core/models.py:482
+msgid "Batch Commands"
+msgstr "Comandos de lote"
+
+#: quickstatements/apps/web/models.py:52
+msgid "Token"
+msgstr "Chave de API"
+
+#: quickstatements/apps/web/models.py:53
+msgid "Tokens"
+msgstr "Chaves de API"
+
+#: quickstatements/apps/web/models.py:100 quickstatements/apps/web/models.py:101
+#: quickstatements/apps/web/templates/profile.html:43
+msgid "Preferences"
+msgstr "Preferências"
+
+#: quickstatements/apps/web/templates/batch.html:17
+msgid "Created by"
+msgstr "Criado por"
+
+#: quickstatements/apps/web/templates/batch.html:18 quickstatements/apps/web/templates/batches.html:53
+msgid "View batches"
+msgstr "Ver lotes"
+
+#: quickstatements/apps/web/templates/batch.html:19
+msgid "View wikidata"
+msgstr "Ver wikidata"
+
+#: quickstatements/apps/web/templates/batch.html:27
+msgid "Stop execution"
+msgstr "Parar execução"
+
+#: quickstatements/apps/web/templates/batch.html:44
+msgid "Loading summary..."
+msgstr "Carregando resumo..."
+
+#: quickstatements/apps/web/templates/batch.html:47 quickstatements/apps/web/templates/preview_batch.html:54
+msgid "Commands"
+msgstr "Comandos"
+
+#: quickstatements/apps/web/templates/batch.html:55 quickstatements/apps/web/templates/preview_batch.html:56
+msgid "Loading commands..."
+msgstr "Carregando comandos"
+
+#: quickstatements/apps/web/templates/batch.html:64
+#, python-format
+msgid "Stop batch #%(batch.pk)s processing"
+msgstr "Parar processamento de lote #%(batch.pk)s"
+
+#: quickstatements/apps/web/templates/batch.html:66
+msgid "Are you sure you want to stop the current batch processing?"
+msgstr "Você tem certeza de que deseja parar o processamento do lote atual?"
+
+#: quickstatements/apps/web/templates/batch.html:69
+msgid "No, continue"
+msgstr "Não, continuar"
+
+#: quickstatements/apps/web/templates/batch.html:70
+msgid "Stop processing"
+msgstr "Parar processamento"
+
+#: quickstatements/apps/web/templates/batch_commands.html:38
+#: quickstatements/apps/web/templates/preview_batch_commands.html:39
+msgid "STATEMENT"
+msgstr "COMANDO"
+
+#: quickstatements/apps/web/templates/batch_commands.html:66
+#: quickstatements/apps/web/templates/preview_batch_commands.html:68
+msgid "SHOWING ONLY ERRORS"
+msgstr "EXIBINDO APENAS ERROS"
+
+#: quickstatements/apps/web/templates/batch_commands.html:71
+#: quickstatements/apps/web/templates/preview_batch_commands.html:73
+msgid "SHOW ALL"
+msgstr "EXIBIR TODOS"
+
+#: quickstatements/apps/web/templates/batch_commands.html:74
+#: quickstatements/apps/web/templates/preview_batch_commands.html:76
+msgid "SHOWING ALL"
+msgstr "EXIBINDO TODOS"
+
+#: quickstatements/apps/web/templates/batch_commands.html:79
+#: quickstatements/apps/web/templates/preview_batch_commands.html:81
+msgid "SHOW ONLY ERRORS"
+msgstr "EXIBIR APENAS ERROS"
+
+#: quickstatements/apps/web/templates/batch_commands.html:94 quickstatements/apps/web/templates/batches.html:78
+#: quickstatements/apps/web/templates/preview_batch_commands.html:96
+msgid "FIRST"
+msgstr "PRIMEIRO"
+
+#: quickstatements/apps/web/templates/batch_commands.html:102 quickstatements/apps/web/templates/batches.html:84
+#: quickstatements/apps/web/templates/preview_batch_commands.html:104
+msgid "PREVIOUS"
+msgstr "ANTERIOR"
+
+#: quickstatements/apps/web/templates/batch_commands.html:111 quickstatements/apps/web/templates/batches.html:93
+#: quickstatements/apps/web/templates/preview_batch_commands.html:113
+#, python-format
+msgid "Pg. %(page)s of %(total)s"
+msgstr "Pag. %(page)s de %(total)s"
+
+#: quickstatements/apps/web/templates/batch_commands.html:122 quickstatements/apps/web/templates/batches.html:102
+#: quickstatements/apps/web/templates/preview_batch_commands.html:124
+msgid "NEXT"
+msgstr "PRÓXIMO"
+
+#: quickstatements/apps/web/templates/batch_commands.html:130 quickstatements/apps/web/templates/batches.html:108
+#: quickstatements/apps/web/templates/preview_batch_commands.html:132
+msgid "LAST"
+msgstr "ÚLTIMO"
+
+#: quickstatements/apps/web/templates/batch_not_found.html:7
+#, python-format
+msgid "Batch <code>#%(pk)s</code> not found."
+msgstr "Lote <code>#%(pk)s</code> não encontrado."
+
+#: quickstatements/apps/web/templates/batch_not_found.html:12
+msgid "Batch ID"
+msgstr "ID do lote"
+
+#: quickstatements/apps/web/templates/batch_not_found.html:13 quickstatements/apps/web/templates/index.html:18
+msgid "See batch details"
+msgstr "Ver detalhes do lote"
+
+#: quickstatements/apps/web/templates/batch_summary.html:4
+#: quickstatements/apps/web/templates/preview_batch.html:34
+msgid "BATCH STATUS"
+msgstr "SITUAÇÃO DO LOTE"
+
+#: quickstatements/apps/web/templates/batch_summary.html:10
+#: quickstatements/apps/web/templates/batch_summary.html:18
+#: quickstatements/apps/web/templates/preview_batch.html:40
+msgid "DONE"
+msgstr "FINALIZADOS"
+
+#: quickstatements/apps/web/templates/batch_summary.html:10
+#, python-format
+msgid "%(done_count)s of %(total_count)s"
+msgstr "%(done_count)s de %(total_count)s"
+
+#: quickstatements/apps/web/templates/batch_summary.html:14
+#: quickstatements/apps/web/templates/preview_batch.html:43
+msgid "COMMANDS SUMMARY"
+msgstr "RESUMO DOS COMANDOS"
+
+#: quickstatements/apps/web/templates/batch_summary.html:15
+#: quickstatements/apps/web/templates/preview_batch.html:44
+msgid "TOTAL"
+msgstr "TOTAL"
+
+#: quickstatements/apps/web/templates/batch_summary.html:16
+msgid "INIT"
+msgstr "INICIAL"
+
+#: quickstatements/apps/web/templates/batch_summary.html:17
+msgid "RUNNING"
+msgstr "PROCESSANDO"
+
+#: quickstatements/apps/web/templates/batch_summary.html:19
+#: quickstatements/apps/web/templates/preview_batch.html:46
+msgid "ERRORS"
+msgstr "ERROS"
+
+#: quickstatements/apps/web/templates/batch_summary.html:22
+#: quickstatements/apps/web/templates/preview_batch.html:49
+msgid "This batch will be blocked if a command fails."
+msgstr "Este lote será bloqueado em caso de falha de comando."
+
+#: quickstatements/apps/web/templates/batches.html:5
+msgid "QuickStatements 3.0 - Last batches"
+msgstr "QuickStatements 3.0 - Últimos lotes"
+
+#: quickstatements/apps/web/templates/batches.html:25 quickstatements/apps/web/templates/layout.html:72
+msgid "Last batches"
+msgstr "Últimos lotes"
+
+#: quickstatements/apps/web/templates/batches.html:25
+msgctxt "From the prase Last batches from username"
+msgid "from"
+msgstr "de"
+
+#: quickstatements/apps/web/templates/batches.html:34 quickstatements/apps/web/templates/layout.html:79
+msgid "User"
+msgstr "Usuário"
+
+#: quickstatements/apps/web/templates/batches.html:35
+msgid "Name"
+msgstr "Nome"
+
+#: quickstatements/apps/web/templates/batches.html:36
+msgid "Status"
+msgstr "Situação"
+
+#: quickstatements/apps/web/templates/batches.html:37
+msgid "Modified"
+msgstr "Modificado"
+
+#: quickstatements/apps/web/templates/batches.html:38
+msgid "Actions"
+msgstr "Ações"
+
+#: quickstatements/apps/web/templates/batches.html:61
+msgid "View"
+msgstr "Ver"
+
+#: quickstatements/apps/web/templates/batches.html:62
+msgid "Revert / Discuss"
+msgstr "Reverter / Discutir"
+
+#: quickstatements/apps/web/templates/index.html:8
+msgid "Welcome to QuickStatements 3.0"
+msgstr "Bem vindo ao Quickstatements 3.0"
+
+#: quickstatements/apps/web/templates/index.html:11 quickstatements/apps/web/templates/layout.html:71
+#: quickstatements/apps/web/templates/new_batch.html:8
+msgid "New batch"
+msgstr "Novo lote"
+
+#: quickstatements/apps/web/templates/index.html:17
+msgid "Batch ID..."
+msgstr "ID do lote..."
+
+#: quickstatements/apps/web/templates/index.html:24
+msgid "Username..."
+msgstr "Nome de usuário"
+
+#: quickstatements/apps/web/templates/index.html:25
+msgid "See batches by user"
+msgstr "Ver lotes de usuário"
+
+#: quickstatements/apps/web/templates/layout.html:77
+msgid "Login"
+msgstr "Entrar"
+
+#: quickstatements/apps/web/templates/layout.html:80
+msgid "Your last batches"
+msgstr "Seus últimos lotes"
+
+#: quickstatements/apps/web/templates/login.html:4 quickstatements/apps/web/templates/login_dev.html:4
+msgid "QuickStatements 3.0 - Login"
+msgstr "QuickStatements 3.0 - Entrar"
+
+#: quickstatements/apps/web/templates/login.html:8
+msgctxt "LOGIN PAGE TITLE"
+msgid "Login"
+msgstr "Entrar"
+
+#: quickstatements/apps/web/templates/login.html:34
+msgid "Sign in with Wikimedia account"
+msgstr "Entrar com conta Wikimedia"
+
+#: quickstatements/apps/web/templates/login.html:37
+msgid "Advanced: login with a developer consumer key"
+msgstr "Avançado: entrar com um consumer key de desenvolvedor"
+
+#: quickstatements/apps/web/templates/login_dev.html:9
+msgid "Developer access"
+msgstr "Acesso de desenvolvedor"
+
+#: quickstatements/apps/web/templates/login_dev.html:11
+msgid "Submit your access token below."
+msgstr "Envie sua chave de acesso abaixo."
+
+#: quickstatements/apps/web/templates/login_dev.html:19 quickstatements/apps/web/templates/login_dev.html:20
+msgid "Access Token"
+msgstr "Chave de acesso"
+
+#: quickstatements/apps/web/templates/login_dev.html:23
+msgid "Log in"
+msgstr "Entrar"
+
+#: quickstatements/apps/web/templates/login_dev.html:30
+msgid "Your access token is not valid:"
+msgstr "Sua chave de acesso não é válida:"
+
+#: quickstatements/apps/web/templates/new_batch.html:4
+msgid "QuickStatements 3.0 - New batch"
+msgstr "QuickStatements 3.0 - Novo lote"
+
+#: quickstatements/apps/web/templates/new_batch.html:17
+msgid "Command format"
+msgstr "Formato de comando"
+
+#: quickstatements/apps/web/templates/new_batch.html:25
+msgid "Custom batch name..."
+msgstr "Nome de lote personalizado..."
+
+#: quickstatements/apps/web/templates/new_batch.html:30
+msgid "Block batch if a command fails"
+msgstr "Bloqueie lote em caso de falha de comando"
+
+#: quickstatements/apps/web/templates/new_batch.html:33
+msgid "Enter your commands here..."
+msgstr "Digite seus comandos aqui..."
+
+#: quickstatements/apps/web/templates/new_batch.html:41 quickstatements/apps/web/templates/preview_batch.html:22
+msgid "Note: only autoconfirmed users can run batches."
+msgstr "Nota: apenas usuários autoconfirmados podem executar lotes."
+
+#: quickstatements/apps/web/templates/preview_batch.html:10
+#, fuzzy
+#| msgid "Batches"
+msgid "Batch Preview"
+msgstr "Pré-visualização de lote"
+
+#: quickstatements/apps/web/templates/preview_batch.html:18
+#: quickstatements/apps/web/templates/preview_batch.html:20
+msgid "Save and run batch"
+msgstr "Gravar e processar lote"
+
+#: quickstatements/apps/web/templates/preview_batch.html:29
+msgid ""
+"THIS BATCH IS IN PREVIEW MODE, AND WILL BE ONLY SAVED AND PROCESSED AFTER "
+"CLICKING 'Save and run batch'."
+msgstr ""
+"ESTE LOTE ESTÁ EM MODO DE PRÉ-VISUALIZAÇÃO E SOMENTE SERÁ GRAVADO E "
+"PROCESSADO APÓS CLICAR EM 'Gravar e rodar lote'"
+
+#: quickstatements/apps/web/templates/preview_batch.html:35
+#, fuzzy
+#| msgid "PREVIOUS"
+msgid "PREVIEW"
+msgstr "ANTERIOR"
+
+#: quickstatements/apps/web/templates/preview_batch.html:40
+#, fuzzy, python-format
+#| msgid "%(done_count)s of %(total_count)s"
+msgid "%(0)s of %(total_count)s"
+msgstr "%(done_count)s de %(total_count)s"
+
+#: quickstatements/apps/web/templates/preview_batch.html:45
+#, fuzzy
+#| msgid "INIT"
+msgid "INITIAL"
+msgstr "INICIAL"
+
+#: quickstatements/apps/web/templates/profile.html:5
+msgid "QuickStatements 3.0 - Profile"
+msgstr "QuickStatements 3.0 - Perfil"
+
+#: quickstatements/apps/web/templates/profile.html:15
+msgid "Autoconfirmed status"
+msgstr "Situação de autoconfirmação"
+
+#: quickstatements/apps/web/templates/profile.html:17
+msgid "Only autoconfirmed users can run batches on Quickstatements"
+msgstr ""
+"Apenas usuários autoconfirmados podem processar lotes no Quickstatements"
+
+#: quickstatements/apps/web/templates/profile.html:19
+msgid "Read about autoconfirmed user definition"
+msgstr "Leia mais sobre usuários autoconfirmados"
+
+#: quickstatements/apps/web/templates/profile.html:25
+msgid "We have successfully verified that you are an autoconfirmed user."
+msgstr "Verificamos com sucesso que você é um usuário autoconfirmado."
+
+#: quickstatements/apps/web/templates/profile.html:32
+msgid "We could not verify you are an autoconfirmed user."
+msgstr "Não foi possível verificar se você é um usuário autoconfirmado."
+
+#: quickstatements/apps/web/templates/profile.html:34
+msgid "You are not an autoconfirmed user."
+msgstr "Você não é um usuário autoconfirmado."
+
+#: quickstatements/apps/web/templates/profile.html:46
+msgid "Preferred language"
+msgstr "Linguagem preferida"
+
+#: quickstatements/apps/web/templates/profile.html:53
+msgid "Update preferred language"
+msgstr "Atualizar linguagem preferida"
+
+#: quickstatements/apps/web/templates/profile.html:58
+msgid "API Token"
+msgstr "Chave de API"
+
+#: quickstatements/apps/web/templates/profile.html:61
+msgid ""
+"Here, you can generate a token to use when querying batch jobs "
+"programatically."
+msgstr ""
+"Aqui, você pode gerar uma chave de acesso para acessar a API "
+"programaticamente."
+
+#: quickstatements/apps/web/templates/profile.html:63
+msgid ""
+"You currently have the following token. This token must be kept private:"
+msgstr ""
+"Você atualmente possui a chave de API abaixo. Esta chave não deve ser "
+"compartilhada:"
+
+#: quickstatements/apps/web/templates/profile.html:69
+msgid "Update token"
+msgstr "Atualizar chave de API"
+
+#: quickstatements/apps/web/templates/profile.html:74
+msgid "Click here to log out."
+msgstr "Clique aqui para sair"
+
+#: quickstatements/apps/web/templates/profile.html:79
+msgid "You're not logged in."
+msgstr "Você não está autenticado"
+
+#: quickstatements/apps/web/templates/profile.html:80
+msgid "Click here to log in."
+msgstr "Clique aqui para autenticar"
+
+#: quickstatements/apps/web/views/new_batch.py:214
+#, fuzzy
+#| msgid "Note: only autoconfirmed users can run batches."
+msgid "User is not autoconfirmed. Only autoconfirmed users can run batches."
+msgstr "Nota: apenas usuários autoconfirmados podem executar lotes."

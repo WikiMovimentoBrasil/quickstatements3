@@ -2,7 +2,7 @@
 /etc/env
 
 # Static files
-/src/static/
+/quickstatements/static/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -129,6 +129,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env*
 .venv
 env/
 venv/
