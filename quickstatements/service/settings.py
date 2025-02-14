@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "quickstatements.apps.core",
     "quickstatements.apps.web",
-    "quickstatements.apps.api",
 ]
 
 MIDDLEWARE = [
