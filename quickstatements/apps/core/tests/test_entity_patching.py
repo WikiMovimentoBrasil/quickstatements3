@@ -1,9 +1,9 @@
 import copy
+
 from django.test import TestCase
 
-from core.parsers.v1 import V1CommandParser
-from core.exceptions import NoQualifiers
-from core.exceptions import NoReferenceParts
+from quickstatements.apps.core.exceptions import NoQualifiers, NoReferenceParts
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
 
 
 class RemoveQualRefTests(TestCase):
@@ -131,9 +131,7 @@ class RemoveQualRefTests(TestCase):
         refs = entity["statements"][property_id][i].get("references", [])
         self.assertEqual(len(refs), length)
 
-    def assertRefPartsCount(
-        self, entity: dict, pid: str, length: int, i: int = 0, ipart: int = 0
-    ):
+    def assertRefPartsCount(self, entity: dict, pid: str, length: int, i: int = 0, ipart: int = 0):
         parts = entity["statements"][pid][i]["references"][ipart]["parts"]
         self.assertEqual(len(parts), length)
 
@@ -177,7 +175,6 @@ class RemoveQualRefTests(TestCase):
         self.assertEqual(entity["statements"]["P65"][2]["value"]["content"]["amount"], "-10")
         self.assertRefCount(entity, "P65", 0, 2)
 
-
     def test_remove_qualifier(self):
         text = """
         REMOVE_QUAL|Q12345678|P65|42|P84267|-5
@@ -191,9 +188,7 @@ class RemoveQualRefTests(TestCase):
         self.assertQualCount(entity, "P65", 2)
         remove_p65_qual.update_entity_json(entity)
         self.assertQualCount(entity, "P65", 1)
-        self.assertEqual(
-            entity["statements"]["P65"][0]["qualifiers"][0]["property"]["id"], "P65"
-        )
+        self.assertEqual(entity["statements"]["P65"][0]["qualifiers"][0]["property"]["id"], "P65")
         # -----
         remove_p31_qual = batch.commands()[1]
         self.assertQualCount(entity, "P31", 1)

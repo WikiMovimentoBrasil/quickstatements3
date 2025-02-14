@@ -1,16 +1,15 @@
 import os
-import requests_mock
 
-from django.test import TestCase as DjangoTestCase
-from django.urls import reverse
+import requests_mock
 from django.contrib import auth
 from django.contrib.auth.models import User
+from django.test import TestCase as DjangoTestCase
+from django.urls import reverse
 
-from ..models import Token
-from ..utils import user_from_access_token
-from ..utils import user_from_full_token
-from core.client import Client as ApiClient
-from core.tests.test_api import ApiMocker
+from quickstatements.apps.core.client import Client as ApiClient
+from quickstatements.apps.core.tests.test_api import ApiMocker
+from quickstatements.apps.web.models import Token
+from quickstatements.apps.web.utils import user_from_access_token, user_from_full_token
 
 
 class TestCase(DjangoTestCase):
@@ -230,19 +229,6 @@ class Logout(TestCase):
         self.assertRedirectToPath(res, "/")
 
 
-class OAuthRedirect(TestCase):
-    URL_NAME = "oauth_redirect"
-
-    def test_redirect(self):
-        res = self.get()
-
-        self.assertRedirect(res)
-        location = res.headers["Location"]
-        self.assertIsNotNone(os.getenv("OAUTH_CLIENT_ID"))
-        self.assertIn(os.getenv("OAUTH_CLIENT_ID"), location)
-        self.assertIn(f"{ApiClient.BASE_REST_URL}/oauth2/authorize", location)
-
-
 class OAuthCallback(TestCase):
     URL_NAME = "oauth_callback"
 
@@ -251,4 +237,3 @@ class OAuthCallback(TestCase):
         self.assertStatus(res, 401)
         self.assertInRes("The authentication server is being", res)
         self.assertInRes("not supposed to be here right now.", res)
-

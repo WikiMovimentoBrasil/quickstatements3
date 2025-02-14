@@ -1,14 +1,13 @@
 import os
 from unittest import skipIf
 
-from django.test import TestCase
-from django.test import override_settings
 from django.contrib.auth.models import User
+from django.test import TestCase, override_settings
 
-from core.client import Client
-from core.parsers.v1 import V1CommandParser
-from core.models import Batch
-from web.models import Token
+from quickstatements.apps.core.client import Client
+from quickstatements.apps.core.models import Batch
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
+from quickstatements.apps.web.models import Token
 
 TOKEN = os.environ.get("INTEGRATION_TEST_AUTH_TOKEN")
 SKIP_INTEGRATION = TOKEN is None

@@ -1,22 +1,22 @@
-import requests_mock
 from datetime import timedelta
 
-from django.test import TestCase
-from django.test import override_settings
+import requests_mock
 from django.contrib.auth.models import User
 from django.core.cache import cache as django_cache
+from django.test import TestCase, override_settings
 from django.utils.timezone import now
 
-from web.models import Token
-
-from core.client import Client
-from core.models import BatchCommand
-from core.exceptions import NonexistantPropertyOrNoDataType
-from core.exceptions import NoValueTypeForThisDataType
-from core.exceptions import InvalidPropertyValueType
-from core.exceptions import UnauthorizedToken
-from core.exceptions import ServerError
-from core.parsers.v1 import V1CommandParser
+from quickstatements.apps.core.client import Client
+from quickstatements.apps.core.exceptions import (
+    InvalidPropertyValueType,
+    NonexistantPropertyOrNoDataType,
+    NoValueTypeForThisDataType,
+    ServerError,
+    UnauthorizedToken,
+)
+from quickstatements.apps.core.models import BatchCommand
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
+from quickstatements.apps.web.models import Token
 
 
 class ApiMocker:
@@ -150,13 +150,13 @@ class ApiMocker:
     @classmethod
     def item_empty(cls, mocker, item_id):
         EMPTY_ITEM = {
-          "type": "item",
-          "labels": {},
-          "descriptions": {},
-          "aliases": {},
-          "statements": {},
-          "sitelinks": {},
-          "id": item_id,
+            "type": "item",
+            "labels": {},
+            "descriptions": {},
+            "aliases": {},
+            "statements": {},
+            "sitelinks": {},
+            "id": item_id,
         }
         mocker.get(
             cls.wikibase_url(f"/entities/items/{item_id}"),
@@ -241,11 +241,15 @@ class ApiMocker:
     def sitelink_success(cls, mocker, item_id, sitelink, value):
         mocker.patch(
             cls.wikibase_url(f"/entities/items/{item_id}"),
-            json={"sitelinks": {sitelink: {
-                "title": value,
-                "badges": [],
-                "url": "ignored",
-            }}},
+            json={
+                "sitelinks": {
+                    sitelink: {
+                        "title": value,
+                        "badges": [],
+                        "url": "ignored",
+                    }
+                }
+            },
             status_code=200,
         )
 
@@ -626,6 +630,7 @@ class ClientTests(TestCase):
 
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
+
 
 class TestBatchCommand(TestCase):
     def login_user_and_get_token(self, username):

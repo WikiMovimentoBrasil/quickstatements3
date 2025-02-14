@@ -1,31 +1,33 @@
 import copy
 import csv
 import logging
-import jsonpatch
-from typing import Optional
-from typing import List
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from typing import List, Optional
 
+import jsonpatch
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext as _
 
 from .client import Client
-from .exceptions import ApiException
-from .exceptions import InvalidPropertyValueType
-from .exceptions import NoToken
-from .exceptions import UnauthorizedToken
-from .exceptions import ServerError
-from .exceptions import UserError
-from .exceptions import NoStatementsForThatProperty
-from .exceptions import NoStatementsWithThatValue
-from .exceptions import NoQualifiers
-from .exceptions import NoReferenceParts
-from .exceptions import NonexistantPropertyOrNoDataType
-from .exceptions import LastCouldNotBeEvaluated
+from .exceptions import (
+    ApiException,
+    InvalidPropertyValueType,
+    LastCouldNotBeEvaluated,
+    NonexistantPropertyOrNoDataType,
+    NoQualifiers,
+    NoReferenceParts,
+    NoStatementsForThatProperty,
+    NoStatementsWithThatValue,
+    NoToken,
+    ServerError,
+    UnauthorizedToken,
+    UserError,
+)
 
 logger = logging.getLogger("qsts3")
+
 
 @dataclass
 class CombiningState:
@@ -35,6 +37,7 @@ class CombiningState:
     Saves the current entity json document and the previous
     commands that have altered it.
     """
+
     commands: List["BatchCommand"]
     entity: Optional[dict]
 
@@ -66,7 +69,9 @@ class Batch(models.Model):
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
-    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
+    status = models.IntegerField(
+        default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True
+    )
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
@@ -121,7 +126,7 @@ class Batch(models.Model):
                 # The status changed, so we have to stop
                 return
 
-            next = commands[i+1] if (i + 1) < count else None
+            next = commands[i + 1] if (i + 1) < count else None
 
             command.check_combination(state, next)
             command.update_last_id(last_id)
@@ -165,7 +170,7 @@ class Batch(models.Model):
             self.save()
 
     def block_is_not_autoconfirmed(self):
-        logger.warn(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
+        logger.warning(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
         message = "The user is not an autoconfirmed user."
         self.block_with_message(message)
 
@@ -175,7 +180,7 @@ class Batch(models.Model):
         self.block_with_message(message)
 
     def block_by(self, command):
-        logger.warn(f"[{self}] blocked by {command}")
+        logger.warning(f"[{self}] blocked by {command}")
         message = f"blocked by command {command.index}"
         self.block_with_message(message)
 
@@ -276,9 +281,10 @@ class Batch(models.Model):
                     cmd.error,
                     cmd.message,
                     cmd.entity_id(),
-                    cmd.raw.replace("\t", "|"), # tabs are weird in csv
+                    cmd.raw.replace("\t", "|"),  # tabs are weird in csv
                 ]
             )
+
 
 class BatchCommand(models.Model):
     """
@@ -330,7 +336,9 @@ class BatchCommand(models.Model):
     # -------
     # Operation/action fields
     # -------
-    action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
+    action = models.IntegerField(
+        default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False
+    )
     user_summary = models.TextField(blank=True, null=True)
 
     class Operation(models.TextChoices):
@@ -366,7 +374,9 @@ class BatchCommand(models.Model):
     # -------
     # Running fields
     # -------
-    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
+    status = models.IntegerField(
+        default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True
+    )
     value_type_verified = models.BooleanField(default=False)
 
     # -------
@@ -551,7 +561,8 @@ class BatchCommand(models.Model):
         # because `statement_api_value` above is called a lot
         value = self.json["value"]
         base = self.batch.wikibase_url()
-        if (value["type"] == "quantity"
+        if (
+            value["type"] == "quantity"
             and value["value"]["unit"] != "1"
             and base not in value["value"]["unit"]
         ):
@@ -562,7 +573,11 @@ class BatchCommand(models.Model):
     def update_statement(self, st):
         st.setdefault("property", {"id": self.prop})
         st.setdefault("value", self.statement_api_value)
-        quals, refs, rank = self.qualifiers_for_api(), self.references_for_api(), self.statement_rank()
+        quals, refs, rank = (
+            self.qualifiers_for_api(),
+            self.references_for_api(),
+            self.statement_rank(),
+        )
         if quals:
             st.setdefault("qualifiers", [])
             st["qualifiers"].extend(quals)
@@ -586,10 +601,12 @@ class BatchCommand(models.Model):
         for ref in self.references():
             fixed_parts = []
             for part in ref:
-                fixed_parts.append({
-                    "property": {"id": part["property"]},
-                    "value": self.parser_value_to_api_value(part["value"]),
-                })
+                fixed_parts.append(
+                    {
+                        "property": {"id": part["property"]},
+                        "value": self.parser_value_to_api_value(part["value"]),
+                    }
+                )
             all_refs.append({"parts": fixed_parts})
         return all_refs
 
@@ -666,10 +683,7 @@ class BatchCommand(models.Model):
         return self.operation != self.Operation.CREATE_ITEM
 
     def is_id_last_or_create_item(self):
-        return (
-            self.entity_id() == "LAST"
-            or self.operation == self.Operation.CREATE_ITEM
-        )
+        return self.entity_id() == "LAST" or self.operation == self.Operation.CREATE_ITEM
 
     # -----------------
     # LAST related methods
@@ -822,9 +836,8 @@ class BatchCommand(models.Model):
         Returns True if `self` is CREATE_ITEM and `next`
         has LAST as entity id, or if both have the same entity id.
         """
-        return (
-            (self.operation == self.Operation.CREATE_ITEM and next.entity_id() == "LAST")
-            or (self.entity_id() == next.entity_id())
+        return (self.operation == self.Operation.CREATE_ITEM and next.entity_id() == "LAST") or (
+            self.entity_id() == next.entity_id()
         )
 
     def update_combining_state(self, client: Client):
@@ -915,7 +928,11 @@ class BatchCommand(models.Model):
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
         elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
             entity[self.what_plural_lowercase][self.language] = self.value_value
-        elif self.operation in (self.Operation.REMOVE_LABEL, self.Operation.REMOVE_DESCRIPTION, self.Operation.REMOVE_SITELINK):
+        elif self.operation in (
+            self.Operation.REMOVE_LABEL,
+            self.Operation.REMOVE_DESCRIPTION,
+            self.Operation.REMOVE_SITELINK,
+        ):
             # the "" is there to make the `pop` safe
             entity[self.what_plural_lowercase].pop(self.language_or_sitelink, "")
 

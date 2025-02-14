@@ -1,19 +1,14 @@
 import requests_mock
-
-from django.contrib.auth.models import User
 from django.contrib.auth import get_user
-from django.test import TestCase
-from django.test import Client
+from django.contrib.auth.models import User
+from django.test import Client, TestCase
 from django.urls import reverse
 
-from core.tests.test_api import ApiMocker
-from core.client import Client as ApiClient
-from web.models import Token
-from web.models import Preferences
-
-from core.models import Batch
-from core.models import BatchCommand
-from core.parsers.v1 import V1CommandParser
+from quickstatements.apps.core.client import Client as ApiClient
+from quickstatements.apps.core.models import Batch, BatchCommand
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
+from quickstatements.apps.core.tests.test_api import ApiMocker
+from quickstatements.apps.web.models import Preferences, Token
 
 
 class ViewsTest(TestCase):
@@ -137,16 +132,36 @@ class ViewsTest(TestCase):
     def test_batch_command_filters(self):
         batch = Batch.objects.create(name="My new batch", user="mgalves80")
         b1 = BatchCommand.objects.create(
-            batch=batch, index=0, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+            batch=batch,
+            index=0,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_INITIAL,
         )
         b2 = BatchCommand.objects.create(
-            batch=batch, index=1, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+            batch=batch,
+            index=1,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_ERROR,
         )
         b3 = BatchCommand.objects.create(
-            batch=batch, index=2, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+            batch=batch,
+            index=2,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_INITIAL,
         )
         b4 = BatchCommand.objects.create(
-            batch=batch, index=4, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+            batch=batch,
+            index=4,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_ERROR,
         )
 
         c = Client()
@@ -204,7 +219,12 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("new_batch.html")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
 
@@ -292,7 +312,12 @@ class ViewsTest(TestCase):
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
 
         response = c.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
@@ -400,7 +425,12 @@ class ViewsTest(TestCase):
         user, api_client = self.login_user_and_get_token("user")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/batch/new/preview/")
@@ -424,7 +454,9 @@ class ViewsTest(TestCase):
         ApiMocker.is_not_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"}
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertEqual(res.status_code, 200)
@@ -437,7 +469,9 @@ class ViewsTest(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"}
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertEqual(res.status_code, 200)
@@ -450,7 +484,9 @@ class ViewsTest(TestCase):
     def test_allow_start_after_create_token_expired(self, mocker):
         ApiMocker.autoconfirmed_failed_unauthorized(mocker)
         user, api_client = self.login_user_and_get_token("user")
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"}
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertRedirectToUrlName(res, "login")
@@ -462,7 +498,9 @@ class ViewsTest(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"}
+        )
         self.assertEqual(res.status_code, 302)
         url = res.url
         res = self.client.get(url)
@@ -536,7 +574,12 @@ class ViewsTest(TestCase):
         user, api_client = self.login_user_and_get_token("user")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
 
@@ -562,11 +605,16 @@ class ViewsTest(TestCase):
     def test_batch_preview_commands(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
-        labels = { "en": "English label" }
+        labels = {"en": "English label"}
         ApiMocker.labels(mocker, api_client, "Q1234", labels)
         ApiMocker.labels(mocker, api_client, "Q222", labels)
         res = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
@@ -607,7 +655,10 @@ class ViewsTest(TestCase):
 
         response = self.client.get(f"/batch/{pk}/report/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["Content-Disposition"], f'attachment; filename="batch-{pk}-report.csv"')
+        self.assertEqual(
+            response.headers["Content-Disposition"],
+            f'attachment; filename="batch-{pk}-report.csv"',
+        )
         result = (
             """b'batch_id,index,operation,status,error,message,entity_id,raw_input\\r\\n"""
             """1,0,set_statement,Done,,,Q1234,Q1234|P2|Q1\\r\\n"""
@@ -625,13 +676,16 @@ class ViewsTest(TestCase):
         _user, api_client = self.login_user_and_get_token("wikiuser")
         response = self.client.post(
             "/batch/new/",
-            data={"type": "v1", "commands": """
+            data={
+                "type": "v1",
+                "commands": """
             Q1|P2|Q2
             Q1|P2|"string"
             Q1|P2|32
             Q1|P2|Q2
             Q1|P2|32
-            """}
+            """,
+            },
         )
         response = self.client.get("/batch/new/preview/")
         self.assertEqual(response.status_code, 200)

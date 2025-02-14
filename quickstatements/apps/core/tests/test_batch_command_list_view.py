@@ -1,13 +1,11 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
-
 from rest_framework.authtoken.models import Token
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 
-from core.models import Batch
-from core.models import BatchCommand
-from core.parsers.v1 import V1CommandParser
+from quickstatements.apps.core.models import Batch, BatchCommand
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
 
 
 class BatchCommandDetailViewTest(TestCase):
@@ -47,7 +45,9 @@ class BatchCommandDetailViewTest(TestCase):
         self.assertEqual(data["links"]["previous"], None)
         self.assertEqual(data["total"], 3)
         self.assertEqual(data["page_size"], 3)
-        self.assertEqual(data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"})
+        self.assertEqual(
+            data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"}
+        )
 
         c0 = data["commands"][0]
         self.assertEqual(c0["index"], 0)
@@ -77,24 +77,34 @@ class BatchCommandDetailViewTest(TestCase):
     def test_batch_command_list_paginated_authenticated_request(self):
         batch = Batch.objects.create(name="Paginated batch", user="user")
         for i in range(0, 250):
-            BatchCommand.objects.create(batch=batch, json={}, action=BatchCommand.ACTION_ADD, index=i)
+            BatchCommand.objects.create(
+                batch=batch, json={}, action=BatchCommand.ACTION_ADD, index=i
+            )
 
         self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
 
         response = self.client.get(f"http://testserver/api/v1/batches/{batch.pk}/commands/")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertEqual(data["links"]["next"], "http://testserver/api/v1/batches/1/commands/?page=2")
+        self.assertEqual(
+            data["links"]["next"], "http://testserver/api/v1/batches/1/commands/?page=2"
+        )
         self.assertEqual(data["links"]["previous"], None)
         self.assertEqual(data["total"], 250)
         self.assertEqual(data["page_size"], 100)
-        self.assertEqual(data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"})
+        self.assertEqual(
+            data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"}
+        )
 
         response = self.client.get(f"http://testserver/api/v1/batches/{batch.pk}/commands/?page=2")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertEqual(data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"})
-        self.assertEqual(data["links"]["next"], "http://testserver/api/v1/batches/1/commands/?page=3")
+        self.assertEqual(
+            data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"}
+        )
+        self.assertEqual(
+            data["links"]["next"], "http://testserver/api/v1/batches/1/commands/?page=3"
+        )
         self.assertEqual(data["links"]["previous"], "http://testserver/api/v1/batches/1/commands/")
         self.assertEqual(data["total"], 250)
         self.assertEqual(data["page_size"], 100)
@@ -102,9 +112,13 @@ class BatchCommandDetailViewTest(TestCase):
         response = self.client.get(f"http://testserver/api/v1/batches/{batch.pk}/commands/?page=3")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertEqual(data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"})
+        self.assertEqual(
+            data["batch"], {"pk": batch.pk, "url": f"http://testserver/api/v1/batches/{batch.pk}/"}
+        )
         self.assertEqual(data["links"]["next"], None)
-        self.assertEqual(data["links"]["previous"], "http://testserver/api/v1/batches/1/commands/?page=2")
+        self.assertEqual(
+            data["links"]["previous"], "http://testserver/api/v1/batches/1/commands/?page=2"
+        )
         self.assertEqual(data["total"], 250)
         self.assertEqual(data["page_size"], 50)
 

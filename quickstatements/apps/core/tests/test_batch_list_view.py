@@ -1,16 +1,14 @@
-
 from django.contrib.auth.models import User
 from django.test import TestCase
-
 from rest_framework.authtoken.models import Token
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 
-from core.models import Batch
+from quickstatements.apps.core.models import Batch
 
 
 class BatchListViewTest(TestCase):
-    
+
     def setUp(self):
         self.user = User.objects.create(username="myuser")
         self.token = Token.objects.create(user=self.user)
@@ -21,189 +19,208 @@ class BatchListViewTest(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_bad_auth_request(self):
-        self.client.credentials(HTTP_AUTHORIZATION='Token fdsfsdfsfsdafsdfsdfsfsdfsad')
+        self.client.credentials(HTTP_AUTHORIZATION="Token fdsfsdfsfsdafsdfsdfsfsdfsad")
         response = self.client.get(reverse("batch-list"))
         self.assertEqual(response.status_code, 401)
 
     def test_empty_authenticated_request(self):
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
         response = self.client.get(reverse("batch-list"))
         self.assertEqual(response.status_code, 200)
 
     def test_single_batch_authenticated_request(self):
         original = Batch.objects.create(name="Batch 0", user="testuser")
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(data['links']['next'], None)
-        self.assertEqual(data['links']['previous'], None)
-        self.assertEqual(data['total'], 1)
-        self.assertEqual(data['page_size'], 1)
-        self.assertEqual(len(data['batches']), 1)
-        batch = data['batches'][0]
-        self.assertEqual(batch['url'], f'http://testserver/api/v1/batches/{original.pk}/')
-        self.assertEqual(batch['pk'], original.pk)
-        self.assertEqual(batch['user'], 'testuser')
-        self.assertEqual(batch['name'], 'Batch 0')
-        self.assertEqual(batch['status'], {'code': 1, 'display': 'Initial'})
-        self.assertEqual(batch['message'], None)
-        self.assertTrue('created' in batch)
-        self.assertTrue('modified' in batch)
+        self.assertEqual(data["links"]["next"], None)
+        self.assertEqual(data["links"]["previous"], None)
+        self.assertEqual(data["total"], 1)
+        self.assertEqual(data["page_size"], 1)
+        self.assertEqual(len(data["batches"]), 1)
+        batch = data["batches"][0]
+        self.assertEqual(batch["url"], f"http://testserver/api/v1/batches/{original.pk}/")
+        self.assertEqual(batch["pk"], original.pk)
+        self.assertEqual(batch["user"], "testuser")
+        self.assertEqual(batch["name"], "Batch 0")
+        self.assertEqual(batch["status"], {"code": 1, "display": "Initial"})
+        self.assertEqual(batch["message"], None)
+        self.assertTrue("created" in batch)
+        self.assertTrue("modified" in batch)
 
     def test_single_running_batch_authenticated_request(self):
-        original = Batch.objects.create(name="Batch 1", user="testuser", status=Batch.STATUS_RUNNING, message="My running message")
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        original = Batch.objects.create(
+            name="Batch 1",
+            user="testuser",
+            status=Batch.STATUS_RUNNING,
+            message="My running message",
+        )
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
-        batch = data['batches'][0]
-        self.assertEqual(batch['url'], f'http://testserver/api/v1/batches/{original.pk}/')
-        self.assertEqual(batch['pk'], original.pk)
-        self.assertEqual(batch['user'], 'testuser')
-        self.assertEqual(batch['name'], 'Batch 1')
-        self.assertEqual(batch['status'], {'code': 2, 'display': 'Running'})
-        self.assertEqual(batch['message'], "My running message")
-        self.assertTrue('created' in batch)
-        self.assertTrue('modified' in batch)
+        batch = data["batches"][0]
+        self.assertEqual(batch["url"], f"http://testserver/api/v1/batches/{original.pk}/")
+        self.assertEqual(batch["pk"], original.pk)
+        self.assertEqual(batch["user"], "testuser")
+        self.assertEqual(batch["name"], "Batch 1")
+        self.assertEqual(batch["status"], {"code": 2, "display": "Running"})
+        self.assertEqual(batch["message"], "My running message")
+        self.assertTrue("created" in batch)
+        self.assertTrue("modified" in batch)
 
     def test_single_done_batch_authenticated_request(self):
-        original = Batch.objects.create(name="Batch 2", user="testuser", status=Batch.STATUS_DONE, message="My DONE message")
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        original = Batch.objects.create(
+            name="Batch 2", user="testuser", status=Batch.STATUS_DONE, message="My DONE message"
+        )
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
-        batch = data['batches'][0]
-        self.assertEqual(batch['url'], f'http://testserver/api/v1/batches/{original.pk}/')
-        self.assertEqual(batch['pk'], original.pk)
-        self.assertEqual(batch['user'], 'testuser')
-        self.assertEqual(batch['name'], 'Batch 2')
-        self.assertEqual(batch['status'], {'code': 3, 'display': 'Done'})
-        self.assertEqual(batch['message'], "My DONE message")
-        self.assertTrue('created' in batch)
-        self.assertTrue('modified' in batch)
+        batch = data["batches"][0]
+        self.assertEqual(batch["url"], f"http://testserver/api/v1/batches/{original.pk}/")
+        self.assertEqual(batch["pk"], original.pk)
+        self.assertEqual(batch["user"], "testuser")
+        self.assertEqual(batch["name"], "Batch 2")
+        self.assertEqual(batch["status"], {"code": 3, "display": "Done"})
+        self.assertEqual(batch["message"], "My DONE message")
+        self.assertTrue("created" in batch)
+        self.assertTrue("modified" in batch)
 
     def test_single_blocked_batch_authenticated_request(self):
-        original = Batch.objects.create(name="Batch 3", user="testuser", status=Batch.STATUS_BLOCKED, message="My BLOCKED message")
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        original = Batch.objects.create(
+            name="Batch 3",
+            user="testuser",
+            status=Batch.STATUS_BLOCKED,
+            message="My BLOCKED message",
+        )
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
         response = self.client.get(reverse("batch-list"))
         data = response.data
-        batch = data['batches'][0]
-        self.assertEqual(batch['url'], f'http://testserver/api/v1/batches/{original.pk}/')
-        self.assertEqual(batch['pk'], original.pk)
-        self.assertEqual(batch['user'], 'testuser')
-        self.assertEqual(batch['name'], 'Batch 3')
-        self.assertEqual(batch['status'], {'code': -1, 'display': 'Blocked'})
-        self.assertEqual(batch['message'], "My BLOCKED message")
-        self.assertTrue('created' in batch)
-        self.assertTrue('modified' in batch)
+        batch = data["batches"][0]
+        self.assertEqual(batch["url"], f"http://testserver/api/v1/batches/{original.pk}/")
+        self.assertEqual(batch["pk"], original.pk)
+        self.assertEqual(batch["user"], "testuser")
+        self.assertEqual(batch["name"], "Batch 3")
+        self.assertEqual(batch["status"], {"code": -1, "display": "Blocked"})
+        self.assertEqual(batch["message"], "My BLOCKED message")
+        self.assertTrue("created" in batch)
+        self.assertTrue("modified" in batch)
 
     def test_authenticated_request(self):
         for user in ["user1", "user2"]:
             for i in range(0, 35):
                 Batch.objects.create(name=f"Batch {i} for {user}", user=user)
 
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
-        
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+
         #####
         # Testing pagination
         #####
         response = self.client.get(reverse("batch-list"))
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], 'http://testserver/api/v1/batches/?page=2')
-        self.assertEqual(data['links']['previous'], None)
-        self.assertEqual(data['total'], 70)
-        self.assertEqual(data['page_size'], 20)
-        self.assertEqual(len(data['batches']), 20)
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], "http://testserver/api/v1/batches/?page=2")
+        self.assertEqual(data["links"]["previous"], None)
+        self.assertEqual(data["total"], 70)
+        self.assertEqual(data["page_size"], 20)
+        self.assertEqual(len(data["batches"]), 20)
 
-        response = self.client.get('http://testserver/api/v1/batches/?page=2')
+        response = self.client.get("http://testserver/api/v1/batches/?page=2")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], 'http://testserver/api/v1/batches/?page=3')
-        self.assertEqual(data['links']['previous'], 'http://testserver/api/v1/batches/')
-        self.assertEqual(data['total'], 70)
-        self.assertEqual(data['page_size'], 20)
-        self.assertEqual(len(data['batches']), 20)
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], "http://testserver/api/v1/batches/?page=3")
+        self.assertEqual(data["links"]["previous"], "http://testserver/api/v1/batches/")
+        self.assertEqual(data["total"], 70)
+        self.assertEqual(data["page_size"], 20)
+        self.assertEqual(len(data["batches"]), 20)
 
-        response = self.client.get('http://testserver/api/v1/batches/?page=3')
+        response = self.client.get("http://testserver/api/v1/batches/?page=3")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], 'http://testserver/api/v1/batches/?page=4')
-        self.assertEqual(data['links']['previous'], 'http://testserver/api/v1/batches/?page=2')
-        self.assertEqual(data['total'], 70)
-        self.assertEqual(data['page_size'], 20)
-        self.assertEqual(len(data['batches']), 20)
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], "http://testserver/api/v1/batches/?page=4")
+        self.assertEqual(data["links"]["previous"], "http://testserver/api/v1/batches/?page=2")
+        self.assertEqual(data["total"], 70)
+        self.assertEqual(data["page_size"], 20)
+        self.assertEqual(len(data["batches"]), 20)
 
-        response = self.client.get('http://testserver/api/v1/batches/?page=4')
+        response = self.client.get("http://testserver/api/v1/batches/?page=4")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], None)
-        self.assertEqual(data['links']['previous'], 'http://testserver/api/v1/batches/?page=3')
-        self.assertEqual(data['total'], 70)
-        self.assertEqual(data['page_size'], 10)
-        self.assertEqual(len(data['batches']), 10)
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], None)
+        self.assertEqual(data["links"]["previous"], "http://testserver/api/v1/batches/?page=3")
+        self.assertEqual(data["total"], 70)
+        self.assertEqual(data["page_size"], 10)
+        self.assertEqual(len(data["batches"]), 10)
 
         #####
         # Testing filter by user1
         #####
-        response = self.client.get('http://testserver/api/v1/batches/?username=user1')
+        response = self.client.get("http://testserver/api/v1/batches/?username=user1")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], 'http://testserver/api/v1/batches/?page=2&username=user1')
-        self.assertEqual(data['links']['previous'], None)
-        self.assertEqual(data['total'], 35)
-        self.assertEqual(data['page_size'], 20)
-        self.assertEqual(len(data['batches']), 20)
-        for b in data['batches']:
-            self.assertEqual(b['user'], 'user1')
+        self.assertTrue("links" in data)
+        self.assertEqual(
+            data["links"]["next"], "http://testserver/api/v1/batches/?page=2&username=user1"
+        )
+        self.assertEqual(data["links"]["previous"], None)
+        self.assertEqual(data["total"], 35)
+        self.assertEqual(data["page_size"], 20)
+        self.assertEqual(len(data["batches"]), 20)
+        for b in data["batches"]:
+            self.assertEqual(b["user"], "user1")
 
-        response = self.client.get('http://testserver/api/v1/batches/?username=user1&page=2')
+        response = self.client.get("http://testserver/api/v1/batches/?username=user1&page=2")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], None)
-        self.assertEqual(data['links']['previous'], 'http://testserver/api/v1/batches/?username=user1')
-        self.assertEqual(data['total'], 35)
-        self.assertEqual(data['page_size'], 15)
-        self.assertEqual(len(data['batches']), 15)
-        for b in data['batches']:
-            self.assertEqual(b['user'], 'user1')
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], None)
+        self.assertEqual(
+            data["links"]["previous"], "http://testserver/api/v1/batches/?username=user1"
+        )
+        self.assertEqual(data["total"], 35)
+        self.assertEqual(data["page_size"], 15)
+        self.assertEqual(len(data["batches"]), 15)
+        for b in data["batches"]:
+            self.assertEqual(b["user"], "user1")
 
         #####
         # Testing filter by user2
         #####
-        response = self.client.get('http://testserver/api/v1/batches/?username=user2')
+        response = self.client.get("http://testserver/api/v1/batches/?username=user2")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], 'http://testserver/api/v1/batches/?page=2&username=user2')
-        self.assertEqual(data['links']['previous'], None)
-        self.assertEqual(data['total'], 35)
-        self.assertEqual(data['page_size'], 20)
-        self.assertEqual(len(data['batches']), 20)
-        for b in data['batches']:
-            self.assertEqual(b['user'], 'user2')
+        self.assertTrue("links" in data)
+        self.assertEqual(
+            data["links"]["next"], "http://testserver/api/v1/batches/?page=2&username=user2"
+        )
+        self.assertEqual(data["links"]["previous"], None)
+        self.assertEqual(data["total"], 35)
+        self.assertEqual(data["page_size"], 20)
+        self.assertEqual(len(data["batches"]), 20)
+        for b in data["batches"]:
+            self.assertEqual(b["user"], "user2")
 
-        response = self.client.get('http://testserver/api/v1/batches/?username=user2&page=2')
+        response = self.client.get("http://testserver/api/v1/batches/?username=user2&page=2")
         self.assertEqual(response.status_code, 200)
         data = response.data
-        self.assertTrue('links' in data)
-        self.assertEqual(data['links']['next'], None)
-        self.assertEqual(data['links']['previous'], 'http://testserver/api/v1/batches/?username=user2')
-        self.assertEqual(data['total'], 35)
-        self.assertEqual(data['page_size'], 15)
-        self.assertEqual(len(data['batches']), 15)
-        for b in data['batches']:
-            self.assertEqual(b['user'], 'user2')
-
+        self.assertTrue("links" in data)
+        self.assertEqual(data["links"]["next"], None)
+        self.assertEqual(
+            data["links"]["previous"], "http://testserver/api/v1/batches/?username=user2"
+        )
+        self.assertEqual(data["total"], 35)
+        self.assertEqual(data["page_size"], 15)
+        self.assertEqual(len(data["batches"]), 15)
+        for b in data["batches"]:
+            self.assertEqual(b["user"], "user2")
 
     def test_non_allowed_methods_request(self):
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
-        
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+
         response = self.client.post(reverse("batch-list"))
         self.assertEqual(response.status_code, 405)
 

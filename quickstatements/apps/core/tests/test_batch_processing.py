@@ -1,15 +1,12 @@
 import requests_mock
-
-from django.test import TestCase
-from django.test import override_settings
 from django.contrib.auth.models import User
+from django.test import TestCase, override_settings
 
-from core.tests.test_api import ApiMocker
-from core.client import Client as ApiClient
-from core.models import Batch
-from core.models import BatchCommand
-from core.parsers.v1 import V1CommandParser
-from web.models import Token
+from quickstatements.apps.core.client import Client as ApiClient
+from quickstatements.apps.core.models import Batch, BatchCommand
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
+from quickstatements.apps.core.tests.test_api import ApiMocker
+from quickstatements.apps.web.models import Token
 
 
 class ProcessingTests(TestCase):
@@ -299,13 +296,15 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_remove_statement_by_value_success(self, mocker):
         statements = {
-            "P5": [{
-                "id": "Q1234$abcdefgh-uijkl",
-                "value": {
-                    "type": "value",
-                    "content": "Q12",
-                },
-            }],
+            "P5": [
+                {
+                    "id": "Q1234$abcdefgh-uijkl",
+                    "value": {
+                        "type": "value",
+                        "content": "Q12",
+                    },
+                }
+            ],
         }
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.statements(mocker, "Q1234", statements)
@@ -360,13 +359,15 @@ class ProcessingTests(TestCase):
     @requests_mock.Mocker()
     def test_remove_statement_by_value_fail_no_statements_value(self, mocker):
         statements = {
-            "P5": [{
-                "id": "Q1234$abcdefgh-uijkl",
-                "value": {
-                    "type": "value",
-                    "content": "this is my string",
-                },
-            }],
+            "P5": [
+                {
+                    "id": "Q1234$abcdefgh-uijkl",
+                    "value": {
+                        "type": "value",
+                        "content": "this is my string",
+                    },
+                }
+            ],
         }
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.statements(mocker, "Q1234", statements)
@@ -409,28 +410,30 @@ class ProcessingTests(TestCase):
         ApiMocker.wikidata_property_data_types(mocker)
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.property_data_type(mocker, "P89982", "quantity")
-        ApiMocker.statements(mocker, "Q1", {
-        "P89982": [
-          {
-            "id": "Q208235$79D23941-64B1-4260-A962-8AB10E84B2C2",
-            "rank": "normal",
-            "qualifiers": [],
-            "references": [],
-            "property": {
-              "id": "P89982",
-              "data_type": "quantity"
+        ApiMocker.statements(
+            mocker,
+            "Q1",
+            {
+                "P89982": [
+                    {
+                        "id": "Q208235$79D23941-64B1-4260-A962-8AB10E84B2C2",
+                        "rank": "normal",
+                        "qualifiers": [],
+                        "references": [],
+                        "property": {"id": "P89982", "data_type": "quantity"},
+                        "value": {
+                            "type": "value",
+                            "content": {
+                                "amount": "+30",
+                                "unit": "http://test.wikidata.org/entity/Q208592",
+                                "upperBound": "+40",
+                                "lowerBound": "+10",
+                            },
+                        },
+                    }
+                ]
             },
-            "value": {
-              "type": "value",
-              "content": {
-                "amount": "+30",
-                "unit": "http://test.wikidata.org/entity/Q208592",
-                "upperBound": "+40",
-                "lowerBound": "+10"
-              }
-            }
-          }
-        ]})
+        )
         ApiMocker.patch_item_successful(mocker, "Q1", {})
         batch = self.parse("-Q1|P89982|30[10,40]U208592")
         batch.run()
@@ -450,19 +453,26 @@ class ProcessingTests(TestCase):
         ApiMocker.item_empty(mocker, "Q7")
         ApiMocker.property_data_type(mocker, "P5", "quantity")
         ApiMocker.sitelink_invalid(mocker, "Q1234", "ptwikix")
-        ApiMocker.patch_item_fail(mocker, "Q5", 400,  {"code": "code", "message": "message"})
-        ApiMocker.patch_item_fail(mocker, "Q7", 500,  {"code": "code", "message": "message"})
+        ApiMocker.patch_item_fail(mocker, "Q5", 400, {"code": "code", "message": "message"})
+        ApiMocker.patch_item_fail(mocker, "Q7", 500, {"code": "code", "message": "message"})
         ApiMocker.statements(mocker, "Q9", {})
-        ApiMocker.statements(mocker, "Q11", {
-            "P5": [{
-                "id": "Q1234$abcdefgh-uijkl",
-                "value": {
-                    "type": "value",
-                    "content": {"amount": "+32", "unit": "1"},
-                },
-            }],
-        })
-        batch = self.parse("""
+        ApiMocker.statements(
+            mocker,
+            "Q11",
+            {
+                "P5": [
+                    {
+                        "id": "Q1234$abcdefgh-uijkl",
+                        "value": {
+                            "type": "value",
+                            "content": {"amount": "+32", "unit": "1"},
+                        },
+                    }
+                ],
+            },
+        )
+        batch = self.parse(
+            """
         CREATE_PROPERTY|url
         Q1234|P5|12
         Q1234|Sptwikix|"Cool article"
@@ -470,7 +480,8 @@ class ProcessingTests(TestCase):
         Q7|P5|321
         -Q9|P5|123
         -Q11|P5|123
-        """)
+        """
+        )
         batch.combine_commands = True
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
@@ -503,11 +514,13 @@ class ProcessingTests(TestCase):
         ApiMocker.property_data_type(mocker, "P1", "quantity")
         ApiMocker.patch_item_successful(mocker, "Q1", {})
         ApiMocker.patch_item_successful(mocker, "Q2", {})
-        batch = self.parse("""
+        batch = self.parse(
+            """
         CREATE
         LAST|P1|12
         Q2|P1|15
-        """)
+        """
+        )
         batch.combine_commands = True
         commands = batch.commands()
         client = ApiClient.from_username(batch.user)
@@ -522,7 +535,7 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].get_label(client, "en"), None)
         self.assertEqual(commands[1].get_label(client, "en"), None)
         self.assertEqual(commands[2].get_label(client, "en"), "en2")
-        batch.run() # -> load Q1 into commands[0] and commands[1]
+        batch.run()  # -> load Q1 into commands[0] and commands[1]
         self.assertEqual(commands[0].get_label(client, "pt"), "pt1")
         self.assertEqual(commands[1].get_label(client, "pt"), "pt1")
         self.assertEqual(commands[2].get_label(client, "pt"), "pt2")
@@ -579,14 +592,16 @@ class ProcessingTests(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.property_data_type(mocker, "P5", "wikibase-item")
         ApiMocker.patch_item_successful(mocker, "Q1", {})
-        batch = self.parse("""
+        batch = self.parse(
+            """
         REMOVE_QUAL|Q1|P5|Q12|P123|123
         REMOVE_QUAL|Q1|P5|Q999|P65|84
         REMOVE_QUAL|Q1|P5|Q12|P65|84
         REMOVE_REF|Q1|P5|Q12|S93|"https://kernel.xyz"
         REMOVE_REF|Q1|P5|Q999|S93|"https://kernel.org/"
         REMOVE_REF|Q1|P5|Q12|S93|"https://kernel.org/"
-        """)
+        """
+        )
         commands = batch.commands()
         batch.run()
         # qualifiers
@@ -624,10 +639,10 @@ class ProcessingTests(TestCase):
         commands = batch.commands()
         batch.run()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
-        self.assertEqual(commands[0].response_json, {}) # no API connection
-        self.assertEqual(commands[1].response_json, {}) # no API connection
-        self.assertEqual(commands[2].response_json, {}) # no API connection
-        self.assertEqual(commands[3].response_json, {"id": "Q123"}) # created: API connection
+        self.assertEqual(commands[0].response_json, {})  # no API connection
+        self.assertEqual(commands[1].response_json, {})  # no API connection
+        self.assertEqual(commands[2].response_json, {})  # no API connection
+        self.assertEqual(commands[3].response_json, {"id": "Q123"})  # created: API connection
         self.assertEqual(len(commands), 4)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_DONE)
@@ -641,10 +656,10 @@ class ProcessingTests(TestCase):
         batch.run()
         commands = batch.commands()
         self.assertEqual(batch.status, Batch.STATUS_DONE)
-        self.assertEqual(commands[0].response_json, {"id": "Q123"}) # with API connection
-        self.assertEqual(commands[1].response_json, {"id": "Q123$abcdef"}) # with API connection
-        self.assertEqual(commands[2].response_json, {"id": "Q123$abcdef"}) # with API connection
-        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"}) # with API connection
+        self.assertEqual(commands[0].response_json, {"id": "Q123"})  # with API connection
+        self.assertEqual(commands[1].response_json, {"id": "Q123$abcdef"})  # with API connection
+        self.assertEqual(commands[2].response_json, {"id": "Q123$abcdef"})  # with API connection
+        self.assertEqual(commands[3].response_json, {"id": "Q123$abcdef"})  # with API connection
         self.assertEqual(len(commands), 4)
         for command in commands:
             self.assertEqual(command.status, BatchCommand.STATUS_DONE)

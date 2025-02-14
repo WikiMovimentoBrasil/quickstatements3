@@ -1,10 +1,8 @@
-from django.test import TestCase
-from django.test import override_settings
+from django.test import TestCase, override_settings
 
-from core.models import Batch
-from core.models import BatchCommand
-from core.parsers.v1 import V1CommandParser
-from core.parsers.csv import CSVCommandParser
+from quickstatements.apps.core.models import Batch, BatchCommand
+from quickstatements.apps.core.parsers.csv import CSVCommandParser
+from quickstatements.apps.core.parsers.v1 import V1CommandParser
 
 
 class TestBatch(TestCase):
@@ -157,6 +155,7 @@ class TestBatch(TestCase):
         self.assertTrue(batch.is_initial)
         self.assertTrue(batch.message.startswith("Batch restarted by owner"))
 
+
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
         v1 = V1CommandParser()
@@ -226,9 +225,14 @@ class TestV1Batch(TestCase):
         batch.save_batch_and_preview_commands()
         batch_id = batch.id
         cmd = BatchCommand.objects.get(batch=batch, index=0)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment",
+        )
         cmd = BatchCommand.objects.get(batch=batch, index=1)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+        self.assertEqual(
+            cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]"
+        )
 
     def test_set_sitelink(self):
         v1 = V1CommandParser()
@@ -276,9 +280,10 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_QUALIFIER)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(len(cmd.references()), 0)
-        self.assertEqual(cmd.qualifiers_for_api(), [
-            {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
-        ])
+        self.assertEqual(
+            cmd.qualifiers_for_api(),
+            [{"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}],
+        )
 
     def test_remove_reference(self):
         v1 = V1CommandParser()
@@ -288,11 +293,10 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_REFERENCE)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(len(cmd.qualifiers()), 0)
-        self.assertEqual(cmd.references_for_api(), [
-            {"parts":  [
-                {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
-            ]}
-        ])
+        self.assertEqual(
+            cmd.references_for_api(),
+            [{"parts": [{"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}]}],
+        )
 
 
 class TestCSVBatch(TestCase):
@@ -541,7 +545,10 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "aliases", "value": ["Patterns, Predictors, and Outcome and Questions"]},
+                "value": {
+                    "type": "aliases",
+                    "value": ["Patterns, Predictors, and Outcome and Questions"],
+                },
                 "what": "alias",
                 "language": "pt",
             },
@@ -580,7 +587,10 @@ Q411518,"Patterns, Predictors, and Outcome and Descriptions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Patterns, Predictors, and Outcome and Descriptions"},
+                "value": {
+                    "type": "string",
+                    "value": "Patterns, Predictors, and Outcome and Descriptions",
+                },
                 "what": "description",
                 "language": "pt",
             },
@@ -687,10 +697,18 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "qualifiers": [{"property": "P1545", "value": {"type": "string", "value": "1"}}],
                 "references": [
                     [
-                        {"property": "P248", "value": {"type": "wikibase-entityid", "value": "Q54919"}},
+                        {
+                            "property": "P248",
+                            "value": {"type": "wikibase-entityid", "value": "Q54919"},
+                        },
                         {"property": "P214", "value": {"type": "string", "value": "113230702"}},
                     ],
-                    [{"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q328"}}],
+                    [
+                        {
+                            "property": "P143",
+                            "value": {"type": "wikibase-entityid", "value": "Q328"},
+                        }
+                    ],
                 ],
             },
         )
@@ -720,22 +738,27 @@ Q4115189,Q5,my comment"""
     def test_edit_summary_with_editgroups(self):
         COMMAND = """qid,P31,#
 Q4115189,Q5,my comment
-Q4115189,Q5, 
+Q4115189,Q5,
 """
         par = CSVCommandParser()
         batch = par.parse("b", "u", COMMAND)
         batch.save_batch_and_preview_commands()
         batch_id = batch.id
         cmd = BatchCommand.objects.get(batch=batch, index=0)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment",
+        )
         cmd = BatchCommand.objects.get(batch=batch, index=1)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+        self.assertEqual(
+            cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]"
+        )
 
     @override_settings(TOOLFORGE_TOOL_NAME=None)
     def test_edit_summary_without_editgroups(self):
         COMMAND = """qid,P31,#
 Q4115189,Q5,my comment
-Q4115189,Q5, 
+Q4115189,Q5,
 """
         par = CSVCommandParser()
         batch = par.parse("b", "u", COMMAND)
