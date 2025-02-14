@@ -173,8 +173,6 @@ REST_FRAMEWORK = {
 
 LOGIN_URL = "/auth/login/"
 
-LOCALE_PATHS = [os.path.join(BASE_DIR, "locale")]
-
 LANGUAGES = [
     ("pt-br", "Português Brasil"),
     ("en", "English"),
