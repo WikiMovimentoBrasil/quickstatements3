@@ -1,22 +1,23 @@
-
-export ROOT_DIR=${PWD}
-export IMAGE=quickstatements3:dev
-
-VERSION ?= $(shell date +"%Y%m%d_%H%M")
-
+.PHONY: build init shell run test integration
 
 build:
-	docker build -t ${IMAGE} -f Dockerfile .
+	pip install poetry; \
+	poetry install -E dev;
 
+init: build
+	poetry run django-admin migrate; \
+	poetry run django-admin createsuperuser
 
-shell: 
-	docker run --rm -ti --env-file etc/env -p 8765:80 -p 8000:8000 -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash
+shell:
+	poetry run django-admin shell
 
-run: 
-	docker run --rm -ti --env-file etc/env -p 8765:80 -p 8000:8000 -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} /home/wmb/www/cmd_run.sh
+run:
+	poetry run django-admin migrate --no-input; \
+	poetry run django-admin collectstatic --no-input; \
+	poetry run django-admin runserver
 
 test:
-	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test"
+	poetry run pytest
 
 integration:
-	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test integration"
+	poetry run pytest -k IntegrationTests

@@ -25,15 +25,23 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "black",
+  "ipython",
+  "isort",
+  "flake8",
   "pytest",
   "pytest-env",
   "pytest-django"
 ]
 
+[tool.setuptools]
+packages = ["quickstatements"]
 
-[tool.pycodestyle]
-ignore = "E731,E203,E402,W503,W504,C814"
-max-line-length = 99
+
+[tool.poetry]
+packages = [
+  { include = "quickstatements" }
+]
 
 [tool.isort]
 line_length = 99

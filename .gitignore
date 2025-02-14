@@ -2,7 +2,7 @@
 /etc/env
 
 # Static files
-/src/static/
+/quickstatements/static/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

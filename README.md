@@ -4,24 +4,10 @@ Repository for the development of a new version of QuickStatements
 
 ## Local development HOW TO
 
-Required tools:
+You need to create a python virtualenv and activate. The provided Makefile assumes that you are executing the commands with the active virtualenv
 
-* Docker
-* Make
+Create a `.env` file to define the needed **environment variables** required. The `.env.sample` can be used as a template.
 
-To build the development container
-
-```bash
-> make build
-```
-
-To run a shell inside the container
-
-```bash
-> make shell
-```
-
-Make sure that you have an env file inside the local etc/ dir. This file contains all the **ENVIRONMENT VARIABLES** used by the system and must never be added to your git repo.
 
 To generate a good secret key you can run with python 3.6+
 
@@ -29,26 +15,16 @@ To generate a good secret key you can run with python 3.6+
 python -c "import secrets; print(secrets.token_urlsafe())"
 ```
 
-If you are running this container for the first time, you have to initialize the database and create a superuser for the Django ADMIN
+If you are running this container for the first time, you have to initialize the database and create a superuser for the Django admin.
 
 ```bash
-> cd src
-> python manage.py migrate
-> python manage.py createsuperuser
+make init
 ```
 
-Now that everything is set up, we can start **Quickstatements**. We have 2 ways of doing that:
+With everything set up, we can start **Quickstatements**. The easiest way to do it is via `make run`
 
-* from inside the container, running 
-```bash 
->./cmd_run.sh
-```
-* from our Makefile, running 
-```bash 
-> make run
-```
 
-Now **Quickstatements** is available at http://localhost:8765/
+Now **Quickstatements** is available at http://localhost:8000/
 
 ## OAuth
 
@@ -81,15 +57,13 @@ If you want to login with a developer access token, you need to register for you
 
 To run Integration tests on https://test.wikidata.org, you'll need a developer access token (owner-only) to edit on `test.wikidata.org`.
 
-After obtaining it, define the environment variable `INTEGRATION_TEST_AUTH_TOKEN` in `etc/env` file as your developer access token. Then, run the tests with `make integration`.
-
-Alternatively, define that environment varibale inside the container shell and run the tests directly with `python3 manage.py test integration`.
+After obtaining it, define the environment variable `INTEGRATION_TEST_AUTH_TOKEN` in `.env` file as your developer access token. Then, run the tests with `make integration`.
 
 ## Toolforge deployment
 
 * Login and enter into the tool user
 * Clone the repository at `~/www/python/`
 * Update `uwsgi.ini` with the toolname. In this case, its `qs-dev`
-* Create the environment variables file at `~/www/python/src/.env` with `install -m 600 /dev/null ~/www/python/src/.env` so that only your user can read it.
+* Create the environment variables file at `~/www/python/.env` with `install -m 600 /dev/null ~/www/python/.env` so that only your user can read it.
 * Run `deploy.sh`
 * Logs are at `~/uwsgi.log`
