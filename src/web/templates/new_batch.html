@@ -28,11 +28,13 @@
     <label>
       <input type="checkbox" name="block_on_errors" role="switch" >
       {% translate "Block batch if a command fails" %}
+      <em data-tooltip="{% translate 'The batch will stop processing if a command gives an error.' %}">(i)</em>
     </label>
 
     <label>
       <input type="checkbox" name="do_not_combine_commands" role="switch" >
       {% translate "Do not combine commands" %}
+      <em data-tooltip="{% translate 'Commands targeting the same entity will not be combined into one edit.' %}">(i)</em>
     </label>
 
     <textarea name="commands" aria-label="commands" placeholder="{% translate 'Enter your commands here...' %}"
