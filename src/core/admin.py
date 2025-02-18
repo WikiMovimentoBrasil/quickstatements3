@@ -13,21 +13,8 @@ class BatchCommandAdmin(admin.ModelAdmin):
     raw_id_fields = ["batch"]
 
 
-class BatchCommandInline(admin.TabularInline):
-    model = BatchCommand
-    show_change_link = True
-    ordering = ["batch", "index"]
-    fields = [
-        "operation",
-        "status",
-        "error",
-        "json",
-    ]
-
-
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
     list_display = ["name", "user", "status", "created", "modified"]
     search_field = ["name", "user"]
     list_filter = ["status", "created", "modified"]
-    inlines = [BatchCommandInline]
