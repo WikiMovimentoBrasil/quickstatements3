@@ -594,6 +594,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertNotInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+        self.assertNotInRes(f"""<input type="submit" value="Download report">""", response)
 
         batch.run()
 
@@ -601,6 +602,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+        self.assertInRes(f"""<input type="submit" value="Download report">""", response)
 
         response = self.client.post(f"/batch/{pk}/report/")
         self.assertEqual(response.status_code, 405)
