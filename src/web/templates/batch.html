@@ -14,9 +14,10 @@
   <h2> {% translate "Batch" %} #{{ batch.pk }} <img id="spinner" class="htmx-indicator"></h2>
   <p><b>{{batch.name}}</b></p>
   <p>
-    {% translate 'Created by' %} {{ batch.user }}
-    [<a href="{% url 'last_batches_by_user' user=batch.user %}">{% translate "View batches" %}</a>]</a>
-    [<a href="https://www.wikidata.org/wiki/User:{{batch.user}}">{% translate "View wikidata" %}</a>]
+    {% translate 'Created by' %}
+    <a href="https://www.wikidata.org/wiki/User:{{batch.user}}">{{ batch.user }}</a>
+    [<a href="{% url 'last_batches_by_user' user=batch.user %}">{% translate "View batches" %}</a>]
+    [<a href="https://editgroups.toolforge.org/b/QSv3/{{batch.pk}}">{% translate 'Revert / Discuss' %}</a>]
   </p>
 </hgroup>
 </div>
@@ -32,7 +33,7 @@
     </form>
     {% elif batch.is_done %}
     <form method="GET" action="{% url 'batch_report' pk=batch.pk %}">
-      <input type="submit" value="Report">
+      <input type="submit" value="Download report">
     </form>
     {% endif %}
   {% endif %}

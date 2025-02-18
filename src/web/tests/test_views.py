@@ -594,6 +594,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertNotInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+        self.assertNotInRes(f"""<input type="submit" value="Download report">""", response)
 
         batch.run()
 
@@ -601,6 +602,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+        self.assertInRes(f"""<input type="submit" value="Download report">""", response)
 
         response = self.client.post(f"/batch/{pk}/report/")
         self.assertEqual(response.status_code, 405)
@@ -726,3 +728,27 @@ class ViewsTest(TestCase):
         self.assertEqual(response.context["finish_percentage"], 100)
         self.assertEqual(response.context["done_to_finish_percentage"], 40)
         self.assertInRes("linear-gradient(to right, green 40%, #C52F21 0)", response)
+
+    @requests_mock.Mocker()
+    def test_batch_heading_details(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        user, api_client = self.login_user_and_get_token("wikiuser")
+        parser = V1CommandParser()
+        batch = parser.parse("Batch", "wikiuser", """Q11|Len|"label" """)
+        batch.save_batch_and_preview_commands()
+        pk = batch.pk
+        response = self.client.get(f"/batch/{pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        self.assertInRes(f"""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
+        self.assertInRes(f"""[<a href="/batches/wikiuser/">""", response)
+        self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)
+        batch.run()
+        response = self.client.get(f"/batch/{pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed("batch.html")
+        self.assertInRes(f"""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
+        self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)

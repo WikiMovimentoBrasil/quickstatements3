@@ -15,6 +15,6 @@ class BatchCommandAdmin(admin.ModelAdmin):
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ["name", "user", "status", "created", "modified"]
+    list_display = ["id", "name", "user", "status", "created", "modified"]
     search_field = ["name", "user"]
     list_filter = ["status", "created", "modified"]
