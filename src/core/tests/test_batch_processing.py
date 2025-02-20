@@ -778,3 +778,65 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[3].error, BatchCommand.Error.API_SERVER_ERROR)
         self.assertEqual(commands[3].response_json, {})
         self.assertEqual(len(commands), 4)
+
+    @requests_mock.Mocker()
+    def test_batch_wont_verify_commands_already_verified(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.item_empty(mocker, "Q1")
+        ApiMocker.property_data_type(mocker, "P1", "string")
+        ApiMocker.property_data_type(mocker, "P2", "quantity")
+        ApiMocker.patch_item_successful(mocker, "Q1", {})
+        raw = """
+        Q1|P1|"string"
+        Q1|P2|14
+        Q1|P2|"won't error"
+        Q1|P1|32
+        """
+        batch = self.parse(raw)
+        batch.block_on_errors = True
+        batch.combine_commands = True
+        commands = batch.commands()
+        command = commands[2]
+        command.value_type_verified = True
+        command.save()
+        command = commands[3]
+        command.value_type_verified = True
+        command.save()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        v1 = V1CommandParser()
+        batch = v1.parse("now it will", "user", raw)
+        batch.save_batch_and_preview_commands()
+        batch.block_on_errors = True
+        batch.run()
+        commands = batch.commands()
+        self.assertEqual(batch.status, Batch.STATUS_BLOCKED)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
+        self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_batch_will_skip_done_commands(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.create_item(mocker, "Q3")
+        raw = """
+        CREATE
+        LAST|Lpt|"label"
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        commands = batch.commands()
+        command = commands[1]
+        command.status = BatchCommand.STATUS_DONE
+        command.save()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        # was not updated because we hacked the status:
+        self.assertEqual(commands[1].entity_id(), "LAST")
