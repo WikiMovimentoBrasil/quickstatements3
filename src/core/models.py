@@ -184,10 +184,6 @@ class Batch(models.Model):
         self.status = self.STATUS_BLOCKED
         self.save()
 
-    def mark_as_value_type_verified(self):
-        self.value_type_verified = True
-        self.save()
-
     @property
     def is_preview(self):
         return self.status == Batch.STATUS_PREVIEW
