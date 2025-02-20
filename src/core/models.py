@@ -103,7 +103,7 @@ class Batch(models.Model):
             return self.block_is_not_autoconfirmed()
 
         # TODO: if self.verify_value_types_before_running
-        for command in self.commands():
+        for command in self.commands().filter(value_type_verified=False):
             try:
                 command.verify_value_types(client)
             except (InvalidPropertyValueType, NonexistantPropertyOrNoDataType):
@@ -182,6 +182,10 @@ class Batch(models.Model):
     def block_with_message(self, message):
         self.message = message
         self.status = self.STATUS_BLOCKED
+        self.save()
+
+    def mark_as_value_type_verified(self):
+        self.value_type_verified = True
         self.save()
 
     @property
