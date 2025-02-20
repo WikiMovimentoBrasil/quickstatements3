@@ -818,3 +818,25 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[1].status, BatchCommand.STATUS_INITIAL)
         self.assertEqual(commands[2].status, BatchCommand.STATUS_ERROR)
         self.assertEqual(commands[3].status, BatchCommand.STATUS_INITIAL)
+
+    @requests_mock.Mocker()
+    def test_batch_will_skip_done_commands(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.create_item(mocker, "Q3")
+        raw = """
+        CREATE
+        LAST|Lpt|"label"
+        """
+        batch = self.parse(raw)
+        batch.combine_commands = True
+        commands = batch.commands()
+        command = commands[1]
+        command.status = BatchCommand.STATUS_DONE
+        command.save()
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_DONE)
+        self.assertEqual(commands[1].status, BatchCommand.STATUS_DONE)
+        # was not updated because we hacked the status:
+        self.assertEqual(commands[1].entity_id(), "LAST")

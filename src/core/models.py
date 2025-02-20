@@ -112,7 +112,7 @@ class Batch(models.Model):
 
         last_id = None
         state = CombiningState.empty()
-        commands = self.commands()
+        commands = self.commands().exclude(status=BatchCommand.STATUS_DONE)
         count = commands.count()
 
         for i, command in enumerate(commands):
