@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_DATABASE: your_database_name
+      MYSQL_USER: your_user
+      MYSQL_PASSWORD: your_user_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+    
+
+  quickstatements:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    env_file:
+      - ./etc/env
+    ports:
+      - "8765:80"
+      - "8000:8000"
+    volumes:
+      - ./src:/home/wmb/www/src
+    command: /home/wmb/www/cmd_run.sh
+    restart: always
+
+volumes:
+  mariadb_data:
+  src:

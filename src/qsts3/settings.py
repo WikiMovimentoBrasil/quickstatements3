@@ -84,11 +84,24 @@ WSGI_APPLICATION = "qsts3.wsgi.application"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+   "default": {
+       "ENGINE": "django.db.backends.sqlite3",
+       "NAME": BASE_DIR / "db.sqlite3",
+   }
 }
+
+read_default_file = os.getenv("MARIADB_READ_DEFAULT_FILE")
+
+if read_default_file:
+    # MariaDB setup
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "OPTIONS": {
+                "read_default_file": read_default_file,
+            },
+        }
+    }
 
 
 # Password validation
