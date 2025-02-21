@@ -5,12 +5,12 @@ services:
     image: mariadb
     container_name: mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: your_root_password
-      MYSQL_DATABASE: your_database_name
-      MYSQL_USER: your_user
-      MYSQL_PASSWORD: your_user_password
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
@@ -20,7 +20,7 @@ services:
       timeout: 5s
       retries: 3
     restart: always
-    
+
 
   quickstatements:
     build:
@@ -41,4 +41,3 @@ services:
 
 volumes:
   mariadb_data:
-  src:
