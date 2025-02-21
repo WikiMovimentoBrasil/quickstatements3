@@ -594,7 +594,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertNotInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
-        self.assertNotInRes(f"""<input type="submit" value="Download report">""", response)
+        self.assertNotInRes("""<input type="submit" value="Download report">""", response)
 
         batch.run()
 
@@ -602,7 +602,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
         self.assertInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
-        self.assertInRes(f"""<input type="submit" value="Download report">""", response)
+        self.assertInRes("""<input type="submit" value="Download report">""", response)
 
         response = self.client.post(f"/batch/{pk}/report/")
         self.assertEqual(response.status_code, 405)
@@ -612,8 +612,8 @@ class ViewsTest(TestCase):
         self.assertEqual(response.headers["Content-Disposition"], f'attachment; filename="batch-{pk}-report.csv"')
         result = (
             """b'batch_id,index,operation,status,error,message,entity_id,raw_input\\r\\n"""
-            """1,0,set_statement,Done,,,Q1234,Q1234|P2|Q1\\r\\n"""
-            """1,1,set_label,Done,,,Q11,"Q11|Len|""label""\"\\r\\n\'"""
+            f"""{pk},0,set_statement,Done,,,Q1234,Q1234|P2|Q1\\r\\n"""
+            f"""{pk},1,set_label,Done,,,Q11,"Q11|Len|""label""\"\\r\\n\'"""
         )
         self.assertEqual(result, str(response.content).strip())
 
