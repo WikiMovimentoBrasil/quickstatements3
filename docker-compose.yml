@@ -3,14 +3,12 @@ version: '3.8'
 services:
   mariadb:
     image: mariadb
-    container_name: mariadb
+    container_name: "${DB_HOST}"
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MYSQL_DATABASE: "${DB_NAME}"
-      MYSQL_USER: "${DB_USER}"
-      MYSQL_PASSWORD: "${DB_PASSWORD}"
-    ports:
-      - "${DB_PORT}:${DB_PORT}"
+      MYSQL_DATABASE: "${DB_NAME}"      
+    expose:
+      - "3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
