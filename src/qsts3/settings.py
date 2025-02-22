@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["qs-dev.toolforge.org", "localhost"]
 
@@ -83,11 +83,16 @@ WSGI_APPLICATION = "qsts3.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# MariaDB setup
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
+        "NAME": os.getenv("DB_NAME", "your_db_name"),
+        "USER": os.getenv("DB_USER", "your_db_user"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "your_db_password"),
+        "HOST": os.getenv("DB_HOST", "mariadb"),
+        "PORT": os.getenv("DB_PORT", 3306),
+    },
 }
 
 

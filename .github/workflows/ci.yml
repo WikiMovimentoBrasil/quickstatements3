@@ -10,6 +10,7 @@ env:
   DJANGO_SECRET_KEY: dummysecretkey123
   OAUTH_CLIENT_ID: dummyoauthclientid
   OAUTH_CLIENT_SECRET: dummyoauthclientsecret
+  DB_ENGINE: django.db.backends.sqlite3
 
 jobs:
   build:
