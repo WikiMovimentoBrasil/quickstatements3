@@ -12,6 +12,8 @@ toolforge webservice --backend=kubernetes python3.11 shell -- \
   webservice-python-bootstrap && \
   source venv/bin/activate && \
   echo "==> Installing dependencies..." && \
+  export MYSQLCLIENT_CFLAGS="-I/usr/include/mariadb/" && \
+  export MYSQLCLIENT_LDFLAGS="-L/usr/lib/x86_64-linux-gnu/ -lmariadb" && \
   pip install -r requirements.txt && \
   echo "==> Running migrations..." && \
   python3 src/manage.py migrate && \
