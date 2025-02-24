@@ -697,7 +697,7 @@ class BatchCommand(models.Model):
 
     def run(self, client: Client):
         """
-        Sends the command to the Wikidata API. This method should not raise exceptions.
+        Sends the command to the Wikibase API. This method should not raise exceptions.
         """
         # If we alredy have an error, just propagate backwards
         if self.status == BatchCommand.STATUS_ERROR:
@@ -1008,13 +1008,17 @@ class BatchCommand(models.Model):
         but the patch needs to be calculated using the original
         entity json, since that's what exists in the wikibase server.
 
-        TODO: maybe cache that original as well to not make
-        two requests?
+        The json patch is a series of operations that tell the API
+        how to modify the entity's json.
         """
         original = self.get_original_entity_json(client)
         entity = self.get_previous_entity_json(client)
         self.update_entity_json(entity)
         return jsonpatch.JsonPatch.from_diff(original, entity).patch
+
+    # ----------------
+    # REST API methods
+    # ----------------
 
     def api_payload(self, client: Client):
         """
@@ -1042,19 +1046,18 @@ class BatchCommand(models.Model):
 
     def send_to_api(self, client: Client) -> dict:
         """
-        Sends the operation to the Wikibase API.
+        Sends the operation to the Wikibase REST API.
 
         # Raises
 
         - `NotImplementedError` if the operation
         is not implemented.
         """
-        match self.operation:
-            case self.Operation.CREATE_PROPERTY:
-                raise NotImplementedError()
-            case _:
-                return self.send_basic(client)
-        return {}
+        if self.operation == self.Operation.CREATE_PROPERTY:
+            raise NotImplementedError()
+        method, endpoint = self.operation_method_and_endpoint(client)
+        body = self.api_body(client)
+        return client.wikibase_request_wrapper(method, endpoint, body)
 
     # -----------------
     # Auxiliary methods for Wikibase API interaction
@@ -1074,14 +1077,6 @@ class BatchCommand(models.Model):
             case self.Operation.REMOVE_STATEMENT_BY_ID:
                 statement_id = self.json["id"]
                 return ("DELETE", f"/statements/{statement_id}")
-
-    def send_basic(self, client: Client):
-        """
-        Sends the request
-        """
-        method, endpoint = self.operation_method_and_endpoint(client)
-        body = self.api_body(client)
-        return client.wikibase_request_wrapper(method, endpoint, body)
 
     # -----------------
     # Visualization/label methods
