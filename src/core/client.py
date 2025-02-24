@@ -1,4 +1,3 @@
-import os
 import requests
 import logging
 
@@ -93,10 +92,20 @@ class Client:
     # OAuth Token
     # ---
     def refresh_token_if_needed(self):
+        """
+        The OAuth access token token can expire.
+
+        This will check if it's near expiration and
+        make a call for a new one with the refresh token
+        if necessary.
+        """
         if self.token.is_expired() and self.token.refresh_token:
             self.refresh_token()
 
     def refresh_token(self):
+        """
+        Refreshes the current `Token` using its refresh token.
+        """
         logger.debug(f"[{self.token}] Refreshing OAuth token...")
 
         try:
@@ -179,6 +188,10 @@ class Client:
         return self.wikibase_url(endpoint)
 
     def wikibase_request_wrapper(self, method, endpoint, body):
+        """
+        Sends a request to the Wikibase REST API, using the provided
+        endpoint, method and json body.
+        """
         kwargs = {
             "json": body,
             "headers": self.headers(),
@@ -196,12 +209,10 @@ class Client:
         self.raise_for_status(res)
         return res.json()
 
-    def wikibase_post(self, endpoint, body):
-        return self.wikibase_request_wrapper("POST", endpoint, body)
-
     # ---
     # Wikibase GET/reading
     # ---
+
     @cache_with_first_arg("value_type_cache")
     def get_property_value_type(self, property_id):
         """
@@ -279,26 +290,9 @@ class Client:
         url = self.wikibase_entity_url(entity_id, "/labels")
         return self.get(url).json()
 
-    def get_statements(self, entity_id):
-        """
-        Returns all statements for an entity in the form of a dictionary.
-
-        The key is the property id, and the value is an array with
-        the statement objects.
-        """
-        url = self.wikibase_entity_url(entity_id, "/statements")
-        return self.get(url).json()
-
     def get_entity(self, entity_id):
         """
         Returns the entire entity json document.
         """
         url = self.wikibase_entity_url(entity_id, "")
         return self.get(url).json()
-
-    # ---
-    # Wikibase POST/editing
-    # ---
-    def add_statement(self, entity_id, body):
-        endpoint = self.wikibase_entity_endpoint(entity_id, "/statements")
-        return self.wikibase_post(endpoint, body)

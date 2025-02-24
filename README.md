@@ -50,6 +50,14 @@ Now that everything is set up, we can start **Quickstatements**. We have 2 ways 
 
 Now **Quickstatements** is available at http://localhost:8765/
 
+## Wikibase server
+
+QuickStatements 3.0 uses the Wikibase REST API to interact with a Wikibase server. To define which server it is pointing to, define the `BASE_REST_URL` environment variable, pointing to the `rest.php` endpoint, as in `BASE_REST_URL=https://test.wikidata.org/w/rest.php`.
+
+It uses the Wikibase REST API provided in `/wikibase/v1` and the profile endpoint for the Oauth2 API, provided in `/oauth2` to check autoconfirmation status and authorize users.
+
+Currently it's only possible to point at one Wikibase instance.
+
 ## OAuth
 
 This application uses OAuth2 with the Mediawiki provider.
