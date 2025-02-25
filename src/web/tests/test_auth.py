@@ -135,7 +135,7 @@ class Login(TestCase):
     def test_redirects_to_profile_if_logged_in(self):
         self.login_john()
         res = self.get()
-        self.assertRedirectToUrlName(res, "profile")
+        self.assertRedirectToPath(res, "/")
         self.assertIsAuthenticated()
 
     @requests_mock.Mocker()
@@ -206,7 +206,7 @@ class LoginDev(TestCase):
         ApiMocker.login_success(mocker, "Maria")
 
         res = self.post(data={"access_token": "valid_token"})
-        self.assertRedirectToUrlName(res, "profile")
+        self.assertRedirectToPath(res, "/")
 
         user = self.get_user()
         token = Token.objects.get(user=user)
