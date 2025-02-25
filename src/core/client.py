@@ -317,6 +317,7 @@ class Client:
             "ids": ids,
         }
         logger.debug(f"Sending GET request at {action_api}, languages={languages}, ids={ids}")
+        self.refresh_token_if_needed()
         res = requests.get(action_api, headers=self.headers(), params=params)
         self.raise_for_status(res)
         return res.json()
