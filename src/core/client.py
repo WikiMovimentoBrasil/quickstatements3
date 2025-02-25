@@ -124,6 +124,7 @@ class Client:
 
     def headers(self):
         return {
+            "User-Agent": "QuickStatements 3.0",
             "Authorization": f"Bearer {self.token.value}",
             "Content-Type": "application/json",
         }

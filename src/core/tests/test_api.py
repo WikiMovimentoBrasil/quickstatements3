@@ -627,6 +627,17 @@ class ClientTests(TestCase):
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
 
+    @requests_mock.Mocker()
+    def test_headers(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        client = self.api_client()
+        headers = {
+            "User-Agent": "QuickStatements 3.0",
+            "Authorization": "Bearer TEST_TOKEN",
+            "Content-Type": "application/json",
+        }
+        self.assertEqual(client.headers(), headers)
+
 class TestBatchCommand(TestCase):
     def login_user_and_get_token(self, username):
         """
