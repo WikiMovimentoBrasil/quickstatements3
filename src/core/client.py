@@ -1,5 +1,6 @@
 import requests
 import logging
+from typing import List
 
 from django.core.cache import cache as django_cache
 from django.conf import settings
@@ -282,18 +283,40 @@ class Client:
         url = self.wikibase_url("/property-data-types")
         return self.get(url).json()
 
-    @cache_with_first_arg("label_cache")
-    def get_labels(self, entity_id):
-        """
-        Returns all labels for an entity: a dictionary with the language
-        code as the keys.
-        """
-        url = self.wikibase_entity_url(entity_id, "/labels")
-        return self.get(url).json()
-
     def get_entity(self, entity_id):
         """
         Returns the entire entity json document.
         """
         url = self.wikibase_entity_url(entity_id, "")
         return self.get(url).json()
+
+    # ---
+    # Action API GET/reading
+    # ---
+
+    def action_api_url(self):
+        return self.BASE_REST_URL.replace("/w/rest.php", "/w/api.php")
+
+    def get_multiple_labels(self, entity_ids: List[str], language: str) -> dict:
+        """
+        Obtains multiple labels using the Action API.
+
+        When the REST API allows this, we can swicth to it.
+
+        Returns as an easy to use dictionary with the entity ids
+        as keys and the labels as values, which can be empty strings.
+        """
+        action_api = self.action_api_url()
+        languages = f"{language}|en" if language != "en" else "en"
+        ids = "|".join(entity_ids)
+        params = {
+            "action": "wbgetentities",
+            "format": "json",
+            "props": "labels",
+            "languages": languages,
+            "ids": ids,
+        }
+        logger.debug(f"Sending GET request at {action_api}, languages={languages}, ids={ids}")
+        res = requests.get(action_api, headers=self.headers(), params=params)
+        self.raise_for_status(res)
+        return res.json()

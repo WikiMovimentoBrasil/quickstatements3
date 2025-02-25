@@ -129,8 +129,7 @@ def batch_commands(request, pk):
         try:
             language = Preferences.objects.get_language(request.user, "en")
             client = Client.from_user(request.user)
-            for command in page.object_list:
-                command.display_label = command.get_label(client, language)
+            BatchCommand.load_labels(client, page.object_list, language)
         except UnauthorizedToken:
             # logout but do not return 302, since this
             # is called through HMTX
