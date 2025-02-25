@@ -278,10 +278,17 @@ class ApiMocker:
         )
 
     @classmethod
-    def labels(cls, mocker, client, entity_id, labels):
+    def labels(cls, mocker, client, labels: dict):
+        res_json = {"entities": {}}
+        for id, labels in labels.items():
+            res_json["entities"].setdefault(id, {})
+            res_json["entities"][id]["labels"] = {
+                language: {"language": language, "value": value}
+                for language, value in labels.items()
+            }
         mocker.get(
-            client.wikibase_entity_url(entity_id, "/labels"),
-            json=labels,
+            client.action_api_url(),
+            json=res_json,
             status_code=200,
         )
 
@@ -459,15 +466,19 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_get_labels(self, mocker):
-        entity_id = "Q123"
-        labels = {
+        labels = {"Q123": {
             "en": "English label",
             "pt": "Portuguese label",
-        }
+        }}
         client = self.api_client()
-        ApiMocker.labels(mocker, client, entity_id, labels)
-        returned_labels = client.get_labels(entity_id)
-        self.assertEqual(labels, returned_labels)
+        ApiMocker.labels(mocker, client, labels)
+        returned_labels = client.get_multiple_labels(["Q123"], "pt")
+        self.assertEqual(returned_labels, {
+            "entities": {"Q123": {"labels": {
+                "en": {"language": "en", "value": "English label"},
+                "pt": {"language": "pt", "value": "Portuguese label"},
+            }
+        }}})
 
     @requests_mock.Mocker()
     def test_verify_value_type(self, mocker):
@@ -626,6 +637,17 @@ class ClientTests(TestCase):
 
         with self.assertRaises(NoValueTypeForThisDataType):
             client.verify_value_type("P3", "value3")
+
+    @requests_mock.Mocker()
+    def test_headers(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        client = self.api_client()
+        headers = {
+            "User-Agent": "QuickStatements 3.0",
+            "Authorization": "Bearer TEST_TOKEN",
+            "Content-Type": "application/json",
+        }
+        self.assertEqual(client.headers(), headers)
 
 class TestBatchCommand(TestCase):
     def login_user_and_get_token(self, username):

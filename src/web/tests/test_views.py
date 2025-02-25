@@ -305,11 +305,11 @@ class ViewsTest(TestCase):
         batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
         batch.save_batch_and_preview_commands()
 
-        labels = {
+        labels = {"Q1234": {
             "en": "English label",
             "pt": "Portuguese label",
-        }
-        ApiMocker.labels(mocker, api_client, "Q1234", labels)
+        }}
+        ApiMocker.labels(mocker, api_client, labels)
 
         response = self.client.get(f"/batch/{batch.pk}/commands/")
         self.assertEqual(response.status_code, 200)
@@ -562,9 +562,12 @@ class ViewsTest(TestCase):
     def test_batch_preview_commands(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
-        labels = { "en": "English label" }
-        ApiMocker.labels(mocker, api_client, "Q1234", labels)
-        ApiMocker.labels(mocker, api_client, "Q222", labels)
+        labels = {
+            "Q1234": {"en": "English label"},
+            "Q222": {"en": "English label"},
+        }
+        ApiMocker.labels(mocker, api_client, labels)
+        ApiMocker.labels(mocker, api_client, labels)
         res = self.client.post(
             "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
         )
@@ -743,12 +746,12 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertInRes(f"""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
-        self.assertInRes(f"""[<a href="/batches/wikiuser/">""", response)
+        self.assertInRes("""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
+        self.assertInRes("""[<a href="/batches/wikiuser/">""", response)
         self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)
         batch.run()
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertInRes(f"""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
+        self.assertInRes("""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
         self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)

@@ -1082,34 +1082,32 @@ class BatchCommand(models.Model):
     # Visualization/label methods
     # -----------------
 
-    def get_label(self, client: Client, preferred_language="en"):
+    @classmethod
+    def load_labels(cls, client: Client, commands: List["BatchCommand"], language="en"):
         """
-        Obtains the label for the entity of this command.
+        This commands loads labels in the command entity ids
+        in the `display_label` attribute.
 
-        If there is no initial entity, like in a CREATE command, it will return None.
+        If there is no label returned from the API, it
+        sets `display_label` as None.
 
-        Using the entity's entity id, will obtain the labels from the API.
-
-        The prefered language will be used at first. If there is no label for the
-        preferred language, it will use the english label.
+        It loops twice through the commands list.
         """
-        id = self.entity_id()
-
-        if id is None or id == "LAST":
-            return None
-
-        try:
-            labels = client.get_labels(id)
-        except ApiException as e:
-            logger.warning(f"[{self}] label call failed: {e.message}")
-            return None
-
-        preferred = labels.get(preferred_language)
-
-        if not preferred and preferred_language != "en":
-            return labels.get("en")
-        else:
-            return preferred
+        ids = set()
+        for command in commands:
+            id = command.entity_id()
+            if id is not None and id != "LAST":
+                ids.add(command.entity_id())
+        ids = list(ids)
+        api_json = client.get_multiple_labels(ids, language)
+        entities = api_json.get("entities", {})
+        for command in commands:
+            id = command.entity_id()
+            response_labels = entities.get(id, {}).get("labels", {})
+            label = response_labels.get(language, {}).get("value", None)
+            if not label:
+                label = response_labels.get("en", {}).get("value", None)
+            command.display_label = label
 
     # -----------------
     # Value type verification

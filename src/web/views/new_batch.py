@@ -111,8 +111,7 @@ def preview_batch_commands(request):
         if request.user.is_authenticated:
             client = Client.from_user(request.user)
             language = Preferences.objects.get_language(request.user, "en")
-            for command in page.object_list:
-                command.display_label = command.get_label(client, language)
+            BatchCommand.load_labels(client, page.object_list, language)
 
 
     base_url = reverse("preview_batch_commands")
