@@ -22,3 +22,9 @@ toolforge webservice --backend=kubernetes python3.11 shell -- \
 
 echo "==> Restarting webservice..."
 toolforge webservice --backend=kubernetes python3.11 restart
+
+echo "==> Restarting batches..."
+toolforge webservice --backend=kubernetes python3.11 shell -- \
+  webservice-python-bootstrap && \
+  source venv/bin/activate && \
+  python3 src/manage.py restart_batches
