@@ -23,7 +23,7 @@ def logout_per_token_expired(request):
 
 def login(request):
     if request.user.is_authenticated:
-        return redirect("/auth/profile/")
+        return redirect("/")
     else:
         data = {
             "token_expired": request.session.get("token_expired", False),
@@ -47,7 +47,7 @@ def oauth_callback(request):
         full_token = oauth.mediawiki.authorize_access_token(request)
         user = user_from_full_token(full_token)
         django_login(request, user)
-        return redirect(reverse("profile"))
+        return redirect("/")
     except (UnauthorizedToken, KeyError):
         data["error"] = "token"
     except ServerError:
@@ -69,6 +69,6 @@ def login_dev(request):
             data = {"error": e}
             return render(request, "login_dev.html", data, status=400)
 
-        return redirect("/auth/profile/")
+        return redirect("/")
     else:
         return render(request, "login_dev.html", {})
