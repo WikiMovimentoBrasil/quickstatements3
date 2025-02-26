@@ -103,6 +103,16 @@ class RemoveQualRefTests(TestCase):
                                         },
                                     },
                                 },
+                                {
+                                    "property": {
+                                        "id": "P84267",
+                                        "data_type": "quantity",
+                                    },
+                                    "value": {
+                                        "type": "value",
+                                        "content": {"amount": "+42", "unit": "1"},
+                                    },
+                                },
                             ],
                         },
                     ],
@@ -194,11 +204,17 @@ class RemoveQualRefTests(TestCase):
         self.assertEqual(
             entity["statements"]["P65"][0]["qualifiers"][0]["property"]["id"], "P65"
         )
+        with self.assertRaises(NoQualifiers):
+            # try to remove it again
+            remove_p65_qual.update_entity_json(entity)
         # -----
         remove_p31_qual = batch.commands()[1]
         self.assertQualCount(entity, "P31", 1)
         remove_p31_qual.update_entity_json(entity)
         self.assertQualCount(entity, "P31", 0)
+        with self.assertRaises(NoQualifiers):
+            # try to remove it again
+            remove_p31_qual.update_entity_json(entity)
         # -----
         remove_nothing = batch.commands()[2]
         self.assertQualCount(entity, "P65", 1)
@@ -210,6 +226,8 @@ class RemoveQualRefTests(TestCase):
         text = """
         REMOVE_REF|Q12345678|P65|42|S31|somevalue
         REMOVE_REF|Q12345678|P31|somevalue|S93|"https://www.mediawiki.org/"
+        REMOVE_REF|Q12345678|P31|somevalue|S84267|42
+        REMOVE_REF|Q12345678|P31|somevalue|S84267|42
         """
         batch = self.parse(text)
         entity = copy.deepcopy(self.INITIAL)
@@ -219,14 +237,46 @@ class RemoveQualRefTests(TestCase):
         with self.assertRaises(NoReferenceParts):
             remove_nothing.update_entity_json(entity)
         self.assertRefCount(entity, "P65", 0)
+        # ---
+        prop = entity["statements"]["P31"][0]["references"][0]["parts"][0]["property"]
+        self.assertEqual(prop["id"], "P93")
+        prop = entity["statements"]["P31"][0]["references"][1]["parts"][0]["property"]
+        self.assertEqual(prop["id"], "P93")
         # -----
         remove_part_mediawiki = batch.commands()[1]
         self.assertRefCount(entity, "P31", 2)
         self.assertRefPartsCount(entity, "P31", 2, ipart=0)
-        self.assertRefPartsCount(entity, "P31", 2, ipart=1)
+        self.assertRefPartsCount(entity, "P31", 3, ipart=1)
         remove_part_mediawiki.update_entity_json(entity)
         self.assertRefCount(entity, "P31", 2)
         self.assertRefPartsCount(entity, "P31", 2, ipart=0)
+        self.assertRefPartsCount(entity, "P31", 2, ipart=1)
+        with self.assertRaises(NoReferenceParts):
+            # try to remove it again
+            remove_part_mediawiki.update_entity_json(entity)
+        # -----
+        remove_42 = batch.commands()[2]
+        self.assertRefCount(entity, "P31", 2)
+        self.assertRefPartsCount(entity, "P31", 2, ipart=0)
+        self.assertRefPartsCount(entity, "P31", 2, ipart=1)
+        remove_42.update_entity_json(entity)
+        self.assertRefCount(entity, "P31", 2)
+        self.assertRefPartsCount(entity, "P31", 1, ipart=0)
+        self.assertRefPartsCount(entity, "P31", 2, ipart=1)
+        # -----
+        remove_42_again = batch.commands()[3]
+        self.assertRefCount(entity, "P31", 2)
+        self.assertRefPartsCount(entity, "P31", 1, ipart=0)
+        self.assertRefPartsCount(entity, "P31", 2, ipart=1)
+        remove_42_again.update_entity_json(entity)
+        self.assertRefCount(entity, "P31", 2)
+        self.assertRefPartsCount(entity, "P31", 1, ipart=0)
         self.assertRefPartsCount(entity, "P31", 1, ipart=1)
+        with self.assertRaises(NoReferenceParts):
+            # try to remove it again
+            remove_42_again.update_entity_json(entity)
+        # ----
+        prop = entity["statements"]["P31"][0]["references"][0]["parts"][0]["property"]
+        self.assertEqual(prop["id"], "P93")
         prop = entity["statements"]["P31"][0]["references"][1]["parts"][0]["property"]
         self.assertEqual(prop["id"], "P74")
