@@ -960,11 +960,15 @@ class BatchCommand(models.Model):
             if self.is_in_qualifiers(qual):
                 statement["qualifiers"].pop(i)
                 found_qualifier = True
+                break
         for i, ref in enumerate(statement.get("references", [])):
             for j, part in enumerate(ref["parts"]):
                 if self.is_part_in_references(part):
                     statement["references"][i]["parts"].pop(j)
                     found_ref_part = True
+                    break
+            if found_ref_part:
+                break
         if not found_qualifier and len(self.qualifiers_for_api()) > 0:
             raise NoQualifiers()
         if not found_ref_part and len(self.references_for_api()) > 0:
