@@ -27,6 +27,7 @@ from .exceptions import LastCouldNotBeEvaluated
 
 logger = logging.getLogger("qsts3")
 
+
 @dataclass
 class CombiningState:
     """
@@ -35,6 +36,7 @@ class CombiningState:
     Saves the current entity json document and the previous
     commands that have altered it.
     """
+
     commands: List["BatchCommand"]
     entity: Optional[dict]
 
@@ -66,7 +68,9 @@ class Batch(models.Model):
 
     name = models.CharField(max_length=255, blank=False, null=False)
     user = models.CharField(max_length=128, blank=False, null=False, db_index=True)
-    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
+    status = models.IntegerField(
+        default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True
+    )
     message = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True, db_index=True)
@@ -103,7 +107,7 @@ class Batch(models.Model):
             return self.block_is_not_autoconfirmed()
 
         # TODO: if self.verify_value_types_before_running
-        for command in self.commands().filter(value_type_verified=False):
+        for command in self.commands().filter(value_type_verified=False).iterator():
             try:
                 command.verify_value_types(client)
             except (InvalidPropertyValueType, NonexistantPropertyOrNoDataType):
@@ -113,26 +117,36 @@ class Batch(models.Model):
         last_id = None
         state = CombiningState.empty()
         commands = self.commands().exclude(status=BatchCommand.STATUS_DONE)
-        count = commands.count()
 
-        for i, command in enumerate(commands):
-            self.refresh_from_db()
-            if self.is_stopped:
-                # The status changed, so we have to stop
-                return
+        iterator = commands.iterator()
 
-            next = commands[i+1] if (i + 1) < count else None
+        try:
+            current = next(iterator)
+            while current is not None:
+                self.refresh_from_db()
+                if self.is_stopped:
+                    # The status changed, so we have to stop
+                    return
+                try:
+                    upcoming = next(iterator)
+                except StopIteration:
+                    upcoming = None
 
-            command.check_combination(state, next)
-            command.update_last_id(last_id)
-            command.run(client)
+                current.check_combination(state, upcoming)
+                current.update_last_id(last_id)
+                current.run(client)
 
-            if command.is_error_status() and self.block_on_errors:
-                return self.block_by(command)
+                if current.is_error_status() and self.block_on_errors:
+                    return self.block_by(current)
 
-            state = command.final_combining_state
-            if command.action == BatchCommand.ACTION_CREATE:
-                last_id = command.response_id()
+                state = current.final_combining_state
+                if current.action == BatchCommand.ACTION_CREATE:
+                    last_id = current.response_id()
+
+                current = upcoming
+
+        except StopIteration:
+            pass
 
         self.finish()
 
@@ -170,7 +184,9 @@ class Batch(models.Model):
         self.block_with_message(message)
 
     def block_no_token(self):
-        logger.error(f"[{self}] blocked, we don't have a valid token for the user {self.user}")
+        logger.error(
+            f"[{self}] blocked, we don't have a valid token for the user {self.user}"
+        )
         message = "We don't have a valid API token for the user"
         self.block_with_message(message)
 
@@ -243,7 +259,9 @@ class Batch(models.Model):
         different wikibases (like wikidata and test.wikidata) are
         possible in the same server.
         """
-        return settings.BASE_REST_URL.replace("https://", "http://").split("/w/rest.php")[0]
+        return settings.BASE_REST_URL.replace("https://", "http://").split(
+            "/w/rest.php"
+        )[0]
 
     # ------
     # REPORT
@@ -276,9 +294,10 @@ class Batch(models.Model):
                     cmd.error,
                     cmd.message,
                     cmd.entity_id(),
-                    cmd.raw.replace("\t", "|"), # tabs are weird in csv
+                    cmd.raw.replace("\t", "|"),  # tabs are weird in csv
                 ]
             )
+
 
 class BatchCommand(models.Model):
     """
@@ -330,7 +349,9 @@ class BatchCommand(models.Model):
     # -------
     # Operation/action fields
     # -------
-    action = models.IntegerField(default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False)
+    action = models.IntegerField(
+        default=ACTION_CREATE, choices=ACTION_CHOICES, null=False, blank=False
+    )
     user_summary = models.TextField(blank=True, null=True)
 
     class Operation(models.TextChoices):
@@ -341,7 +362,9 @@ class BatchCommand(models.Model):
         CREATE_STATEMENT = "create_statement", _("Create statement")
         #
         REMOVE_STATEMENT_BY_ID = "remove_statement_by_id", _("Remove statement by id")
-        REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _("Remove statement by value")
+        REMOVE_STATEMENT_BY_VALUE = "remove_statement_by_value", _(
+            "Remove statement by value"
+        )
         #
         REMOVE_QUALIFIER = "remove_qualifier", _("Remove qualifier")
         REMOVE_REFERENCE = "remove_reference", _("Remove reference")
@@ -366,7 +389,9 @@ class BatchCommand(models.Model):
     # -------
     # Running fields
     # -------
-    status = models.IntegerField(default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True)
+    status = models.IntegerField(
+        default=STATUS_INITIAL, choices=STATUS_CHOICES, null=False, db_index=True
+    )
     value_type_verified = models.BooleanField(default=False)
 
     # -------
@@ -377,10 +402,14 @@ class BatchCommand(models.Model):
 
     class Error(models.TextChoices):
         OP_NOT_IMPLEMENTED = "op_not_implemented", _("Operation not implemented")
-        NO_STATEMENTS_PROPERTY = "no_statements_property", _("No statements for given property")
+        NO_STATEMENTS_PROPERTY = "no_statements_property", _(
+            "No statements for given property"
+        )
         NO_STATEMENTS_VALUE = "no_statements_value", _("No statements with given value")
         NO_QUALIIFERS = "no_qualifiers", _("No qualifiers with given value")
-        NO_REFERENCE_PARTS = "no_reference_parts", _("No reference parts with given value")
+        NO_REFERENCE_PARTS = "no_reference_parts", _(
+            "No reference parts with given value"
+        )
         SITELINK_INVALID = "sitelink_invalid", _("The sitelink id is invalid")
         COMBINING_COMMAND_FAILED = "combining_failed", _("The next command failed")
         API_USER_ERROR = "api_user_error", _("API returned a User error")
@@ -551,7 +580,8 @@ class BatchCommand(models.Model):
         # because `statement_api_value` above is called a lot
         value = self.json["value"]
         base = self.batch.wikibase_url()
-        if (value["type"] == "quantity"
+        if (
+            value["type"] == "quantity"
             and value["value"]["unit"] != "1"
             and base not in value["value"]["unit"]
         ):
@@ -562,7 +592,11 @@ class BatchCommand(models.Model):
     def update_statement(self, st):
         st.setdefault("property", {"id": self.prop})
         st.setdefault("value", self.statement_api_value)
-        quals, refs, rank = self.qualifiers_for_api(), self.references_for_api(), self.statement_rank()
+        quals, refs, rank = (
+            self.qualifiers_for_api(),
+            self.references_for_api(),
+            self.statement_rank(),
+        )
         if quals:
             st.setdefault("qualifiers", [])
             st["qualifiers"].extend(quals)
@@ -586,10 +620,12 @@ class BatchCommand(models.Model):
         for ref in self.references():
             fixed_parts = []
             for part in ref:
-                fixed_parts.append({
-                    "property": {"id": part["property"]},
-                    "value": self.parser_value_to_api_value(part["value"]),
-                })
+                fixed_parts.append(
+                    {
+                        "property": {"id": part["property"]},
+                        "value": self.parser_value_to_api_value(part["value"]),
+                    }
+                )
             all_refs.append({"parts": fixed_parts})
         return all_refs
 
@@ -667,8 +703,7 @@ class BatchCommand(models.Model):
 
     def is_id_last_or_create_item(self):
         return (
-            self.entity_id() == "LAST"
-            or self.operation == self.Operation.CREATE_ITEM
+            self.entity_id() == "LAST" or self.operation == self.Operation.CREATE_ITEM
         )
 
     # -----------------
@@ -748,7 +783,9 @@ class BatchCommand(models.Model):
         Also joins the summary from the previous combined commands.
         """
         summaries = [self.user_summary]
-        summaries.extend([c.user_summary for c in getattr(self, "previous_commands", [])])
+        summaries.extend(
+            [c.user_summary for c in getattr(self, "previous_commands", [])]
+        )
         combined = " | ".join([s for s in summaries[::-1] if bool(s)])
         editgroups = self.editgroups_summary()
         if editgroups:
@@ -823,9 +860,8 @@ class BatchCommand(models.Model):
         has LAST as entity id, or if both have the same entity id.
         """
         return (
-            (self.operation == self.Operation.CREATE_ITEM and next.entity_id() == "LAST")
-            or (self.entity_id() == next.entity_id())
-        )
+            self.operation == self.Operation.CREATE_ITEM and next.entity_id() == "LAST"
+        ) or (self.entity_id() == next.entity_id())
 
     def update_combining_state(self, client: Client):
         """
@@ -903,19 +939,32 @@ class BatchCommand(models.Model):
         """
         Modifies the entity json in-place.
         """
-        if self.operation in (self.Operation.SET_STATEMENT, self.Operation.CREATE_STATEMENT):
+        if self.operation in (
+            self.Operation.SET_STATEMENT,
+            self.Operation.CREATE_STATEMENT,
+        ):
             self._update_entity_statements(entity)
         elif self.operation == self.Operation.REMOVE_STATEMENT_BY_VALUE:
             self._remove_entity_statement(entity)
         elif self.operation in (self.Operation.ADD_ALIAS, self.Operation.REMOVE_ALIAS):
             self._update_entity_aliases(entity)
-        elif self.operation in (self.Operation.REMOVE_QUALIFIER, self.Operation.REMOVE_REFERENCE):
+        elif self.operation in (
+            self.Operation.REMOVE_QUALIFIER,
+            self.Operation.REMOVE_REFERENCE,
+        ):
             self._remove_qualifier_or_reference(entity)
         elif self.operation == self.Operation.SET_SITELINK:
             entity["sitelinks"][self.sitelink] = {"title": self.value_value}
-        elif self.operation in (self.Operation.SET_LABEL, self.Operation.SET_DESCRIPTION):
+        elif self.operation in (
+            self.Operation.SET_LABEL,
+            self.Operation.SET_DESCRIPTION,
+        ):
             entity[self.what_plural_lowercase][self.language] = self.value_value
-        elif self.operation in (self.Operation.REMOVE_LABEL, self.Operation.REMOVE_DESCRIPTION, self.Operation.REMOVE_SITELINK):
+        elif self.operation in (
+            self.Operation.REMOVE_LABEL,
+            self.Operation.REMOVE_DESCRIPTION,
+            self.Operation.REMOVE_SITELINK,
+        ):
             # the "" is there to make the `pop` safe
             entity[self.what_plural_lowercase].pop(self.language_or_sitelink, "")
 
@@ -980,7 +1029,9 @@ class BatchCommand(models.Model):
         for i, statement in enumerate(statements):
             if statement["value"] == self.statement_api_value:
                 return entity["statements"][self.prop].pop(i)
-        raise NoStatementsWithThatValue(self.entity_id(), self.prop, self.statement_api_value)
+        raise NoStatementsWithThatValue(
+            self.entity_id(), self.prop, self.statement_api_value
+        )
 
     def _update_entity_aliases(self, entity: dict):
         """
