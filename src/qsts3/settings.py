@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
+
 import os
 
 from pathlib import Path
@@ -27,10 +28,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = "QSTS_DEBUG" in os.environ
 
 ALLOWED_HOSTS = ["qs-dev.toolforge.org", "localhost"]
-
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "https://qs-dev.toolforge.org/"]
 
 # Application definition
 
@@ -87,9 +88,9 @@ WSGI_APPLICATION = "qsts3.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
-        "NAME": os.getenv("DB_NAME", "your_db_name"),
-        "USER": os.getenv("DB_USER", "your_db_user"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "your_db_password"),
+        "NAME": os.getenv("DB_NAME", "quickstatements"),
+        "USER": os.getenv("DB_USER", "quickstatements"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "mariadb"),
         "PORT": os.getenv("DB_PORT", 3306),
     },
@@ -132,7 +133,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(BASE_DIR, "static"))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -146,7 +147,9 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "simple": {"format": "%(asctime)s [pid=%(process)d] [%(levelname)s] %(message)s"},
+        "simple": {
+            "format": "%(asctime)s [pid=%(process)d] [%(levelname)s] %(message)s"
+        },
         "complete": {"format": "%(asctime)s - [%(levelname)s] %(name)s => %(message)s"},
     },
     "handlers": {

@@ -1,12 +1,35 @@
 version: '3.8'
 
+x-application-service: &application-service
+  build:
+    context: ./
+    dockerfile: Dockerfile
+  depends_on:
+    mariadb:
+      condition: service_healthy
+  restart: unless-stopped
+  environment: &application-environment
+    DJANGO_SETTINGS_MODULE: qsts3.settings
+    DB_NAME: quickstatements
+    DB_USER: root
+    DB_PASSWORD: "${DB_ROOT_PASSWORD}"
+    DB_HOST: mariadb
+    STATIC_ROOT: /home/wmb/www/static
+  env_file:
+    - ./etc/env
+  volumes:
+    - ./src:/home/wmb/www/src
+    - static-data:/home/wmb/www/static
+
 services:
   mariadb:
     image: mariadb
-    container_name: "${DB_HOST}"
+    restart: unless-stopped
     environment:
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MARIADB_DATABASE: quickstatements
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MYSQL_DATABASE: "${DB_NAME}"      
+      MYSQL_DATABASE: quickstatements
     expose:
       - "3306"
     volumes:
@@ -17,25 +40,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    restart: always
 
+  app:
+    <<: *application-service
+    command: uvicorn qsts3.asgi:application --port 8000 --host 0.0.0.0
 
-  quickstatements:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    depends_on:
-      mariadb:
-        condition: service_healthy
-    env_file:
-      - ./etc/env
+  run_send_batches:
+    <<: *application-service
+    command: django-admin send_batches
+
+  webserver:
+    image: nginx
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+        mode: 0640
     ports:
-      - "8765:80"
-      - "8000:8000"
+      - "8000:80"
     volumes:
-      - ./src:/home/wmb/www/src
-    command: /home/wmb/www/cmd_run.sh
-    restart: always
+      - static-data:/static
+
+  init_collect_static:
+    <<: *application-service
+    command: django-admin collectstatic --no-input
+    restart: on-failure
+
+  init_migrations:
+    <<: *application-service
+    command: django-admin migrate --no-input
+    restart: on-failure
+
+
+configs:
+  nginx_config:
+    file: ./etc/nginx.conf
 
 volumes:
   mariadb_data:
+  static-data:

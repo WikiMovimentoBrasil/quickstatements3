@@ -8,15 +8,17 @@ VERSION ?= $(shell date +"%Y%m%d_%H%M")
 build:
 	docker build -t ${IMAGE} -f Dockerfile .
 
+run:
+	docker-compose up -d
 
-shell: 
-	docker run --rm -ti --env-file etc/env -p 8765:80 -p 8000:8000 -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash
+shell:
+	docker-compose exec app bash
 
-run: 
-	docker run --rm -ti --env-file etc/env -p 8765:80 -p 8000:8000 -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} /home/wmb/www/cmd_run.sh
+watch:
+	docker-compose logs app -f
 
 test:
-	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test"
+	docker-compose exec app django-admin test
 
 integration:
-	docker run --rm -ti --env-file etc/env -v ${ROOT_DIR}/src:/home/wmb/www/src ${IMAGE} bash -c "cd src; python3 manage.py test integration"
+	docker-compose exec app django-admin test integration
