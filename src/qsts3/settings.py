@@ -148,9 +148,11 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "%(asctime)s [pid=%(process)d] [%(levelname)s] %(message)s"
+            "format": "%(levelname)s:%(module)s:%(funcName)s #%(lineno)d %(message)s"
         },
-        "complete": {"format": "%(asctime)s - [%(levelname)s] %(name)s => %(message)s"},
+        "complete": {
+            "format": "%(asctime)s %(levelname)s:%(module)s %(process)d %(lineno)d %(message)s"
+        },
     },
     "handlers": {
         "console": {
