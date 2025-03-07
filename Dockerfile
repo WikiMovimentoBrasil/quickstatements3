@@ -13,10 +13,10 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # changing to our local user
 USER wmb
-RUN mkdir -p /home/wmb/www/src
+RUN mkdir -p /home/wmb/www/{src,static}
 
 COPY requirements.txt /home/wmb/www
-RUN sudo chown wmb:wmb /home/wmb/www/requirements.txt
+RUN sudo chown wmb:wmb -R /home/wmb/www
 
 WORKDIR /home/wmb/www/
 
