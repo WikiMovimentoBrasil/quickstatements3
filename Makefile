@@ -6,7 +6,7 @@ VERSION ?= $(shell date +"%Y%m%d_%H%M")
 
 
 build:
-	docker build -t ${IMAGE} -f Dockerfile .
+	docker-compose build
 
 run:
 	docker-compose up -d
@@ -15,7 +15,7 @@ shell:
 	docker-compose exec app bash
 
 watch:
-	docker-compose logs app -f
+	docker-compose logs -f app
 
 test:
 	docker-compose exec app django-admin test

@@ -6,8 +6,8 @@ Repository for the development of a version 3 of the [QuickStatements](https://w
 
 Required tools:
 
-* Docker
-* docker-compose
+* [Docker](https://docs.docker.com/engine/install/)
+* [docker-compose](https://docs.docker.com/compose/install/)
 * Make
 
 To build the development container
