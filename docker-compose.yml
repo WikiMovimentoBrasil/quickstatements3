@@ -43,7 +43,7 @@ services:
 
   app:
     <<: *application-service
-    command: uvicorn qsts3.asgi:application --port 8000 --host 0.0.0.0
+    command: uvicorn qsts3.asgi:application --port 8000 --host 0.0.0.0 --reload --reload-dir /home/wmb/www/src  --reload-include *.html
 
   run_send_batches:
     <<: *application-service
