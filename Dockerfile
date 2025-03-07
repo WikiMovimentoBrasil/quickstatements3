@@ -1,29 +1,34 @@
-FROM python:3.12
+FROM docker-registry.tools.wmflabs.org/toolforge-python311-sssd-web:latest
 LABEL maintainer="Miguel Galves <mgalves@gmail.com>"
 
 # Install system dependencies
 RUN apt-get update && apt-get -y install sudo gettext
 
 # Creating our local user and group
-RUN adduser --disabled-password --home /home/wmb --shell /bin/bash wmb
-RUN adduser wmb sudo
+RUN adduser --disabled-password --home /home/wmb --shell /bin/bash wmb && \
+    adduser wmb sudo
 
 # We dont want any password when running SUDO
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # changing to our local user
 USER wmb
-RUN mkdir -p /home/wmb/www/src
+RUN mkdir -p /home/wmb/www/python/src && mkdir -p /home/wmb/www/python/static
 
-COPY requirements.txt /home/wmb/www
-RUN sudo chown wmb:wmb /home/wmb/www/requirements.txt
+# Necessary flags for mysqlclient driver
+ENV MYSQLCLIENT_CFLAGS="-I/usr/include/mariadb/" \
+    MYSQLCLIENT_LDFLAGS="-L/usr/lib/x86_64-linux-gnu/ -lmariadb"
 
-WORKDIR /home/wmb/www/
+COPY src/requirements.txt /home/wmb/www/python/src
+RUN sudo chown wmb:wmb /home/wmb/www/python/src/requirements.txt
 
-RUN pip install -r requirements.txt
+WORKDIR /home/wmb/www/python/src/
 
-ENV PATH="${PATH}:/home/wmb/.local/bin"
+RUN webservice-python-bootstrap
+
+ENV VIRTUAL_ENV /home/wmb/www/python/venv
+ENV PATH="/home/wmb/www/python/venv/bin:${PATH}"
 ENV DJANGO_SETTINGS_MODULE=qsts3.settings
-ENV PYTHONPATH="${PYTHONPATH}:/home/wmb/www/src"
+ENV PYTHONPATH="/home/wmb/www/python/src:${PYTHONPATH}"
 
-WORKDIR /home/wmb/www/src
+WORKDIR /home/wmb/www/python/src
