@@ -10,9 +10,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" type="image/svg+xml" href="{% static 'icon.svg' %}"/>
   <link rel="stylesheet" href="{% static 'pico.jade.min.css' %}">
-  <link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css">
+  <link rel="stylesheet" href="{% static 'pico.colors.min.css' %}">
   <script src="{% static 'htmx.v2.0.0.min.js' %}"></script>
   <title>{% block pagetitle %}{% endblock%}</title>
   <style>
@@ -72,7 +70,7 @@
         <li><a href="{% url 'new_batch' %}">{% translate "New batch" %}</a></li>
         <li><a href="{% url 'last_batches' %}">{% translate "Last batches" %}</a></li>
         <li><a href="https://github.com/WikiMovimentoBrasil/quickstatements3">Git</a></li>
-        <li><a href="https://meta.wikimedia.org/wiki/QuickStatements_3.0">Docs</a></li>
+        <li><a href="https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation">Docs</a></li>
       </ul>
       <ul>
         {% if user.is_anonymous %}
