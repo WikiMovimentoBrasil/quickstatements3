@@ -4,18 +4,16 @@ import time
 
 from core.models import Batch
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
 logger = logging.getLogger("qsts3")
 
 
 def process_batches(batches):
     for batch in batches.iterator():
-        with transaction.atomic():
-            try:
-                batch.run()
-            except Exception as exc:
-                logger.exception(f"Failed to process {batch}: {exc}")
+        try:
+            batch.run()
+        except Exception as exc:
+            logger.exception(f"Failed to process {batch}: {exc}")
 
 
 class Command(BaseCommand):
@@ -37,7 +35,7 @@ class Command(BaseCommand):
             for user in users:
                 thread = user_threads.get(user, None)
                 if thread is not None and thread.is_alive():
-                    logger.info(f"Thread for user {user} is running...")
+                    logger.debug(f"Thread for user {user} is running...")
                     continue
 
                 user_batches = batches.filter(user=user)
@@ -48,5 +46,5 @@ class Command(BaseCommand):
                 thread.start()
                 user_threads[user] = thread
 
-            logger.info(f"No batches to process. Sleeping {self.TIMEOUT_SEC}s...")
+            logger.debug(f"No batches to process. Sleeping {self.TIMEOUT_SEC}s...")
             time.sleep(self.TIMEOUT_SEC)
