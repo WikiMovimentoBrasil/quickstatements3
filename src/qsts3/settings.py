@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = "QSTS_DEBUG" in os.environ
+DEBUG = os.getenv("QSTS_DEBUG", True)
 
 ALLOWED_HOSTS = ["qs-dev.toolforge.org", "localhost"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "https://qs-dev.toolforge.org/"]
@@ -90,7 +90,7 @@ DATABASES = {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
         "NAME": os.getenv("DB_NAME", "quickstatements"),
         "USER": os.getenv("DB_USER", "quickstatements"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "quickstatements"),
         "HOST": os.getenv("DB_HOST", "mariadb"),
         "PORT": os.getenv("DB_PORT", 3306),
     },
