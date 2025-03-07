@@ -153,17 +153,22 @@ LOGGING = {
         "complete": {
             "format": "%(asctime)s %(levelname)s:%(module)s %(process)d %(lineno)d %(message)s"
         },
+        "django": {"format": "%(asctime)s %(levelname)s: %(message)s"},
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
+        "django": {
+            "class": "logging.StreamHandler",
+            "formatter": "django",
+        },
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
-            "level": "WARN",
+            "handlers": ["django"],
+            "level": "INFO",
         },
         "qsts3": {
             "handlers": ["console"],

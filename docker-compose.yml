@@ -15,6 +15,7 @@ x-application-service: &application-service
     DB_PASSWORD: "${DB_ROOT_PASSWORD}"
     DB_HOST: mariadb
     STATIC_ROOT: /home/wmb/www/static
+    QSTS_DEBUG: "true"
   env_file:
     - ./etc/env
   volumes:
@@ -43,7 +44,7 @@ services:
 
   app:
     <<: *application-service
-    command: uvicorn qsts3.asgi:application --port 8000 --host 0.0.0.0 --reload --reload-dir /home/wmb/www/src  --reload-include *.html
+    command: django-admin runserver 0.0.0.0:8000
 
   run_send_batches:
     <<: *application-service
@@ -51,6 +52,7 @@ services:
 
   webserver:
     image: nginx
+    restart: unless-stopped
     configs:
       - source: nginx_config
         target: /etc/nginx/nginx.conf
