@@ -1,10 +1,3 @@
-
-export ROOT_DIR=${PWD}
-export IMAGE=quickstatements3:dev
-
-VERSION ?= $(shell date +"%Y%m%d_%H%M")
-
-
 build:
 	docker-compose build
 
