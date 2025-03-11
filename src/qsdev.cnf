@@ -1,7 +1,0 @@
-[client]
-host = mariadb
-port = 3306
-database = your_database_name
-user = your_user
-password = your_user_password
-default-character-set = utf8

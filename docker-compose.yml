@@ -11,26 +11,26 @@ x-application-service: &application-service
   environment: &application-environment
     DJANGO_SETTINGS_MODULE: qsts3.settings
     DB_NAME: quickstatements
-    DB_USER: root
-    DB_PASSWORD: "${DB_ROOT_PASSWORD}"
+    DB_USER: root # For dev/testing only.
+    DB_PASSWORD: quickstatements_pass
     DB_HOST: mariadb
-    STATIC_ROOT: /home/wmb/www/static
-    QSTS_DEBUG: "true"
+    STATIC_ROOT: /home/wmb/www/python/static
+    QSTS_DEBUG: "True"
   env_file:
     - ./etc/env
   volumes:
-    - ./src:/home/wmb/www/src
-    - static-data:/home/wmb/www/static
+    - ./src:/home/wmb/www/python/src
+    - static-data:/home/wmb/www/python/static
 
 services:
   mariadb:
-    image: mariadb
+    image: mariadb:11.7.2
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      # For testing we need to create a new db automatically, so we *must*
+      # use the root user
       MARIADB_DATABASE: quickstatements
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MYSQL_DATABASE: quickstatements
+      MARIADB_ROOT_PASSWORD: quickstatements_pass
     expose:
       - "3306"
     volumes:
@@ -42,25 +42,20 @@ services:
       timeout: 5s
       retries: 3
 
-  app:
-    <<: *application-service
-    command: django-admin runserver 0.0.0.0:8000
-
-  run_send_batches:
-    <<: *application-service
-    command: django-admin send_batches
-
   webserver:
     image: nginx
     restart: unless-stopped
-    configs:
-      - source: nginx_config
-        target: /etc/nginx/nginx.conf
-        mode: 0640
+    depends_on:
+      - app
     ports:
       - "8000:80"
     volumes:
       - static-data:/static
+      - ./etc/nginx.conf:/etc/nginx/nginx.conf
+
+  app:
+    <<: *application-service
+    command: django-admin runserver 0.0.0.0:8000
 
   init_collect_static:
     <<: *application-service
@@ -72,10 +67,11 @@ services:
     command: django-admin migrate --no-input
     restart: on-failure
 
-
-configs:
-  nginx_config:
-    file: ./etc/nginx.conf
+  run_send_batches:
+    <<: *application-service
+    depends_on:
+      - init_migrations
+    command: django-admin send_batches
 
 volumes:
   mariadb_data:
