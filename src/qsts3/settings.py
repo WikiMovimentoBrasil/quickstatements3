@@ -90,7 +90,7 @@ DATABASES = {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
         "NAME": os.getenv("DB_NAME", "quickstatements"),
         "USER": os.getenv("DB_USER", "quickstatements"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "quickstatements"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "mariadb"),
         "PORT": os.getenv("DB_PORT", 3306),
     },

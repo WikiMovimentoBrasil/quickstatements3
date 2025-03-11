@@ -10,11 +10,10 @@ x-application-service: &application-service
   restart: unless-stopped
   environment: &application-environment
     DJANGO_SETTINGS_MODULE: qsts3.settings
-    DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-quickstatements}
-    DB_NAME: ${DB_NAME:-quickstatements}
-    DB_USER: ${DB_USER:-root}
-    DB_PASSWORD: ${DB_PASSWORD:-quickstatements}
-    DB_HOST: ${DB_HOST:-mariadb}
+    DB_NAME: quickstatements
+    DB_USER: root # For dev/testing only.
+    DB_PASSWORD: quickstatements_pass
+    DB_HOST: mariadb
     STATIC_ROOT: /home/wmb/www/python/static
     QSTS_DEBUG: "True"
   env_file:
@@ -25,11 +24,13 @@ x-application-service: &application-service
 
 services:
   mariadb:
-    image: mariadb
+    image: mariadb:11.7.2
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-quickstatements}"
-      MYSQL_DATABASE: "${DB_NAME:-quickstatements}"
+      # For testing we need to create a new db automatically, so we *must*
+      # use the root user
+      MARIADB_DATABASE: quickstatements
+      MARIADB_ROOT_PASSWORD: quickstatements_pass
     expose:
       - "3306"
     volumes:
