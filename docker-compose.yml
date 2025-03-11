@@ -10,27 +10,26 @@ x-application-service: &application-service
   restart: unless-stopped
   environment: &application-environment
     DJANGO_SETTINGS_MODULE: qsts3.settings
-    DB_NAME: quickstatements
-    DB_USER: root
-    DB_PASSWORD: "${DB_ROOT_PASSWORD}"
-    DB_HOST: mariadb
-    STATIC_ROOT: /home/wmb/www/static
-    QSTS_DEBUG: "true"
+    DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-quickstatements}
+    DB_NAME: ${DB_NAME:-quickstatements}
+    DB_USER: ${DB_USER:-root}
+    DB_PASSWORD: ${DB_PASSWORD:-quickstatements}
+    DB_HOST: ${DB_HOST:-mariadb}
+    STATIC_ROOT: /home/wmb/www/python/static
+    QSTS_DEBUG: "True"
   env_file:
     - ./etc/env
   volumes:
-    - ./src:/home/wmb/www/src
-    - static-data:/home/wmb/www/static
+    - ./src:/home/wmb/www/python/src
+    - static-data:/home/wmb/www/python/static
 
 services:
   mariadb:
     image: mariadb
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MARIADB_DATABASE: quickstatements
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-      MYSQL_DATABASE: quickstatements
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-quickstatements}"
+      MYSQL_DATABASE: "${DB_NAME:-quickstatements}"
     expose:
       - "3306"
     volumes:
@@ -42,25 +41,20 @@ services:
       timeout: 5s
       retries: 3
 
-  app:
-    <<: *application-service
-    command: django-admin runserver 0.0.0.0:8000
-
-  run_send_batches:
-    <<: *application-service
-    command: django-admin send_batches
-
   webserver:
     image: nginx
     restart: unless-stopped
-    configs:
-      - source: nginx_config
-        target: /etc/nginx/nginx.conf
-        mode: 0640
+    depends_on:
+      - app
     ports:
       - "8000:80"
     volumes:
       - static-data:/static
+      - ./etc/nginx.conf:/etc/nginx/nginx.conf
+
+  app:
+    <<: *application-service
+    command: django-admin runserver 0.0.0.0:8000
 
   init_collect_static:
     <<: *application-service
@@ -72,10 +66,11 @@ services:
     command: django-admin migrate --no-input
     restart: on-failure
 
-
-configs:
-  nginx_config:
-    file: ./etc/nginx.conf
+  run_send_batches:
+    <<: *application-service
+    depends_on:
+      - init_migrations
+    command: django-admin send_batches
 
 volumes:
   mariadb_data:
