@@ -137,7 +137,9 @@ class TestBatch(TestCase):
         self.assertFalse(batch.is_stopped)
         batch.stop()
         self.assertTrue(batch.is_stopped)
-        self.assertTrue(batch.message.startswith("Batch stopped processing by owner at"))
+        self.assertTrue(
+            batch.message.startswith("Batch stopped processing by owner at")
+        )
 
     def test_batch_restart(self):
         batch = Batch.objects.create(name="teste", status=Batch.STATUS_BLOCKED)
@@ -156,6 +158,7 @@ class TestBatch(TestCase):
         batch.restart()
         self.assertTrue(batch.is_initial)
         self.assertTrue(batch.message.startswith("Batch restarted by owner"))
+
 
 class TestV1Batch(TestCase):
     def test_v1_correct_create_command(self):
@@ -197,7 +200,9 @@ class TestV1Batch(TestCase):
         batch = v1.parse("b", "u", "-Q1234|P5|Q31")
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[0]
-        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(
+            cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
+        )
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(cmd.prop, "P5")
         self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q31"})
@@ -207,10 +212,14 @@ class TestV1Batch(TestCase):
         batch = v1.parse("b", "u", """-Q1234|P5|"my string" """)
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[0]
-        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(
+            cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
+        )
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(cmd.prop, "P5")
-        self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "my string"})
+        self.assertEqual(
+            cmd.statement_api_value, {"type": "value", "content": "my string"}
+        )
 
     def test_user_summary(self):
         v1 = V1CommandParser()
@@ -226,9 +235,15 @@ class TestV1Batch(TestCase):
         batch.save_batch_and_preview_commands()
         batch_id = batch.id
         cmd = BatchCommand.objects.get(batch=batch, index=0)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment",
+        )
         cmd = BatchCommand.objects.get(batch=batch, index=1)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]",
+        )
 
     def test_set_sitelink(self):
         v1 = V1CommandParser()
@@ -276,9 +291,10 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_QUALIFIER)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(len(cmd.references()), 0)
-        self.assertEqual(cmd.qualifiers_for_api(), [
-            {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
-        ])
+        self.assertEqual(
+            cmd.qualifiers_for_api(),
+            [{"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}],
+        )
 
     def test_remove_reference(self):
         v1 = V1CommandParser()
@@ -288,11 +304,19 @@ class TestV1Batch(TestCase):
         self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_REFERENCE)
         self.assertEqual(cmd.entity_id(), "Q1234")
         self.assertEqual(len(cmd.qualifiers()), 0)
-        self.assertEqual(cmd.references_for_api(), [
-            {"parts":  [
-                {"property": {"id": "P3"}, "value": {"type": "value", "content": "Q4"}}
-            ]}
-        ])
+        self.assertEqual(
+            cmd.references_for_api(),
+            [
+                {
+                    "parts": [
+                        {
+                            "property": {"id": "P3"},
+                            "value": {"type": "value", "content": "Q4"},
+                        }
+                    ]
+                }
+            ],
+        )
 
 
 class TestCSVBatch(TestCase):
@@ -502,7 +526,10 @@ Q4115189,"Patterns, Predictors, and Outcome"
             {
                 "action": "add",
                 "item": "Q4115189",
-                "value": {"type": "string", "value": "Patterns, Predictors, and Outcome"},
+                "value": {
+                    "type": "string",
+                    "value": "Patterns, Predictors, and Outcome",
+                },
                 "what": "label",
                 "language": "en",
             },
@@ -541,7 +568,10 @@ Q411518,"Patterns, Predictors, and Outcome and Questions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "aliases", "value": ["Patterns, Predictors, and Outcome and Questions"]},
+                "value": {
+                    "type": "aliases",
+                    "value": ["Patterns, Predictors, and Outcome and Questions"],
+                },
                 "what": "alias",
                 "language": "pt",
             },
@@ -580,7 +610,10 @@ Q411518,"Patterns, Predictors, and Outcome and Descriptions"
             {
                 "action": "add",
                 "item": "Q411518",
-                "value": {"type": "string", "value": "Patterns, Predictors, and Outcome and Descriptions"},
+                "value": {
+                    "type": "string",
+                    "value": "Patterns, Predictors, and Outcome and Descriptions",
+                },
                 "what": "description",
                 "language": "pt",
             },
@@ -684,13 +717,26 @@ Q4115189,Douglas Adams,author,Douglas Noël Adams,Q5,Q36180,Q6581097,Q463035,\"\
                 "property": "P735",
                 "value": {"type": "wikibase-entityid", "value": "Q463035"},
                 "what": "statement",
-                "qualifiers": [{"property": "P1545", "value": {"type": "string", "value": "1"}}],
+                "qualifiers": [
+                    {"property": "P1545", "value": {"type": "string", "value": "1"}}
+                ],
                 "references": [
                     [
-                        {"property": "P248", "value": {"type": "wikibase-entityid", "value": "Q54919"}},
-                        {"property": "P214", "value": {"type": "string", "value": "113230702"}},
+                        {
+                            "property": "P248",
+                            "value": {"type": "wikibase-entityid", "value": "Q54919"},
+                        },
+                        {
+                            "property": "P214",
+                            "value": {"type": "string", "value": "113230702"},
+                        },
                     ],
-                    [{"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q328"}}],
+                    [
+                        {
+                            "property": "P143",
+                            "value": {"type": "wikibase-entityid", "value": "Q328"},
+                        }
+                    ],
                 ],
             },
         )
@@ -727,9 +773,15 @@ Q4115189,Q5,
         batch.save_batch_and_preview_commands()
         batch_id = batch.id
         cmd = BatchCommand.objects.get(batch=batch, index=0)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]: my comment",
+        )
         cmd = BatchCommand.objects.get(batch=batch, index=1)
-        self.assertEqual(cmd.edit_summary(), f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]")
+        self.assertEqual(
+            cmd.edit_summary(),
+            f"[[:toollabs:abcdef/batch/{batch_id}|batch #{batch_id}]]",
+        )
 
     @override_settings(TOOLFORGE_TOOL_NAME=None)
     def test_edit_summary_without_editgroups(self):
@@ -752,7 +804,9 @@ Q4115189,Q5,Q6"""
         batch = par.parse("b", "u", COMMAND)
         batch.save_batch_and_preview_commands()
         cmd = batch.commands()[1]
-        self.assertEqual(cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE)
+        self.assertEqual(
+            cmd.operation, BatchCommand.Operation.REMOVE_STATEMENT_BY_VALUE
+        )
         self.assertEqual(cmd.entity_id(), "Q4115189")
         self.assertEqual(cmd.prop, "P31")
         self.assertEqual(cmd.statement_api_value, {"type": "value", "content": "Q6"})

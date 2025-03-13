@@ -8,53 +8,112 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Batch',
+            name="Batch",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('user', models.CharField(db_index=True, max_length=128)),
-                ('status', models.IntegerField(choices=[(-1, 'Blocked'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], default=0)),
-                ('message', models.TextField()),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('modified', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("user", models.CharField(db_index=True, max_length=128)),
+                (
+                    "status",
+                    models.IntegerField(
+                        choices=[
+                            (-1, "Blocked"),
+                            (0, "Initial"),
+                            (1, "Running"),
+                            (2, "Done"),
+                        ],
+                        default=0,
+                    ),
+                ),
+                ("message", models.TextField()),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                ("modified", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Batch',
-                'verbose_name_plural': 'Batches',
+                "verbose_name": "Batch",
+                "verbose_name_plural": "Batches",
             },
         ),
         migrations.CreateModel(
-            name='BatchAdmin',
+            name="BatchAdmin",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='BatchCommandAdmin',
+            name="BatchCommandAdmin",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='BatchCommand',
+            name="BatchCommand",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('index', models.IntegerField()),
-                ('json', models.JSONField()),
-                ('status', models.IntegerField(choices=[(-1, 'Error'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], db_index=True, default=0)),
-                ('message', models.TextField()),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('modified', models.DateTimeField(auto_now=True)),
-                ('batch', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.batch')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("index", models.IntegerField()),
+                ("json", models.JSONField()),
+                (
+                    "status",
+                    models.IntegerField(
+                        choices=[
+                            (-1, "Error"),
+                            (0, "Initial"),
+                            (1, "Running"),
+                            (2, "Done"),
+                        ],
+                        db_index=True,
+                        default=0,
+                    ),
+                ),
+                ("message", models.TextField()),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                ("modified", models.DateTimeField(auto_now=True)),
+                (
+                    "batch",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="core.batch"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Batch Command',
-                'verbose_name_plural': 'Batch Commands',
+                "verbose_name": "Batch Command",
+                "verbose_name_plural": "Batch Commands",
             },
         ),
     ]

@@ -22,7 +22,21 @@ class TestCSVParser(TestCase):
         self.assertTrue(parser.check_header(["qid", "P31", "Len", "Den", "P18"]))
         self.assertTrue(
             parser.check_header(
-                ["qid", "Len", "Den", "Aen", "P31", "-P31", "P21", "P735", "qal1545", "S248", "s214", "S143", "Senwiki"]
+                [
+                    "qid",
+                    "Len",
+                    "Den",
+                    "Aen",
+                    "P31",
+                    "-P31",
+                    "P21",
+                    "P735",
+                    "qal1545",
+                    "S248",
+                    "s214",
+                    "S143",
+                    "Senwiki",
+                ]
             )
         )
 
@@ -30,28 +44,38 @@ class TestCSVParser(TestCase):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
             parser.check_header(["", "qid", "P31", "-P31"])
-        self.assertEqual(context.exception.message, "CSV header first element must be qid")
+        self.assertEqual(
+            context.exception.message, "CSV header first element must be qid"
+        )
 
     def test_parse_header_comment_before_property(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
             parser.check_header(["qid", "#", "P31"])
-        self.assertEqual(context.exception.message, "A valid property must precede a comment")
+        self.assertEqual(
+            context.exception.message, "A valid property must precede a comment"
+        )
 
     def test_parse_header_qal_before_property(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
             parser.check_header(["qid", "qal", "P31"])
-        self.assertEqual(context.exception.message, "A valid property must precede a qualifier")
+        self.assertEqual(
+            context.exception.message, "A valid property must precede a qualifier"
+        )
 
     def test_parse_header_source_before_property(self):
         parser = CSVCommandParser()
         with self.assertRaises(Exception) as context:
             parser.check_header(["qid", "S1234", "P31"])
-        self.assertEqual(context.exception.message, "A valid property must precede a source")
+        self.assertEqual(
+            context.exception.message, "A valid property must precede a source"
+        )
         with self.assertRaises(Exception) as context:
             parser.check_header(["qid", "s1234", "P31"])
-        self.assertEqual(context.exception.message, "A valid property must precede a source")
+        self.assertEqual(
+            context.exception.message, "A valid property must precede a source"
+        )
 
     def test_parse_item(self):
         parser = CSVCommandParser()
@@ -162,7 +186,13 @@ class TestCSVParser(TestCase):
     def test_parse_references(self):
         parser = CSVCommandParser()
         parsed_line = parser.parse_line(
-            ["Q22124656", "Q6581097", "comment to claim adding edit", "Q24731821", "+2017-10-04T00:00:00Z/11"],
+            [
+                "Q22124656",
+                "Q6581097",
+                "comment to claim adding edit",
+                "Q24731821",
+                "+2017-10-04T00:00:00Z/11",
+            ],
             ["qid", "P21", "#", "S143", "s813"],
         )
 
@@ -176,7 +206,13 @@ class TestCSVParser(TestCase):
                 "summary": "comment to claim adding edit",
                 "references": [
                     [
-                        {"property": "P143", "value": {"type": "wikibase-entityid", "value": "Q24731821"}},
+                        {
+                            "property": "P143",
+                            "value": {
+                                "type": "wikibase-entityid",
+                                "value": "Q24731821",
+                            },
+                        },
                         {
                             "property": "P813",
                             "value": {
@@ -211,7 +247,13 @@ class TestCSVParser(TestCase):
                 "what": "statement",
                 "summary": "comment to claim adding edit",
                 "qualifiers": [
-                    {"property": "P1545", "value": {'type': 'quantity', 'value': {'amount': '+1', 'unit': '1'}}},
+                    {
+                        "property": "P1545",
+                        "value": {
+                            "type": "quantity",
+                            "value": {"amount": "+1", "unit": "1"},
+                        },
+                    },
                 ],
             }
         ]
@@ -222,7 +264,13 @@ class TestCSVParser(TestCase):
         parser = CSVCommandParser()
 
         parsed_line = parser.parse_line(
-            ["", "Q3305213", "Mona Lisa", "oil painting by Leonardo da Vinci", '"""Mona Lisa - the Louvre.jpg"""'],
+            [
+                "",
+                "Q3305213",
+                "Mona Lisa",
+                "oil painting by Leonardo da Vinci",
+                '"""Mona Lisa - the Louvre.jpg"""',
+            ],
             ["qid", "P31", "Len", "Den", "P18"],
         )
 
@@ -245,7 +293,10 @@ class TestCSVParser(TestCase):
             {
                 "action": "add",
                 "item": "LAST",
-                "value": {"type": "string", "value": "oil painting by Leonardo da Vinci"},
+                "value": {
+                    "type": "string",
+                    "value": "oil painting by Leonardo da Vinci",
+                },
                 "what": "description",
                 "language": "en",
             },
@@ -326,7 +377,9 @@ class TestCSVParser(TestCase):
         )
 
         self.assertEqual(
-            parser.parse_line(["Q4115189", '"""Patterns, Predictors, and Outcome"""'], ["qid", "P370"]),
+            parser.parse_line(
+                ["Q4115189", '"""Patterns, Predictors, and Outcome"""'], ["qid", "P370"]
+            ),
             [
                 {
                     "action": "add",
@@ -344,7 +397,9 @@ class TestCSVParser(TestCase):
     def test_parse_url(self):
         parser = CSVCommandParser()
         self.assertEqual(
-            parser.parse_line(["Q4115189", '"""https://wiki.com.br"""'], ["qid", "P370"]),
+            parser.parse_line(
+                ["Q4115189", '"""https://wiki.com.br"""'], ["qid", "P370"]
+            ),
             [
                 {
                     "action": "add",
@@ -378,7 +433,10 @@ class TestCSVParser(TestCase):
     def test_parse_commons(self):
         parser = CSVCommandParser()
         self.assertEqual(
-            parser.parse_line(["Q4115189", '"""Frans Breydel - A merry company.jpg"""'], ["qid", "P370"]),
+            parser.parse_line(
+                ["Q4115189", '"""Frans Breydel - A merry company.jpg"""'],
+                ["qid", "P370"],
+            ),
             [
                 {
                     "action": "add",
@@ -395,7 +453,10 @@ class TestCSVParser(TestCase):
 
         self.assertEqual(
             parser.parse_line(
-                ["Q4115189", '"""\'Girl Reading\' by Mary Colman Wheeler, El Paso Museum of Art.JPG"""'],
+                [
+                    "Q4115189",
+                    '"""\'Girl Reading\' by Mary Colman Wheeler, El Paso Museum of Art.JPG"""',
+                ],
                 ["qid", "P370"],
             ),
             [
@@ -422,7 +483,10 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "+10", "unit": "1"}},
+                    "value": {
+                        "type": "quantity",
+                        "value": {"amount": "+10", "unit": "1"},
+                    },
                     "what": "statement",
                 },
             ],
@@ -435,7 +499,10 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "+20", "unit": "1"}},
+                    "value": {
+                        "type": "quantity",
+                        "value": {"amount": "+20", "unit": "1"},
+                    },
                     "what": "statement",
                 },
             ],
@@ -448,7 +515,10 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "+3.1415926", "unit": "1"}},
+                    "value": {
+                        "type": "quantity",
+                        "value": {"amount": "+3.1415926", "unit": "1"},
+                    },
                     "what": "statement",
                 },
             ],
@@ -461,7 +531,10 @@ class TestCSVParser(TestCase):
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
                     "property": "P1114",
-                    "value": {"type": "quantity", "value": {"amount": "-40", "unit": "1"}},
+                    "value": {
+                        "type": "quantity",
+                        "value": {"amount": "-40", "unit": "1"},
+                    },
                     "what": "statement",
                 },
             ],
@@ -476,7 +549,12 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "-80", "lowerBound": "-81.5", "upperBound": "-78.5", "unit": "1"},
+                        "value": {
+                            "amount": "-80",
+                            "lowerBound": "-81.5",
+                            "upperBound": "-78.5",
+                            "unit": "1",
+                        },
                     },
                     "what": "statement",
                 },
@@ -492,7 +570,12 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "+2.2", "lowerBound": "+1.9", "upperBound": "+2.5", "unit": "1"},
+                        "value": {
+                            "amount": "+2.2",
+                            "lowerBound": "+1.9",
+                            "upperBound": "+2.5",
+                            "unit": "1",
+                        },
                     },
                     "what": "statement",
                 },
@@ -508,7 +591,12 @@ class TestCSVParser(TestCase):
                     "property": "P1114",
                     "value": {
                         "type": "quantity",
-                        "value": {"amount": "+1.2", "lowerBound": "+0.9", "upperBound": "+1.5", "unit": "1"},
+                        "value": {
+                            "amount": "+1.2",
+                            "lowerBound": "+0.9",
+                            "upperBound": "+1.5",
+                            "unit": "1",
+                        },
                     },
                     "what": "statement",
                 },
@@ -549,7 +637,9 @@ class TestCSVParser(TestCase):
 
     def test_parse_alias(self):
         parser = CSVCommandParser()
-        result = parser.parse_line(["Q4115189", "Chacara Santo Antonio"], ["qid", "Apt"])
+        result = parser.parse_line(
+            ["Q4115189", "Chacara Santo Antonio"], ["qid", "Apt"]
+        )
         self.assertEqual(
             result,
             [
@@ -581,14 +671,19 @@ class TestCSVParser(TestCase):
 
     def test_parse_monolingualtext(self):
         parser = CSVCommandParser()
-        result = parser.parse_line(["Q4115189", 'en:"Thats an english, text"'], ["qid", "P31"])
+        result = parser.parse_line(
+            ["Q4115189", 'en:"Thats an english, text"'], ["qid", "P31"]
+        )
         self.assertEqual(
             result,
             [
                 {
                     "action": "add",
                     "entity": {"id": "Q4115189", "type": "item"},
-                    "value": {"type": "monolingualtext", "value": {"language": "en", "text": "Thats an english, text"}},
+                    "value": {
+                        "type": "monolingualtext",
+                        "value": {"language": "en", "text": "Thats an english, text"},
+                    },
                     "what": "statement",
                     "property": "P31",
                 },
@@ -598,7 +693,8 @@ class TestCSVParser(TestCase):
     def test_create(self):
         parser = CSVCommandParser()
         result = parser.parse_line(
-            ["", "Regina Phalange", "fictional character", "Q95074"], ["qid", "Len", "Den", "P31"]
+            ["", "Regina Phalange", "fictional character", "Q95074"],
+            ["qid", "Len", "Den", "P31"],
         )
         self.assertEqual(
             result,

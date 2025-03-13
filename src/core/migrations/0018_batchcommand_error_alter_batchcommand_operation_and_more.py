@@ -6,23 +6,34 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0017_batchcommand_operation'),
+        ("core", "0017_batchcommand_operation"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batchcommand',
-            name='error',
-            field=models.TextField(blank=True, choices=[('op_not_implemented', 'Operation not implemented')], null=True),
+            model_name="batchcommand",
+            name="error",
+            field=models.TextField(
+                blank=True,
+                choices=[("op_not_implemented", "Operation not implemented")],
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='batchcommand',
-            name='operation',
-            field=models.TextField(blank=True, choices=[('create_item', 'Create item'), ('create_property', 'Create property')], null=True),
+            model_name="batchcommand",
+            name="operation",
+            field=models.TextField(
+                blank=True,
+                choices=[
+                    ("create_item", "Create item"),
+                    ("create_property", "Create property"),
+                ],
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='batchcommand',
-            name='response_json',
+            model_name="batchcommand",
+            name="response_json",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

@@ -251,4 +251,3 @@ class OAuthCallback(TestCase):
         self.assertStatus(res, 401)
         self.assertInRes("The authentication server is being", res)
         self.assertInRes("not supposed to be here right now.", res)
-

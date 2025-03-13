@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0011_alter_batch_status'),
+        ("core", "0011_alter_batch_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batch',
-            name='block_on_errors',
+            model_name="batch",
+            name="block_on_errors",
             field=models.BooleanField(default=False),
         ),
     ]

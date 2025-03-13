@@ -17,14 +17,20 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("CREATE\tQ123\t")
-        self.assertEqual(context.exception.message, "CREATE command can have only 1 column")
+        self.assertEqual(
+            context.exception.message, "CREATE command can have only 1 column"
+        )
 
     def test_v1_correct_merge_command(self):
         parser = V1CommandParser()
         data = parser.parse_command("MERGE\tQ2\tQ1")
-        self.assertEqual(data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(
+            data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"}
+        )
         data = parser.parse_command("MERGE \tQ1 \tQ2 ")
-        self.assertEqual(data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"})
+        self.assertEqual(
+            data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2"}
+        )
 
     def test_v1_bad_merge_command(self):
         parser = V1CommandParser()
@@ -61,28 +67,33 @@ class TestV1ParserCommand(TestCase):
             data = parser.parse_command(f"CREATE_PROPERTY\t{datatype}")
             self.assertEqual(
                 data,
-                {
-                    "action": "create",
-                    "type": "property",
-                    "data": datatype
-                },
+                {"action": "create", "type": "property", "data": datatype},
             )
 
     def test_v1_bad_create_property(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("CREATE_PROPERTY")
-        self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
+        self.assertEqual(
+            context.exception.message, "CREATE PROPERTY command must have 2 columns"
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("CREATE_PROPERTY\tP1\t12")
-        self.assertEqual(context.exception.message, "CREATE PROPERTY command must have 2 columns")
+        self.assertEqual(
+            context.exception.message, "CREATE PROPERTY command must have 2 columns"
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("CREATE_PROPERTY\tmy_datatype")
-        self.assertEqual(context.exception.message, "CREATE PROPERTY datatype allowed values: ['commonsMedia', 'globe-coordinate', 'wikibase-item', 'wikibase-property', 'string', 'monolingualtext', 'external-id', 'quantity', 'time', 'url', 'math', 'geo-shape', 'musical-notation', 'tabular-data', 'wikibase-lexeme', 'wikibase-form', 'wikibase-sense']")        
+        self.assertEqual(
+            context.exception.message,
+            "CREATE PROPERTY datatype allowed values: ['commonsMedia', 'globe-coordinate', 'wikibase-item', 'wikibase-property', 'string', 'monolingualtext', 'external-id', 'quantity', 'time', 'url', 'math', 'geo-shape', 'musical-notation', 'tabular-data', 'wikibase-lexeme', 'wikibase-form', 'wikibase-sense']",
+        )
 
     def test_v1_remove_statement_by_id(self):
         parser = V1CommandParser()
-        data = parser.parse_command("-STATEMENT\tQ4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34")
+        data = parser.parse_command(
+            "-STATEMENT\tQ4115189$0d52b2b4-4fa4-3bfa-8eda-cfe87ea23c34"
+        )
         self.assertEqual(
             data,
             {
@@ -97,16 +108,28 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("-STATEMENT")
-        self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
+        self.assertEqual(
+            context.exception.message,
+            "remove statement by ID command must have 2 columns",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("-STATEMENT\tP1\t12")
-        self.assertEqual(context.exception.message, "remove statement by ID command must have 2 columns")
+        self.assertEqual(
+            context.exception.message,
+            "remove statement by ID command must have 2 columns",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("-STATEMENT\tQ1")
-        self.assertEqual(context.exception.message, "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
+        self.assertEqual(
+            context.exception.message,
+            "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("STATEMENT|Q1234$abcdefg-huijk")
-        self.assertEqual(context.exception.message, "STATEMENT must contain at least entity, property and value")
+        self.assertEqual(
+            context.exception.message,
+            "STATEMENT must contain at least entity, property and value",
+        )
 
     def test_v1_remove_quantity(self):
         parser = V1CommandParser()
@@ -129,7 +152,10 @@ class TestV1ParserCommand(TestCase):
                 "action": "remove",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}},
+                "value": {
+                    "type": "quantity",
+                    "value": {"amount": "+12", "unit": "11573"},
+                },
                 "what": "statement",
             },
         )
@@ -143,7 +169,12 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {"amount": "+9", "upperBound": "+9.1", "lowerBound": "+8.9", "unit": "1"},
+                    "value": {
+                        "amount": "+9",
+                        "upperBound": "+9.1",
+                        "lowerBound": "+8.9",
+                        "unit": "1",
+                    },
                 },
                 "what": "statement",
             },
@@ -184,7 +215,10 @@ class TestV1ParserCommand(TestCase):
                 "action": "add",
                 "entity": {"type": "item", "id": "Q1234"},
                 "property": "P3",
-                "value": {"type": "quantity", "value": {"amount": "+12", "unit": "11573"}},
+                "value": {
+                    "type": "quantity",
+                    "value": {"amount": "+12", "unit": "11573"},
+                },
                 "what": "statement",
             },
         )
@@ -198,7 +232,12 @@ class TestV1ParserCommand(TestCase):
                 "property": "P4",
                 "value": {
                     "type": "quantity",
-                    "value": {"amount": "+9", "upperBound": "+9.1", "lowerBound": "+8.9", "unit": "1"},
+                    "value": {
+                        "amount": "+9",
+                        "upperBound": "+9.1",
+                        "lowerBound": "+8.9",
+                        "unit": "1",
+                    },
                 },
                 "what": "statement",
             },
@@ -243,7 +282,9 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("Q1234\tDpt\tsomevalue")
-        self.assertEqual(context.exception.message, "description must be a string instance")
+        self.assertEqual(
+            context.exception.message, "description must be a string instance"
+        )
 
     def test_v1_add_label(self):
         parser = V1CommandParser()
@@ -283,7 +324,9 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("Q1234\tSpt\tsomevalue")
-        self.assertEqual(context.exception.message, "sitelink must be a string instance")
+        self.assertEqual(
+            context.exception.message, "sitelink must be a string instance"
+        )
 
     def test_v1_add_somevalue_novalue(self):
         parser = V1CommandParser()
@@ -390,7 +433,9 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_item_with_references(self):
         parser = V1CommandParser()
-        data = parser.parse_command('Q1234\tP2\tQ1\tS1\t"source text"\tS2\t+1967-01-17T00:00:00Z/11')
+        data = parser.parse_command(
+            'Q1234\tP2\tQ1\tS1\t"source text"\tS2\t+1967-01-17T00:00:00Z/11'
+        )
         self.assertEqual(
             data,
             {
@@ -400,7 +445,10 @@ class TestV1ParserCommand(TestCase):
                 "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "references": [
                     [
-                        {"property": "P1", "value": {"type": "string", "value": "source text"}},
+                        {
+                            "property": "P1",
+                            "value": {"type": "string", "value": "source text"},
+                        },
                         {
                             "property": "P2",
                             "value": {
@@ -411,7 +459,7 @@ class TestV1ParserCommand(TestCase):
                                     "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                                 },
                             },
-                        }
+                        },
                     ]
                 ],
                 "what": "statement",
@@ -420,7 +468,9 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_item_with_references_multiple_blocks(self):
         parser = V1CommandParser()
-        data = parser.parse_command('Q1234\tP2\tQ1\tS1\t"source text"\t!S2\t+1967-01-17T00:00:00Z/11')
+        data = parser.parse_command(
+            'Q1234\tP2\tQ1\tS1\t"source text"\t!S2\t+1967-01-17T00:00:00Z/11'
+        )
         self.assertEqual(
             data,
             {
@@ -431,11 +481,8 @@ class TestV1ParserCommand(TestCase):
                 "references": [
                     [
                         {
-                            "property": "P1", 
-                            "value": {
-                                "type": "string", 
-                                "value": "source text"
-                            }
+                            "property": "P1",
+                            "value": {"type": "string", "value": "source text"},
                         },
                     ],
                     [
@@ -450,7 +497,7 @@ class TestV1ParserCommand(TestCase):
                                 },
                             },
                         }
-                    ]
+                    ],
                 ],
                 "what": "statement",
             },
@@ -458,7 +505,9 @@ class TestV1ParserCommand(TestCase):
 
     def test_v1_add_item_with_qualifiers(self):
         parser = V1CommandParser()
-        data = parser.parse_command('Q1234\tP2\tQ1\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11')
+        data = parser.parse_command(
+            'Q1234\tP2\tQ1\tP1\t"qualifier text"\tP2\t+1970-01-17T00:00:00Z/11'
+        )
         self.assertEqual(
             data,
             {
@@ -467,7 +516,10 @@ class TestV1ParserCommand(TestCase):
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "qualifiers": [
-                    {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
+                    {
+                        "property": "P1",
+                        "value": {"type": "string", "value": "qualifier text"},
+                    },
                     {
                         "property": "P2",
                         "value": {
@@ -497,7 +549,10 @@ class TestV1ParserCommand(TestCase):
                 "property": "P2",
                 "value": {"type": "wikibase-entityid", "value": "Q1"},
                 "qualifiers": [
-                    {"property": "P1", "value": {"type": "string", "value": "qualifier text"}},
+                    {
+                        "property": "P1",
+                        "value": {"type": "string", "value": "qualifier text"},
+                    },
                     {
                         "property": "P2",
                         "value": {
@@ -512,7 +567,10 @@ class TestV1ParserCommand(TestCase):
                 ],
                 "references": [
                     [
-                        {"property": "P1", "value": {"type": "string", "value": "source text"}},
+                        {
+                            "property": "P1",
+                            "value": {"type": "string", "value": "source text"},
+                        },
                         {
                             "property": "P2",
                             "value": {
@@ -523,7 +581,7 @@ class TestV1ParserCommand(TestCase):
                                     "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
                                 },
                             },
-                        }
+                        },
                     ]
                 ],
                 "what": "statement",
@@ -544,7 +602,14 @@ class TestV1ParserCommand(TestCase):
 
         data = parser.parse_command("MERGE\tQ1\tQ2 /* This is a comment. */")
         self.assertEqual(
-            data, {"action": "merge", "type": "item", "item1": "Q1", "item2": "Q2", "summary": "This is a comment."}
+            data,
+            {
+                "action": "merge",
+                "type": "item",
+                "item1": "Q1",
+                "item2": "Q2",
+                "summary": "This is a comment.",
+            },
         )
 
     def test_v1_statement_rank(self):
@@ -576,46 +641,86 @@ class TestV1ParserCommand(TestCase):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tP4")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tP4\tQ5\tP6")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must be Qid|Pid|value|Pid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_QUAL command must be Qid|Pid|value|Pid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_QUAL\tQ1\tP2\tQ3\tS4\tQ5")
-        self.assertEqual(context.exception.message, "REMOVE_QUAL command must have 1 qualifier")
+        self.assertEqual(
+            context.exception.message, "REMOVE_QUAL command must have 1 qualifier"
+        )
 
     def test_v1_bad_remove_reference(self):
         parser = V1CommandParser()
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1\tP2")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tS4")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tS4\tQ5\tS6")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must be Qid|Pid|value|Sid|value")
+        self.assertEqual(
+            context.exception.message,
+            "REMOVE_REF command must be Qid|Pid|value|Sid|value",
+        )
         with self.assertRaises(Exception) as context:
             _data = parser.parse_command("REMOVE_REF\tQ1\tP2\tQ3\tP4\tQ5")
-        self.assertEqual(context.exception.message, "REMOVE_REF command must have 1 reference")
+        self.assertEqual(
+            context.exception.message, "REMOVE_REF command must have 1 reference"
+        )

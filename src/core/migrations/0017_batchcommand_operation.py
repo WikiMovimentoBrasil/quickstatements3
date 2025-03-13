@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0016_batchcommand_user_summary'),
+        ("core", "0016_batchcommand_user_summary"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batchcommand',
-            name='operation',
-            field=models.TextField(choices=[('create_item', 'Create item')], null=True),
+            model_name="batchcommand",
+            name="operation",
+            field=models.TextField(choices=[("create_item", "Create item")], null=True),
         ),
     ]

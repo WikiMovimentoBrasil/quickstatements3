@@ -6,24 +6,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0001_initial'),
+        ("core", "0001_initial"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='BatchAdmin',
+            name="BatchAdmin",
         ),
         migrations.DeleteModel(
-            name='BatchCommandAdmin',
+            name="BatchCommandAdmin",
         ),
         migrations.AlterField(
-            model_name='batch',
-            name='created',
+            model_name="batch",
+            name="created",
             field=models.DateTimeField(auto_now_add=True, db_index=True),
         ),
         migrations.AlterField(
-            model_name='batch',
-            name='modified',
+            model_name="batch",
+            name="modified",
             field=models.DateTimeField(auto_now=True, db_index=True),
         ),
     ]

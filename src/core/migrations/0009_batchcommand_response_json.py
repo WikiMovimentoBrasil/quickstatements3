@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0008_alter_batch_status'),
+        ("core", "0008_alter_batch_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batchcommand',
-            name='response_json',
+            model_name="batchcommand",
+            name="response_json",
             field=models.JSONField(default=dict),
         ),
     ]

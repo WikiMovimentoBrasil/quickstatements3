@@ -99,23 +99,26 @@ def preview_batch_commands(request):
         only_errors = int(request.GET.get("show_errors", 0)) == 1
         if only_errors:
             batch_commands = [
-                bc for bc in batch_commands if bc.object.status == BatchCommand.STATUS_ERROR
+                bc
+                for bc in batch_commands
+                if bc.object.status == BatchCommand.STATUS_ERROR
             ]
 
         paginator = Paginator(batch_commands, PAGE_SIZE)
         page = paginator.page(page)
-        page.object_list = [
-            d.object for d in page.object_list
-        ]
+        page.object_list = [d.object for d in page.object_list]
 
         if request.user.is_authenticated:
             client = Client.from_user(request.user)
             language = Preferences.objects.get_language(request.user, "en")
             BatchCommand.load_labels(client, page.object_list, language)
 
-
     base_url = reverse("preview_batch_commands")
-    return render(request, "batch_commands.html", {"page": page, "only_errors": only_errors, "base_url": base_url})
+    return render(
+        request,
+        "batch_commands.html",
+        {"page": page, "only_errors": only_errors, "base_url": base_url},
+    )
 
 
 @login_required()
@@ -127,7 +130,9 @@ def new_batch(request):
         try:
             batch_owner = request.user.username
             batch_commands = request.POST.get("commands")
-            batch_name = request.POST.get("name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}")
+            batch_name = request.POST.get(
+                "name", f"Batch  user:{batch_owner} {datetime.now().isoformat()}"
+            )
             batch_type = request.POST.get("type", "v1")
             request.session["preferred_batch_type"] = batch_type
 
@@ -149,7 +154,9 @@ def new_batch(request):
             batch.combine_commands = "do_not_combine_commands" not in request.POST
 
             serialized_batch = serializers.serialize("json", [batch])
-            serialized_commands = serializers.serialize("json", batch.get_preview_commands())
+            serialized_commands = serializers.serialize(
+                "json", batch.get_preview_commands()
+            )
 
             request.session["preview_batch"] = serialized_batch
             request.session["preview_commands"] = serialized_commands
@@ -211,7 +218,9 @@ def batch_allow_start(request):
             "new_batch.html",
             {
                 "is_autoconfirmed": is_autoconfirmed,
-                "error": _("User is not autoconfirmed. Only autoconfirmed users can run batches."),
+                "error": _(
+                    "User is not autoconfirmed. Only autoconfirmed users can run batches."
+                ),
             },
         )
 
@@ -222,7 +231,9 @@ def batch_allow_start(request):
             batch = list(serializers.deserialize("json", preview_batch))[0].object
 
             preview_batch_commands = request.session.get("preview_commands", "[]")
-            for batch_command in serializers.deserialize("json", preview_batch_commands):
+            for batch_command in serializers.deserialize(
+                "json", preview_batch_commands
+            ):
                 batch.add_preview_command(batch_command.object)
             batch.save_batch_and_preview_commands()
 

@@ -89,7 +89,9 @@ class Preferences(models.Model):
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False)
-    language = models.CharField(max_length=32, choices=LANGUAGE_CHOICES, blank=True, null=False)
+    language = models.CharField(
+        max_length=32, choices=LANGUAGE_CHOICES, blank=True, null=False
+    )
 
     objects = PreferencesManager()
 

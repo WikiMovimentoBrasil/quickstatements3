@@ -55,7 +55,9 @@ class ProfileTest(TestCase):
         self.assertEqual(Token.objects.count(), 1)
 
         data = urlencode({"action": "update_language", "language": "fr"})
-        response = c.post("/auth/profile/", data, content_type="application/x-www-form-urlencoded")
+        response = c.post(
+            "/auth/profile/", data, content_type="application/x-www-form-urlencoded"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("profile.html")
 
@@ -75,12 +77,14 @@ class ProfileTest(TestCase):
         self.assertTemplateUsed("profile.html")
 
         self.assertEqual(response.context["language"], "en")
-        
+
         prev_token = Token.objects.get(user=user)
         self.assertEqual(response.context["token"], prev_token.key)
 
         data = urlencode({"action": "update_token"})
-        response = c.post("/auth/profile/", data, content_type="application/x-www-form-urlencoded")
+        response = c.post(
+            "/auth/profile/", data, content_type="application/x-www-form-urlencoded"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("profile.html")
 

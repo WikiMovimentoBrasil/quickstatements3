@@ -40,6 +40,10 @@ urlpatterns = [
     path("batch/<int:pk>/commands/", batch_commands, name="batch_commands"),
     path("batch/new/", new_batch, name="new_batch"),
     path("batch/new/preview/", preview_batch, name="preview_batch"),
-    path("batch/new/preview/commands/", preview_batch_commands, name="preview_batch_commands"),
+    path(
+        "batch/new/preview/commands/",
+        preview_batch_commands,
+        name="preview_batch_commands",
+    ),
     path("batch/new/preview/allow_start/", batch_allow_start, name="batch_allow_start"),
 ]

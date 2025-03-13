@@ -15,15 +15,29 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Token',
+            name="Token",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('value', models.TextField(blank=True, null=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("value", models.TextField(blank=True, null=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Token',
-                'verbose_name_plural': 'Tokens',
+                "verbose_name": "Token",
+                "verbose_name_plural": "Tokens",
             },
         ),
     ]

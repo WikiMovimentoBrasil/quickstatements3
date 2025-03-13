@@ -6,24 +6,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0004_alter_batch_message'),
+        ("core", "0004_alter_batch_message"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batchcommand',
-            name='raw',
-            field=models.TextField(default=''),
+            model_name="batchcommand",
+            name="raw",
+            field=models.TextField(default=""),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='batchcommand',
-            name='message',
+            model_name="batchcommand",
+            name="message",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='batchcommand',
-            name='status',
-            field=models.IntegerField(choices=[(-1, 'Error'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], db_index=True, default=0),
+            model_name="batchcommand",
+            name="status",
+            field=models.IntegerField(
+                choices=[(-1, "Error"), (0, "Initial"), (1, "Running"), (2, "Done")],
+                db_index=True,
+                default=0,
+            ),
         ),
     ]
