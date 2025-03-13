@@ -8,6 +8,8 @@ x-application-service: &application-service
     mariadb:
       condition: service_healthy
   restart: unless-stopped
+  stdin_open: true
+  tty: true
   environment: &application-environment
     DJANGO_SETTINGS_MODULE: qsts3.settings
     DB_NAME: quickstatements
