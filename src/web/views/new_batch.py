@@ -27,16 +27,13 @@ from .auth import logout_per_token_expired
 PAGE_SIZE = 30
 
 
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
+@require_http_methods(["GET"])
 def preview_batch(request):
     """
     Base call for a batch. Returns the main page, that will load 2 fragments: commands and summary
     Used for ajax calls
     """
+
     preview_batch = request.session.get("preview_batch")
     if preview_batch:
         total_count = 0
@@ -56,10 +53,12 @@ def preview_batch(request):
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
+            is_blocked = client.get_is_blocked()
         except UnauthorizedToken:
             return logout_per_token_expired(request)
         except (NoToken, ServerError):
             is_autoconfirmed = False
+            is_blocked = False
 
         return render(
             request,
@@ -68,6 +67,7 @@ def preview_batch(request):
                 "batch": batch.object,
                 "current_owner": True,
                 "is_autoconfirmed": is_autoconfirmed,
+                "is_blocked": is_blocked,
                 "total_count": total_count,
                 "initial_count": initial_count,
                 "error_count": error_count,
@@ -77,11 +77,7 @@ def preview_batch(request):
         return redirect(reverse("new_batch"))
 
 
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
+@require_http_methods(["GET"])
 def preview_batch_commands(request):
     """
     RETURNS fragment page with PAGINATED COMMANDs FOR A GIVEN BATCH ID
@@ -126,6 +122,7 @@ def new_batch(request):
     """
     Creates a new batch
     """
+
     if request.method == "POST":
         try:
             batch_owner = request.user.username
@@ -179,14 +176,15 @@ def new_batch(request):
 
     else:
         preferred_batch_type = request.session.get("preferred_batch_type", "v1")
-
         try:
             client = Client.from_user(request.user)
             is_autoconfirmed = client.get_is_autoconfirmed()
+            is_blocked = client.get_is_blocked()
         except UnauthorizedToken:
             return logout_per_token_expired(request)
         except (NoToken, ServerError):
             is_autoconfirmed = False
+            is_blocked = False
 
         return render(
             request,
@@ -194,6 +192,7 @@ def new_batch(request):
             {
                 "batch_type": preferred_batch_type,
                 "is_autoconfirmed": is_autoconfirmed,
+                "is_blocked": is_blocked,
             },
         )
 
@@ -203,24 +202,32 @@ def batch_allow_start(request):
     """
     Saves and allow a batch that is in the preview state to start running.
     """
-    is_autoconfirmed = False
     try:
         client = Client.from_user(request.user)
         is_autoconfirmed = client.get_is_autoconfirmed()
+        is_blocked = client.get_is_blocked()
     except UnauthorizedToken:
         return logout_per_token_expired(request)
     except (NoToken, ServerError):
         is_autoconfirmed = False
+        is_blocked = False
 
-    if not is_autoconfirmed:
+    can_start = is_autoconfirmed and not is_blocked
+    if not can_start:
+        not_confirmed = _(
+            "User is not autoconfirmed. Only autoconfirmed users can run batches."
+        )
+        blocked = _("User is blocked and can not run batches.")
+
+        error_message = not_confirmed if not is_autoconfirmed else blocked
+
         return render(
             request,
             "new_batch.html",
             {
                 "is_autoconfirmed": is_autoconfirmed,
-                "error": _(
-                    "User is not autoconfirmed. Only autoconfirmed users can run batches."
-                ),
+                "is_blocked": is_blocked,
+                "error": error_message,
             },
         )
 
@@ -243,6 +250,5 @@ def batch_allow_start(request):
             return redirect(reverse("batch", args=[batch.pk]))
         else:
             return redirect(reverse("new_batch"))
-
-    except Exception as e:
+    except Exception:
         return render(request, "batch_not_found.html", status=404)

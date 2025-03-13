@@ -152,7 +152,9 @@ class Client:
     # Auth
     # ---
     def get_profile(self):
-        return self.get(self.ENDPOINT_PROFILE).json()
+        if not hasattr(self, "_profile"):
+            self._profile = self.get(self.ENDPOINT_PROFILE).json()
+        return self._profile
 
     def get_username(self):
         try:
@@ -167,6 +169,10 @@ class Client:
 
     def get_is_autoconfirmed(self):
         return "autoconfirmed" in self.get_user_groups()
+
+    def get_is_blocked(self):
+        profile = self.get_profile()
+        return profile.get("blocked", False)
 
     # ---
     # Wikibase utilities

@@ -13,13 +13,17 @@
 </div>
 <div style="float: right;">
     <form method="POST" action="{% url 'batch_allow_start' %}">
-        {% if is_autoconfirmed %}
+        {% if is_autoconfirmed and not is_blocked %}
         {% csrf_token %}
         <input type="submit" value="{% translate 'Save and run batch' %}">
         {% else %}
         <input type="submit" value="{% translate 'Save and run batch' %}" disabled>
         <small>
-            {% translate "Note: only autoconfirmed users can run batches." %}
+          {% if is_blocked %}
+          {% translate "Your account is blocked and you will not be able to run any batches." %}
+          {% else %}
+          {% translate "Note: only autoconfirmed users can run batches." %}
+          {% endif %}
         </small>
         {% endif %}
     </form>

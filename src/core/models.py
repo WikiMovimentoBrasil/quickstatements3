@@ -179,7 +179,7 @@ class Batch(models.Model):
             self.save()
 
     def block_is_not_autoconfirmed(self):
-        logger.warn(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
+        logger.warning(f"[{self}] blocked, the user {self.user} is not autoconfirmed")
         message = "The user is not an autoconfirmed user."
         self.block_with_message(message)
 
@@ -191,7 +191,7 @@ class Batch(models.Model):
         self.block_with_message(message)
 
     def block_by(self, command):
-        logger.warn(f"[{self}] blocked by {command}")
+        logger.warning(f"[{self}] blocked by {command}")
         message = f"blocked by command {command.index}"
         self.block_with_message(message)
 
