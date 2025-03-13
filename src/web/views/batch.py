@@ -21,11 +21,7 @@ from .auth import logout_per_token_expired
 PAGE_SIZE = 30
 
 
-@require_http_methods(
-    [
-        "GET",
-    ]
-)
+@require_http_methods(["GET"])
 def batch(request, pk):
     """
     Base call for a batch. Returns the main page, that will load 2 fragments: commands and summary

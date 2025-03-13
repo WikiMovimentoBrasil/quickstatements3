@@ -80,6 +80,14 @@ class ApiMocker:
         )
 
     @classmethod
+    def is_blocked(cls, mocker):
+        mocker.get(
+            cls.oauth_profile_endpoint(),
+            json={"groups": ["*", "autoconfirmed"], "blocked": True},
+            status_code=200,
+        )
+
+    @classmethod
     def is_not_autoconfirmed(cls, mocker):
         mocker.get(
             cls.oauth_profile_endpoint(),

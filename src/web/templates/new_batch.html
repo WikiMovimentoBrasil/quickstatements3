@@ -9,20 +9,28 @@
 
 {% if error %}
 <article class="pico-background-red-600">{{error}}</article>
-{% endif%}
+{% endif %}
+
+{% if is_blocked %}
+
+<article class="pico-background-red-600">
+  {% translate "Your account is blocked and you will not be able to run any batches." %}
+</article>
+
+{% endif %}
 
 <form method="POST">
   {% csrf_token %}
   <fieldset>
     <label for="batch_type">{% translate "Command format" %}</label>
-    
+
     <select name="type" id="batch_type">
       <option value="v1" {% if batch_type == "v1" %}selected{% endif %}>V1</option>
       <option value="csv" {% if batch_type != "v1" %}selected{% endif %}>CSV</option>
     </select>
-    
-    <input type="text" name="name" aria-label="batch name" 
-      placeholder="{% translate 'Custom batch name...' %}" 
+
+    <input type="text" name="name" aria-label="batch name"
+      placeholder="{% translate 'Custom batch name...' %}"
       {% if name %}value="{{name}}" {% endif %}>
 
     <label>
@@ -49,5 +57,4 @@
   </small>
   {% endif %}
 </form>
-
 {% endblock %}

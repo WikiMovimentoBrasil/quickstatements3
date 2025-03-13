@@ -480,6 +480,26 @@ class ViewsTest(TestCase):
         )
 
     @requests_mock.Mocker()
+    def test_allow_start_after_create_is_blocked(self, mocker):
+        ApiMocker.is_blocked(mocker)
+        user, api_client = self.login_user_and_get_token("user")
+
+        res = self.client.post(
+            "/batch/new/",
+            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
+        )
+        self.assertEqual(res.status_code, 302)
+        res = self.client.get(res.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["is_blocked"], True)
+        self.assertInRes(
+            "Your account is blocked and you will not be able to run any batches.", res
+        )
+        self.assertInRes(
+            """<input type="submit" value="Save and run batch" disabled>""", res
+        )
+
+    @requests_mock.Mocker()
     def test_allow_start_after_create_is_autoconfirmed(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
