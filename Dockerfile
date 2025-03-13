@@ -1,4 +1,4 @@
-FROM docker-registry.tools.wmflabs.org/toolforge-python311-sssd-web:latest
+FROM docker-registry.tools.wmflabs.org/toolforge-python311-sssd-web:latest as builder
 LABEL maintainer="Miguel Galves <mgalves@gmail.com>"
 
 # Install system dependencies
@@ -22,11 +22,17 @@ ENV MYSQLCLIENT_CFLAGS="-I/usr/include/mariadb/" \
 COPY src/requirements.txt /home/wmb/www/python/src
 RUN sudo chown wmb:wmb /home/wmb/www/python/src/requirements.txt
 
-WORKDIR /home/wmb/www/python/src/
-
-RUN webservice-python-bootstrap
-
 ENV VIRTUAL_ENV /home/wmb/www/python/venv
 ENV PATH="/home/wmb/www/python/venv/bin:${PATH}"
 ENV DJANGO_SETTINGS_MODULE=qsts3.settings
 ENV PYTHONPATH="/home/wmb/www/python/src:${PYTHONPATH}"
+
+WORKDIR /home/wmb/www/python/src/
+
+RUN webservice-python-bootstrap
+
+FROM builder as development
+
+COPY requirements-dev.txt /home/wmb/www/python/
+RUN sudo chown wmb:wmb /home/wmb/www/python/requirements-dev.txt
+RUN pip install -r /home/wmb/www/python/requirements-dev.txt
