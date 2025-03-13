@@ -6,13 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0018_batchcommand_error_alter_batchcommand_operation_and_more'),
+        ("core", "0018_batchcommand_error_alter_batchcommand_operation_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='batchcommand',
-            name='operation',
-            field=models.TextField(blank=True, choices=[('create_item', 'Create item'), ('create_property', 'Create property'), ('remove_statement_by_id', 'Remove statement by id')], null=True),
+            model_name="batchcommand",
+            name="operation",
+            field=models.TextField(
+                blank=True,
+                choices=[
+                    ("create_item", "Create item"),
+                    ("create_property", "Create property"),
+                    ("remove_statement_by_id", "Remove statement by id"),
+                ],
+                null=True,
+            ),
         ),
     ]

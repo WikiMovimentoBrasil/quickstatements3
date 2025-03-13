@@ -61,20 +61,20 @@ class TokenTests(TestCase):
             now() + timedelta(minutes=2),
             now() + timedelta(minutes=4),
             now() + timedelta(minutes=4, seconds=59),
-       ):
-           token.expires_at = value
-           token.save()
-           self.assertTrue(token.is_expired())
+        ):
+            token.expires_at = value
+            token.save()
+            self.assertTrue(token.is_expired())
 
         for value in (
             now() + timedelta(minutes=5, seconds=10),
             now() + timedelta(minutes=6),
             now() + timedelta(hours=3),
             None,
-       ):
-           token.expires_at = value
-           token.save()
-           self.assertFalse(token.is_expired())
+        ):
+            token.expires_at = value
+            token.save()
+            self.assertFalse(token.is_expired())
 
     def test_str(self):
         user = User.objects.create(username="u1")
@@ -82,5 +82,3 @@ class TokenTests(TestCase):
         self.assertEqual(str(token), f"Token for {user}: [redacted]")
         token = Token(value="x")
         self.assertEqual(str(token), "Anonymous token: [redacted]")
-        
-

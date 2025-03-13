@@ -213,8 +213,10 @@ class TestBatchCommand(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.item_empty(mocker, "Q333")
-        batch = self.parse("""Q1234|P1|Q2
-        Q333|P3|12|P5|100""")
+        batch = self.parse(
+            """Q1234|P1|Q2
+        Q333|P3|12|P5|100"""
+        )
         commands = batch.commands()
         client = Client.from_username("user")
         self.assertEqual(len(commands), 2)
@@ -246,11 +248,19 @@ class TestBatchCommand(TestCase):
                         "value": [
                             {
                                 "property": {"id": "P3"},
-                                "value": {"type": "value", "content": {"amount": "+12", "unit": "1"}},
-                                "qualifiers": [{
-                                    "property": {"id": "P5"},
-                                    "value": {"type": "value", "content": {"amount": "+100", "unit": "1"}},
-                                }],
+                                "value": {
+                                    "type": "value",
+                                    "content": {"amount": "+12", "unit": "1"},
+                                },
+                                "qualifiers": [
+                                    {
+                                        "property": {"id": "P5"},
+                                        "value": {
+                                            "type": "value",
+                                            "content": {"amount": "+100", "unit": "1"},
+                                        },
+                                    }
+                                ],
                             }
                         ],
                     }

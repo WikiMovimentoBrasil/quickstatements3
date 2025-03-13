@@ -1,4 +1,3 @@
-
 from django.http import Http404
 
 from rest_framework import generics
@@ -21,6 +20,7 @@ class BatchListView(generics.GenericAPIView, mixins.ListModelMixin):
     """
     Available batches listing
     """
+
     pagination_class = CustomPagination
     serializer_class = BatchListSerializer
 
@@ -45,6 +45,7 @@ class BatchDetailView(generics.GenericAPIView, mixins.RetrieveModelMixin):
     """
     Batch detail
     """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -53,14 +54,24 @@ class BatchDetailView(generics.GenericAPIView, mixins.RetrieveModelMixin):
 
     def get_object(self):
         from django.db.models import Q, Count
+
         try:
-            error_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR))
-            initial_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL))
-            running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
-            done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
+            error_commands = Count(
+                "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR)
+            )
+            initial_commands = Count(
+                "batchcommand",
+                filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL),
+            )
+            running_commands = Count(
+                "batchcommand",
+                filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING),
+            )
+            done_commands = Count(
+                "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE)
+            )
             batch = (
-                Batch.objects
-                .annotate(error_commands=error_commands)
+                Batch.objects.annotate(error_commands=error_commands)
                 .annotate(initial_commands=initial_commands)
                 .annotate(running_commands=running_commands)
                 .annotate(done_commands=done_commands)
@@ -79,14 +90,21 @@ class BatchCommandListView(generics.GenericAPIView, mixins.ListModelMixin):
     """
     Batch commands listing. Uses pagination.
     """
-    authentication_classes = [TokenAuthentication,]
+
+    authentication_classes = [
+        TokenAuthentication,
+    ]
     permission_classes = [IsAuthenticated]
 
     pagination_class = CustomBatchCommandPagination
     serializer_class = BatchCommandListSerializer
 
     def get_queryset(self):
-        return BatchCommand.objects.select_related("batch").filter(batch__pk=self.kwargs["batchpk"]).order_by("index")
+        return (
+            BatchCommand.objects.select_related("batch")
+            .filter(batch__pk=self.kwargs["batchpk"])
+            .order_by("index")
+        )
 
     def get(self, request, *args, **kwargs):
         try:
@@ -101,6 +119,7 @@ class BatchCommandDetailView(generics.GenericAPIView, mixins.RetrieveModelMixin)
     """
     Batch command detail
     """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 

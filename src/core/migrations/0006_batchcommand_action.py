@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0005_batchcommand_raw_alter_batchcommand_message_and_more'),
+        ("core", "0005_batchcommand_raw_alter_batchcommand_message_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='batchcommand',
-            name='action',
-            field=models.IntegerField(choices=[(0, 'CREATE'), (1, 'ADD'), (2, 'REMOVE'), (3, 'MERGE')], default=0),
+            model_name="batchcommand",
+            name="action",
+            field=models.IntegerField(
+                choices=[(0, "CREATE"), (1, "ADD"), (2, "REMOVE"), (3, "MERGE")],
+                default=0,
+            ),
         ),
     ]

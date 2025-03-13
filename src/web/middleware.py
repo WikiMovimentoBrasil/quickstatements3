@@ -7,7 +7,9 @@ from web.models import Preferences
 def language_cookie_middleware(get_response):
     def middleware(request):
         if request.user.is_authenticated:
-            language = Preferences.objects.get_language(request.user, settings.LANGUAGE_CODE)
+            language = Preferences.objects.get_language(
+                request.user, settings.LANGUAGE_CODE
+            )
         else:
             language = settings.LANGUAGE_CODE
 

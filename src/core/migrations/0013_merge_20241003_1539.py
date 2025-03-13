@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0012_batch_block_on_errors'),
-        ('core', '0012_rename_data_type_verified_batchcommand_value_type_verified'),
+        ("core", "0012_batch_block_on_errors"),
+        ("core", "0012_rename_data_type_verified_batchcommand_value_type_verified"),
     ]
 
-    operations = [
-    ]
+    operations = []

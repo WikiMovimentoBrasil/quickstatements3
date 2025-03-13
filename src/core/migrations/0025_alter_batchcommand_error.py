@@ -6,13 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0024_batch_combine_commands_alter_batchcommand_operation'),
+        ("core", "0024_batch_combine_commands_alter_batchcommand_operation"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='batchcommand',
-            name='error',
-            field=models.TextField(blank=True, choices=[('op_not_implemented', 'Operation not implemented'), ('no_statements_property', 'No statements for given property'), ('no_statements_value', 'No statements with given value'), ('sitelink_invalid', 'The sitelink id is invalid'), ('combining_failed', 'The next command failed')], null=True),
+            model_name="batchcommand",
+            name="error",
+            field=models.TextField(
+                blank=True,
+                choices=[
+                    ("op_not_implemented", "Operation not implemented"),
+                    ("no_statements_property", "No statements for given property"),
+                    ("no_statements_value", "No statements with given value"),
+                    ("sitelink_invalid", "The sitelink id is invalid"),
+                    ("combining_failed", "The next command failed"),
+                ],
+                null=True,
+            ),
         ),
     ]

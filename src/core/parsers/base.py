@@ -1,7 +1,7 @@
-
 import re
 
 from decimal import Decimal
+
 
 class ParserException(Exception):
     def __init__(self, message):
@@ -13,6 +13,7 @@ class BaseParser(object):
     """
     Base parser. Can parse basic data ids for wikidata
     """
+
     def is_valid_property_id(self, value):
         """
         Returns True if value is a valid PROPERTY ID
@@ -55,7 +56,8 @@ class BaseParser(object):
         MXXXXX
         """
         return value is not None and (
-            re.match("^Q\\d+$", value) is not None or re.match("^M\\d+$", value) is not None
+            re.match("^Q\\d+$", value) is not None
+            or re.match("^M\\d+$", value) is not None
         )
 
     def is_valid_entity_id(self, value):
@@ -71,7 +73,8 @@ class BaseParser(object):
 
         """
         return value is not None and (
-            re.match(r"^[QMPL]\d+$", value) is not None or re.match(r"^L\d+\-[FS]\d+$", value) is not None
+            re.match(r"^[QMPL]\d+$", value) is not None
+            or re.match(r"^L\d+\-[FS]\d+$", value) is not None
         )
 
     def is_valid_label(self, value):
@@ -111,11 +114,14 @@ class BaseParser(object):
         Rdeprecated,  Rnormal,  Rpreferred
         R=, R0, R+
         """
-        return value is not None and re.match(r"^R(-|0|\+|deprecated|normal|preferred)$", value) is not None
+        return (
+            value is not None
+            and re.match(r"^R(-|0|\+|deprecated|normal|preferred)$", value) is not None
+        )
 
     def get_entity_type(self, entity):
         """
-        Detects the entity type based on the pattern. 
+        Detects the entity type based on the pattern.
         Returns item, property, lexeme, form, sense if its a valid pattern.
         Returns None otherwise
         """
@@ -147,7 +153,7 @@ class BaseParser(object):
 
     def parse_value_somevalue_novalue(self, v):
         """
-        Returns somevalue data if v matches somevalue or novalue 
+        Returns somevalue data if v matches somevalue or novalue
         Returns None otherwise
         """
         if v in ["somevalue", "novalue"]:
@@ -185,7 +191,10 @@ class BaseParser(object):
         """
         string_match = re.match(r'^"(.*)"$', v)
         if string_match:
-            return {"type": "string", "value": self.convert_to_utf8(string_match.group(1)).strip()}
+            return {
+                "type": "string",
+                "value": self.convert_to_utf8(string_match.group(1)).strip(),
+            }
         return None
 
     def parse_value_monolingualtext(self, v):
@@ -203,7 +212,9 @@ class BaseParser(object):
                 "type": "monolingualtext",
                 "value": {
                     "language": monolingualtext_match.group(1),
-                    "text": self.convert_to_utf8(monolingualtext_match.group(2)).strip(),
+                    "text": self.convert_to_utf8(
+                        monolingualtext_match.group(2)
+                    ).strip(),
                 },
             }
         return None
@@ -222,7 +233,7 @@ class BaseParser(object):
             return {
                 # TODO: maybe implement again data_type: url
                 "type": "string",
-                "value": url_match.group(1)
+                "value": url_match.group(1),
             }
         return None
 
@@ -239,7 +250,7 @@ class BaseParser(object):
             return {
                 # TODO: maybe implement again data_type: commonsMedia
                 "type": "string",
-                "value": url_match.group(1)
+                "value": url_match.group(1),
             }
         return None
 
@@ -256,7 +267,7 @@ class BaseParser(object):
             return {
                 # TODO: maybe implement again data_type: commonsMedia
                 "type": "string",
-                "value": id_match.group(1)
+                "value": id_match.group(1),
             }
         return None
 
@@ -268,7 +279,10 @@ class BaseParser(object):
 
         Returns None otherwise
         """
-        time_match = re.match(r"^([+-]{0,1})(\d+)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z\/{0,1}(\d*)(\/J){0,1}$", v)
+        time_match = re.match(
+            r"^([+-]{0,1})(\d+)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z\/{0,1}(\d*)(\/J){0,1}$",
+            v,
+        )
         if time_match:
             prec = 9
             if time_match.group(8):
@@ -281,9 +295,11 @@ class BaseParser(object):
                 "value": {
                     "time": re.sub(r"/\d+$", "", v),
                     "precision": prec,
-                    "calendarmodel": "http://www.wikidata.org/entity/Q1985786"
-                    if is_julian
-                    else "http://www.wikidata.org/entity/Q1985727",
+                    "calendarmodel": (
+                        "http://www.wikidata.org/entity/Q1985786"
+                        if is_julian
+                        else "http://www.wikidata.org/entity/Q1985727"
+                    ),
                 },
             }
         return None
@@ -321,8 +337,10 @@ class BaseParser(object):
 
         Returns None otherwise
         """
+
         def str_amount(amount):
             return f"+{amount}" if amount >= 0 else f"{amount}"
+
         quantity_match = re.match(r"^([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v)
         if quantity_match:
             amount = Decimal(quantity_match.group(1))
@@ -332,7 +350,6 @@ class BaseParser(object):
                 "value": {
                     "amount": str_amount(amount),
                     "unit": unit if unit else "1",
-
                 },
             }
 
@@ -341,7 +358,7 @@ class BaseParser(object):
             r"\[([\+\-]{0,1}\d+(\.\d+){0,1}),\s{0,1}"
             r"([\+\-]{0,1}\d+(\.\d+){0,1})\]"
             r"(U(\d+)){0,1}$",
-            v
+            v,
         )
         if bounds_match:
             value = Decimal(bounds_match.group(1))
@@ -359,7 +376,8 @@ class BaseParser(object):
             }
 
         quantity_error_match = re.match(
-            r"^([\+\-]{0,1}\d+(\.\d+){0,1})\s*~\s*([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$", v
+            r"^([\+\-]{0,1}\d+(\.\d+){0,1})\s*~\s*([\+\-]{0,1}\d+(\.\d+){0,1})(U(\d+)){0,1}$",
+            v,
         )
         if quantity_error_match:
             value = Decimal(quantity_error_match.group(1))
@@ -382,9 +400,9 @@ class BaseParser(object):
         Returns None otherwise
         """
         v = v.strip()
-        v = v.replace('“', '"').replace('”', '"') # fixes weird double-quotes
+        v = v.replace("“", '"').replace("”", '"')  # fixes weird double-quotes
         for fn in [
-            self.parse_value_somevalue_novalue, 
+            self.parse_value_somevalue_novalue,
             self.parse_value_entity,
             self.parse_value_url,
             self.parse_value_commons_media_file,

@@ -6,23 +6,26 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_delete_batchadmin_delete_batchcommandadmin_and_more'),
+        ("core", "0002_delete_batchadmin_delete_batchcommandadmin_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='batch',
-            name='created',
+            model_name="batch",
+            name="created",
             field=models.DateTimeField(auto_now_add=True),
         ),
         migrations.AlterField(
-            model_name='batch',
-            name='modified',
+            model_name="batch",
+            name="modified",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AlterField(
-            model_name='batch',
-            name='status',
-            field=models.IntegerField(choices=[(-1, 'Blocked'), (0, 'Initial'), (1, 'Running'), (2, 'Done')], default=0),
+            model_name="batch",
+            name="status",
+            field=models.IntegerField(
+                choices=[(-1, "Blocked"), (0, "Initial"), (1, "Running"), (2, "Done")],
+                default=0,
+            ),
         ),
     ]

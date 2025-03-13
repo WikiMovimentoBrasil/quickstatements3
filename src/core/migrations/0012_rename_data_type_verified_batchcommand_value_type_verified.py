@@ -6,13 +6,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0011_alter_batch_status'),
+        ("core", "0011_alter_batch_status"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='batchcommand',
-            old_name='data_type_verified',
-            new_name='value_type_verified',
+            model_name="batchcommand",
+            old_name="data_type_verified",
+            new_name="value_type_verified",
         ),
     ]

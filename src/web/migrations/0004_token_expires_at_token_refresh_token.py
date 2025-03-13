@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('web', '0003_alter_preferences_language'),
+        ("web", "0003_alter_preferences_language"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='token',
-            name='expires_at',
+            model_name="token",
+            name="expires_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='token',
-            name='refresh_token',
+            model_name="token",
+            name="refresh_token",
             field=models.TextField(blank=True, null=True),
         ),
     ]

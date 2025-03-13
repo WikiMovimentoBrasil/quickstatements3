@@ -62,9 +62,16 @@ class V1CommandParser(BaseParser):
                 if item1_id > item2_id:
                     # Always merge into older item
                     item1, item2 = item2, item1
-                return {"action": "merge", "type": "item", "item1": item1, "item2": item2}
+                return {
+                    "action": "merge",
+                    "type": "item",
+                    "item1": item1,
+                    "item2": item2,
+                }
             except ValueError:
-                raise ParserException(f"MERGE items wrong format item1=[{item1}] item2=[{item2}]")
+                raise ParserException(
+                    f"MERGE items wrong format item1=[{item1}] item2=[{item2}]"
+                )
 
     def parse_remove_qualifier(self, elements):
         # We are blocking with 6 columns, but, in the future,
@@ -105,13 +112,22 @@ class V1CommandParser(BaseParser):
             _id = elements[1].strip()
             _split = _id.split("$")
             if len(_split) != 2:
-                raise ParserException("ITEM ID format in REMOVE STATEMENT must be Q1234$UUID")
-            return {"action": "remove", "what": "statement", "id": _id, "entity": {"id": _split[0]}}
+                raise ParserException(
+                    "ITEM ID format in REMOVE STATEMENT must be Q1234$UUID"
+                )
+            return {
+                "action": "remove",
+                "what": "statement",
+                "id": _id,
+                "entity": {"id": _split[0]},
+            }
 
     def parse_statement(self, elements, first_command):
         llen = len(elements)
         if llen < 3:
-            raise ParserException("STATEMENT must contain at least entity, property and value")
+            raise ParserException(
+                "STATEMENT must contain at least entity, property and value"
+            )
 
         if first_command[0] == "-":
             action = "remove"
@@ -138,7 +154,13 @@ class V1CommandParser(BaseParser):
                 if not valias or valias["type"] != "string":
                     raise ParserException("alias must be a string instance")
                 aliases.append(valias["value"])
-            data = {"action": action, "what": "alias", "language": lang, "item": entity, "value": {"type": "aliases", "value": aliases}}
+            data = {
+                "action": action,
+                "what": "alias",
+                "language": lang,
+                "item": entity,
+                "value": {"type": "aliases", "value": aliases},
+            }
 
         elif llen == 3 and elements[1][0] in ["L", "D", "S"]:
             # We are adding / removing a LABEL, ALIAS, DESCRIPTION or SITELINK to our property
@@ -209,7 +231,9 @@ class V1CommandParser(BaseParser):
                     if not self.is_valid_source_id(key):
                         raise ParserException(f"Invalid source {key}")
 
-                    current_reference_block.append({"property": "P" + key[1:], "value": value})
+                    current_reference_block.append(
+                        {"property": "P" + key[1:], "value": value}
+                    )
                     has_references = True
 
                 index += 2

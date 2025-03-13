@@ -70,7 +70,10 @@ class CSVCommandParser(BaseParser):
             elif header_value.startswith("qal"):
                 # Our header indicates that this column represents a qualifier
                 # We add the cell value to the last command created
-                qualifier = {"property": header_value.replace("qal", "P"), "value": current_value}
+                qualifier = {
+                    "property": header_value.replace("qal", "P"),
+                    "value": current_value,
+                }
                 qualifiers = current_command.get("qualifiers", [])
                 qualifiers.append(qualifier)
                 current_command["qualifiers"] = qualifiers
@@ -122,7 +125,12 @@ class CSVCommandParser(BaseParser):
                         current_action = action
                         current_what = _type
                         lang = header_value[1:]
-                        current_command = {"action": action, "what": current_what, "item": qid, "value": current_value}
+                        current_command = {
+                            "action": action,
+                            "what": current_what,
+                            "item": qid,
+                            "value": current_value,
+                        }
                         if current_what == "sitelink":
                             current_command["site"] = lang
                         else:
@@ -130,7 +138,9 @@ class CSVCommandParser(BaseParser):
                         # Code expects aliases to be a list of alias, like in v1
                         if current_command["what"] == "alias":
                             current_command["value"]["type"] = "aliases"
-                            current_command["value"]["value"] = [current_command["value"]["value"]]
+                            current_command["value"]["value"] = [
+                                current_command["value"]["value"]
+                            ]
 
                     commands.append(current_command)
 
@@ -160,7 +170,9 @@ class CSVCommandParser(BaseParser):
                     raise ParserException("A valid property must precede a comment")
                 elif clean_cell.startswith("qal"):
                     raise ParserException("A valid property must precede a qualifier")
-                elif (clean_cell[0] == "s" or clean_cell[0] == "S") and re.match("^[Ss]\\d+$", clean_cell):
+                elif (clean_cell[0] == "s" or clean_cell[0] == "S") and re.match(
+                    "^[Ss]\\d+$", clean_cell
+                ):
                     raise ParserException("A valid property must precede a source")
         return True
 

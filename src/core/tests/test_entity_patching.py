@@ -162,31 +162,44 @@ class RemoveQualRefTests(TestCase):
         # -----
         create_statement = batch.commands()[0]
         self.assertStmtnCount(entity, "P65", 1)
-        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42"
+        )
         create_statement.update_entity_json(entity)
         self.assertEqual(entity, copy.deepcopy(self.INITIAL))
         # -----
         create_statement = batch.commands()[1]
         self.assertStmtnCount(entity, "P65", 1)
-        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42"
+        )
         create_statement.update_entity_json(entity)
         self.assertStmtnCount(entity, "P65", 2)
-        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42"
+        )
         self.assertRefCount(entity, "P65", 0, 0)
-        self.assertEqual(entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42"
+        )
         self.assertRefCount(entity, "P65", 1, 1)
         # -----
         set_statement2 = batch.commands()[2]
         self.assertStmtnCount(entity, "P65", 2)
         set_statement2.update_entity_json(entity)
         self.assertStmtnCount(entity, "P65", 3)
-        self.assertEqual(entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][0]["value"]["content"]["amount"], "+42"
+        )
         self.assertRefCount(entity, "P65", 0, 0)
-        self.assertEqual(entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42")
+        self.assertEqual(
+            entity["statements"]["P65"][1]["value"]["content"]["amount"], "+42"
+        )
         self.assertRefCount(entity, "P65", 1, 1)
-        self.assertEqual(entity["statements"]["P65"][2]["value"]["content"]["amount"], "-10")
+        self.assertEqual(
+            entity["statements"]["P65"][2]["value"]["content"]["amount"], "-10"
+        )
         self.assertRefCount(entity, "P65", 0, 2)
-
 
     def test_remove_qualifier(self):
         text = """

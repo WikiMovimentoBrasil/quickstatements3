@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0006_batchcommand_action'),
+        ("core", "0006_batchcommand_action"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='batch',
-            name='modified',
+            model_name="batch",
+            name="modified",
             field=models.DateTimeField(auto_now=True, db_index=True),
         ),
         migrations.AlterIndexTogether(
-            name='batchcommand',
-            index_together={('batch', 'index')},
+            name="batchcommand",
+            index_together={("batch", "index")},
         ),
     ]

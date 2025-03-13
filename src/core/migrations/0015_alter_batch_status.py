@@ -6,13 +6,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0014_move_status_codes'),
+        ("core", "0014_move_status_codes"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='batch',
-            name='status',
-            field=models.IntegerField(choices=[(-2, 'Stopped'), (-1, 'Blocked'), (0, 'Preview'), (1, 'Initial'), (2, 'Running'), (3, 'Done')], db_index=True, default=1),
+            model_name="batch",
+            name="status",
+            field=models.IntegerField(
+                choices=[
+                    (-2, "Stopped"),
+                    (-1, "Blocked"),
+                    (0, "Preview"),
+                    (1, "Initial"),
+                    (2, "Running"),
+                    (3, "Done"),
+                ],
+                db_index=True,
+                default=1,
+            ),
         ),
     ]

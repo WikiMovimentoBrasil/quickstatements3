@@ -150,13 +150,13 @@ class ApiMocker:
     @classmethod
     def item_empty(cls, mocker, item_id):
         EMPTY_ITEM = {
-          "type": "item",
-          "labels": {},
-          "descriptions": {},
-          "aliases": {},
-          "statements": {},
-          "sitelinks": {},
-          "id": item_id,
+            "type": "item",
+            "labels": {},
+            "descriptions": {},
+            "aliases": {},
+            "statements": {},
+            "sitelinks": {},
+            "id": item_id,
         }
         mocker.get(
             cls.wikibase_url(f"/entities/items/{item_id}"),
@@ -198,7 +198,9 @@ class ApiMocker:
 
     @classmethod
     def add_statement_successful(cls, mocker, item_id, response_json=None):
-        response_json = response_json if response_json else {"id": f"{item_id}$somestuff"}
+        response_json = (
+            response_json if response_json else {"id": f"{item_id}$somestuff"}
+        )
         mocker.patch(
             cls.wikibase_url(f"/entities/items/{item_id}"),
             json=response_json,
@@ -241,11 +243,15 @@ class ApiMocker:
     def sitelink_success(cls, mocker, item_id, sitelink, value):
         mocker.patch(
             cls.wikibase_url(f"/entities/items/{item_id}"),
-            json={"sitelinks": {sitelink: {
-                "title": value,
-                "badges": [],
-                "url": "ignored",
-            }}},
+            json={
+                "sitelinks": {
+                    sitelink: {
+                        "title": value,
+                        "badges": [],
+                        "url": "ignored",
+                    }
+                }
+            },
             status_code=200,
         )
 
@@ -466,19 +472,28 @@ class ClientTests(TestCase):
 
     @requests_mock.Mocker()
     def test_get_labels(self, mocker):
-        labels = {"Q123": {
-            "en": "English label",
-            "pt": "Portuguese label",
-        }}
+        labels = {
+            "Q123": {
+                "en": "English label",
+                "pt": "Portuguese label",
+            }
+        }
         client = self.api_client()
         ApiMocker.labels(mocker, client, labels)
         returned_labels = client.get_multiple_labels(["Q123"], "pt")
-        self.assertEqual(returned_labels, {
-            "entities": {"Q123": {"labels": {
-                "en": {"language": "en", "value": "English label"},
-                "pt": {"language": "pt", "value": "Portuguese label"},
-            }
-        }}})
+        self.assertEqual(
+            returned_labels,
+            {
+                "entities": {
+                    "Q123": {
+                        "labels": {
+                            "en": {"language": "en", "value": "English label"},
+                            "pt": {"language": "pt", "value": "Portuguese label"},
+                        }
+                    }
+                }
+            },
+        )
 
     @requests_mock.Mocker()
     def test_verify_value_type(self, mocker):
@@ -649,6 +664,7 @@ class ClientTests(TestCase):
         }
         self.assertEqual(client.headers(), headers)
 
+
 class TestBatchCommand(TestCase):
     def login_user_and_get_token(self, username):
         """
@@ -668,7 +684,9 @@ class TestBatchCommand(TestCase):
         client = Client.from_user(user)
         payload = BatchCommand().api_payload(client)
         self.assertEqual(payload, {})
-        payload = BatchCommand(operation=BatchCommand.Operation.CREATE_ITEM).api_payload(client)
+        payload = BatchCommand(
+            operation=BatchCommand.Operation.CREATE_ITEM
+        ).api_payload(client)
         self.assertEqual(payload, {"item": {}})
 
     @override_settings(TOOLFORGE_TOOL_NAME="qs-dev")
@@ -707,7 +725,9 @@ class TestBatchCommand(TestCase):
     def test_send_create_property(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, client = self.login_user_and_get_token("user")
-        batch = V1CommandParser().parse("b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q1")
+        batch = V1CommandParser().parse(
+            "b", "u", "CREATE_PROPERTY|wikibase-item||LAST|P1|Q1"
+        )
         batch.save_batch_and_preview_commands()
         cmd: BatchCommand = batch.commands()[0]
         cmd.run(client)

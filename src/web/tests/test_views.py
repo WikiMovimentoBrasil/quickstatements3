@@ -137,16 +137,36 @@ class ViewsTest(TestCase):
     def test_batch_command_filters(self):
         batch = Batch.objects.create(name="My new batch", user="mgalves80")
         b1 = BatchCommand.objects.create(
-            batch=batch, index=0, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+            batch=batch,
+            index=0,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_INITIAL,
         )
         b2 = BatchCommand.objects.create(
-            batch=batch, index=1, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+            batch=batch,
+            index=1,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_ERROR,
         )
         b3 = BatchCommand.objects.create(
-            batch=batch, index=2, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_INITIAL
+            batch=batch,
+            index=2,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_INITIAL,
         )
         b4 = BatchCommand.objects.create(
-            batch=batch, index=4, action=BatchCommand.ACTION_ADD, json={}, raw="{}", status=BatchCommand.STATUS_ERROR
+            batch=batch,
+            index=4,
+            action=BatchCommand.ACTION_ADD,
+            json={},
+            raw="{}",
+            status=BatchCommand.STATUS_ERROR,
         )
 
         c = Client()
@@ -204,7 +224,12 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("new_batch.html")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
 
@@ -233,7 +258,9 @@ class ViewsTest(TestCase):
     def test_create_empty_name(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
-        response = self.client.post("/batch/new/", data={"type": "v1", "commands": "CREATE"})
+        response = self.client.post(
+            "/batch/new/", data={"type": "v1", "commands": "CREATE"}
+        )
         self.assertEqual(response.status_code, 302)
         response = self.client.get(response.url)
         self.assertEqual(response.status_code, 200)
@@ -259,7 +286,8 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("new_batch.html")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"}
+            "/batch/new/",
+            data={"name": "My CSV batch", "type": "csv", "commands": "qid,P31,-P31"},
         )
         self.assertEqual(response.status_code, 302)
 
@@ -292,7 +320,12 @@ class ViewsTest(TestCase):
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
 
         response = c.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/auth/login/?next=/batch/new/")
@@ -305,10 +338,12 @@ class ViewsTest(TestCase):
         batch = parser.parse("Batch", "wikiuser", "Q1234\tP2\tQ1")
         batch.save_batch_and_preview_commands()
 
-        labels = {"Q1234": {
-            "en": "English label",
-            "pt": "Portuguese label",
-        }}
+        labels = {
+            "Q1234": {
+                "en": "English label",
+                "pt": "Portuguese label",
+            }
+        }
         ApiMocker.labels(mocker, api_client, labels)
 
         response = self.client.get(f"/batch/{batch.pk}/commands/")
@@ -341,7 +376,9 @@ class ViewsTest(TestCase):
         self.assertTemplateUsed("profile.html")
         self.assertEqual(res.context["is_autoconfirmed"], True)
         self.assertEqual(res.context["token_failed"], False)
-        self.assertInRes("We have successfully verified that you are an autoconfirmed user.", res)
+        self.assertInRes(
+            "We have successfully verified that you are an autoconfirmed user.", res
+        )
 
     @requests_mock.Mocker()
     def test_profile_is_not_autoconfirmed(self, mocker):
@@ -400,7 +437,12 @@ class ViewsTest(TestCase):
         user, api_client = self.login_user_and_get_token("user")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/batch/new/preview/")
@@ -424,33 +466,46 @@ class ViewsTest(TestCase):
         ApiMocker.is_not_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/",
+            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context["is_autoconfirmed"], False)
         self.assertInRes("only autoconfirmed users can run batches", res)
-        self.assertInRes("""<input type="submit" value="Save and run batch" disabled>""", res)
+        self.assertInRes(
+            """<input type="submit" value="Save and run batch" disabled>""", res
+        )
 
     @requests_mock.Mocker()
     def test_allow_start_after_create_is_autoconfirmed(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/",
+            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context["is_autoconfirmed"], True)
         self.assertInRes("""<input type="submit" value="Save and run batch">""", res)
         self.assertNotInRes("only autoconfirmed users can run batches", res)
-        self.assertNotInRes("""<input type="submit" value="Save and run batch" disabled>""", res)
+        self.assertNotInRes(
+            """<input type="submit" value="Save and run batch" disabled>""", res
+        )
 
     @requests_mock.Mocker()
     def test_allow_start_after_create_token_expired(self, mocker):
         ApiMocker.autoconfirmed_failed_unauthorized(mocker)
         user, api_client = self.login_user_and_get_token("user")
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/",
+            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
+        )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
         self.assertRedirectToUrlName(res, "login")
@@ -462,7 +517,10 @@ class ViewsTest(TestCase):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
 
-        res = self.client.post("/batch/new/", data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"})
+        res = self.client.post(
+            "/batch/new/",
+            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
+        )
         self.assertEqual(res.status_code, 302)
         url = res.url
         res = self.client.get(url)
@@ -536,7 +594,12 @@ class ViewsTest(TestCase):
         user, api_client = self.login_user_and_get_token("user")
 
         response = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(response.status_code, 302)
 
@@ -569,7 +632,12 @@ class ViewsTest(TestCase):
         ApiMocker.labels(mocker, api_client, labels)
         ApiMocker.labels(mocker, api_client, labels)
         res = self.client.post(
-            "/batch/new/", data={"name": "My v1 batch", "type": "v1", "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1"}
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
         )
         self.assertEqual(res.status_code, 302)
         res = self.client.get(res.url)
@@ -586,7 +654,9 @@ class ViewsTest(TestCase):
         ApiMocker.item_empty(mocker, "Q1234")
         ApiMocker.item_empty(mocker, "Q11")
         ApiMocker.patch_item_successful(mocker, "Q1234", {"id": "Q1234$stuff"})
-        ApiMocker.patch_item_successful(mocker, "Q11", {"id": "Q11", "labels": {"en": "label"}})
+        ApiMocker.patch_item_successful(
+            mocker, "Q11", {"id": "Q11", "labels": {"en": "label"}}
+        )
         user, api_client = self.login_user_and_get_token("wikiuser")
         parser = V1CommandParser()
         batch = parser.parse("Batch", "wikiuser", """Q1234\tP2\tQ1||Q11|Len|"label" """)
@@ -596,15 +666,21 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertNotInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
-        self.assertNotInRes("""<input type="submit" value="Download report">""", response)
+        self.assertNotInRes(
+            f"""<form method="GET" action="/batch/{pk}/report/">""", response
+        )
+        self.assertNotInRes(
+            """<input type="submit" value="Download report">""", response
+        )
 
         batch.run()
 
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertInRes(f"""<form method="GET" action="/batch/{pk}/report/">""", response)
+        self.assertInRes(
+            f"""<form method="GET" action="/batch/{pk}/report/">""", response
+        )
         self.assertInRes("""<input type="submit" value="Download report">""", response)
 
         response = self.client.post(f"/batch/{pk}/report/")
@@ -612,7 +688,10 @@ class ViewsTest(TestCase):
 
         response = self.client.get(f"/batch/{pk}/report/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["Content-Disposition"], f'attachment; filename="batch-{pk}-report.csv"')
+        self.assertEqual(
+            response.headers["Content-Disposition"],
+            f'attachment; filename="batch-{pk}-report.csv"',
+        )
         result = (
             """b'batch_id,index,operation,status,error,message,entity_id,raw_input\\r\\n"""
             f"""{pk},0,set_statement,Done,,,Q1234,Q1234|P2|Q1\\r\\n"""
@@ -630,13 +709,16 @@ class ViewsTest(TestCase):
         _user, api_client = self.login_user_and_get_token("wikiuser")
         response = self.client.post(
             "/batch/new/",
-            data={"type": "v1", "commands": """
+            data={
+                "type": "v1",
+                "commands": """
             Q1|P2|Q2
             Q1|P2|"string"
             Q1|P2|32
             Q1|P2|Q2
             Q1|P2|32
-            """}
+            """,
+            },
         )
         response = self.client.get("/batch/new/preview/")
         self.assertEqual(response.status_code, 200)
@@ -746,12 +828,22 @@ class ViewsTest(TestCase):
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertInRes("""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
+        self.assertInRes(
+            """<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""",
+            response,
+        )
         self.assertInRes("""[<a href="/batches/wikiuser/">""", response)
-        self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)
+        self.assertInRes(
+            f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response
+        )
         batch.run()
         response = self.client.get(f"/batch/{pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed("batch.html")
-        self.assertInRes("""<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""", response)
-        self.assertInRes(f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response)
+        self.assertInRes(
+            """<a href="https://www.wikidata.org/wiki/User:wikiuser">wikiuser</a>""",
+            response,
+        )
+        self.assertInRes(
+            f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response
+        )
