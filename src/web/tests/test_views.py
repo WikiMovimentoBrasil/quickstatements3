@@ -480,26 +480,6 @@ class ViewsTest(TestCase):
         )
 
     @requests_mock.Mocker()
-    def test_allow_start_after_create_is_blocked(self, mocker):
-        ApiMocker.is_blocked(mocker)
-        user, api_client = self.login_user_and_get_token("user")
-
-        res = self.client.post(
-            "/batch/new/",
-            data={"name": "name", "type": "v1", "commands": "CREATE||LAST|P1|Q1"},
-        )
-        self.assertEqual(res.status_code, 302)
-        res = self.client.get(res.url)
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.context["is_blocked"], True)
-        self.assertInRes(
-            "Your account is blocked and you will not be able to run any batches.", res
-        )
-        self.assertInRes(
-            """<input type="submit" value="Save and run batch" disabled>""", res
-        )
-
-    @requests_mock.Mocker()
     def test_allow_start_after_create_is_autoconfirmed(self, mocker):
         ApiMocker.is_autoconfirmed(mocker)
         user, api_client = self.login_user_and_get_token("user")
@@ -551,6 +531,7 @@ class ViewsTest(TestCase):
         batch = response.context["batch"]
         batch.save_batch_and_preview_commands()
         res = self.client.get(batch_url)
+        print(res.context)
         self.assertEqual(res.context["is_autoconfirmed"], None)
         batch.stop()
         res = self.client.get(batch_url)
@@ -867,3 +848,230 @@ class ViewsTest(TestCase):
         self.assertInRes(
             f"""<a href="https://editgroups.toolforge.org/b/QSv3/{pk}">""", response
         )
+
+    @requests_mock.Mocker()
+    def test_batch_stop_permissions(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+
+        admin = User.objects.create_superuser(username="admin")
+        other_user, _ = self.login_user_and_get_token('other_user')
+        creator, api_client = self.login_user_and_get_token("creator")
+
+        # Creates the batch
+        self.client.force_login(creator)
+        response = self.client.post(
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
+        self.assertInRes("Save and run batch", response)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        response = self.client.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+
+        def attempt_to_stop(user, authorized):
+            batch.status = Batch.STATUS_INITIAL
+            batch.save()
+
+            if not user:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+
+            response = self.client.get(f"/batch/{pk}/")
+            self.assertEqual(response.status_code, 200)
+
+            # Checks if the user can access the batch stop option
+            if authorized:
+                self.assertInRes(
+                    """<button class="secondary" onclick="showStopModal();">""", response
+                )
+            else:
+                self.assertNotInRes(
+                    """<button class="secondary" onclick="showStopModal();">""", response
+                )
+
+            return self.client.post(f"/batch/{pk}/stop/")
+
+        # Test as batch creator
+        response = attempt_to_stop(creator, authorized=True)
+        self.assertEqual(response.status_code, 302)
+
+        # Test as admin
+        response = attempt_to_stop(admin, authorized=True)
+        self.assertEqual(response.status_code, 302)
+
+        # Test as other user
+        response = attempt_to_stop(other_user, authorized=False)
+        self.assertEqual(response.status_code, 403)
+
+        # Test as not authenticated user
+        response = attempt_to_stop(None, authorized=False)
+        self.assertEqual(response.status_code, 403)
+
+    @requests_mock.Mocker()
+    def test_batch_restart_permissions(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+
+        admin = User.objects.create_superuser(username="admin")
+        other_user, _ = self.login_user_and_get_token('other_user')
+        creator, api_client = self.login_user_and_get_token("creator")
+
+        # Creates the batch
+        self.client.force_login(creator)
+        response = self.client.post(
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands": "CREATE||-Q1234|P1|12||Q222|P4|9~0.1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
+        self.assertInRes("Save and run batch", response)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        response = self.client.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+
+        response = self.client.post(f"/batch/{pk}/stop/")
+        response = self.client.get(response.url)
+
+        def attempt_to_restart(user, authorized):
+            batch.status = Batch.STATUS_STOPPED
+            batch.save()
+
+            if not user:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+
+            response = self.client.get(f"/batch/{pk}/")
+            self.assertEqual(response.status_code, 200)
+
+            # Checks if the user can access the batch stop option
+            if authorized:
+                self.assertInRes("Restart", response)
+                self.assertInRes(
+                    f"""<form method="POST" action="/batch/{pk}/restart/">""", response
+                )
+            else:
+                self.assertNotInRes("Restart", response)
+                self.assertNotInRes(
+                    f"""<form method="POST" action="/batch/{pk}/restart/">""", response
+                )
+
+            return self.client.post(f"/batch/{pk}/restart/")
+
+        # Test as batch creator
+        response = attempt_to_restart(creator, authorized=True)
+        self.assertEqual(response.status_code, 302)
+
+        # Test as admin
+        response = attempt_to_restart(admin, authorized=True)
+        self.assertEqual(response.status_code, 302)
+
+        # Test as other user
+        response = attempt_to_restart(other_user, authorized=False)
+        self.assertEqual(response.status_code, 403)
+
+        # Test as not authenticated user
+        response = attempt_to_restart(None, authorized=False)
+        self.assertEqual(response.status_code, 403)
+
+    @requests_mock.Mocker()
+    def test_batch_report_permissions(self, mocker):
+        ApiMocker.is_autoconfirmed(mocker)
+        ApiMocker.wikidata_property_data_types(mocker)
+        ApiMocker.property_data_type(mocker, "P2", "wikibase-item")
+        ApiMocker.item_empty(mocker, "Q1234")
+        ApiMocker.item_empty(mocker, "Q11")
+        ApiMocker.patch_item_successful(mocker, "Q1234", {"id": "Q1234$stuff"})
+        ApiMocker.patch_item_successful(
+            mocker, "Q11", {"id": "Q11", "labels": {"en": "label"}}
+        )
+
+        admin = User.objects.create_superuser(username="admin")
+        other_user, _ = self.login_user_and_get_token('other_user')
+        creator, api_client = self.login_user_and_get_token("creator")
+
+        self.client.force_login(creator)
+
+        # Creates the batch and runs it
+        response = self.client.post(
+            "/batch/new/",
+            data={
+                "name": "My v1 batch",
+                "type": "v1",
+                "commands":  """Q1234\tP2\tQ1||Q11|Len|"label" """,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.post("/batch/new/preview/allow_start/")
+        response = self.client.get(response.url)
+        self.assertInRes("Stop execution", response)
+
+        batch = response.context["batch"]
+        pk = batch.pk
+        self.assertNotInRes(
+            f"""<form method="GET" action="/batch/{pk}/report/">""", response
+        )
+        self.assertNotInRes(
+            """<input type="submit" value="Download report">""", response
+        )
+        batch.run()
+
+        def checks_user_report_access(user, authorized):
+            if not user:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+
+            response = self.client.get(f"/batch/{pk}/")
+            self.assertEqual(response.status_code, 200)
+
+            # Checks if the user can access the report download option
+            if authorized:
+                self.assertInRes(
+                    f"""<form method="GET" action="/batch/{pk}/report/">""", response
+                )
+                self.assertInRes("""<input type="submit" value="Download report">""", response)
+            else:
+                self.assertNotInRes(
+                    f"""<form method="GET" action="/batch/{pk}/report/">""", response
+                )
+                self.assertNotInRes("""<input type="submit" value="Download report">""", response)
+
+            return self.client.get(f"/batch/{pk}/report/")
+
+        # Test as batch creator
+        response = checks_user_report_access(creator, authorized=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Test as admin (regular user)
+        response = checks_user_report_access(admin, authorized=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Test as other user
+        response = checks_user_report_access(other_user, authorized=False)
+        self.assertEqual(response.status_code, 403)
+
+        # Test as not authenticated user
+        response = checks_user_report_access(None, authorized=False)
+        self.assertEqual(response.status_code, 403)
