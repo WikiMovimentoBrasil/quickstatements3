@@ -23,9 +23,9 @@
 </div>
 
 <div style="float: right;">
-  {% if current_owner %}
+  {% if user_is_authorized %}
     {% if batch.is_initial_or_running %}
-    <button class="secondary" onclick="showModal();">{% translate "Stop execution" %}</button>
+    <button class="secondary" onclick="showStopModal();">{% translate "Stop execution" %}</button>
     {% elif batch.is_stopped %}
     <form method="POST" action="{% url 'batch_restart' pk=batch.pk %}">
       {% csrf_token %}
@@ -71,7 +71,7 @@
       {% translate "Are you sure you want to stop the current batch processing?" %}
     </p>
     <footer>
-      <button class="secondary" onclick="closeModal()">{% translate "No, continue" %}</button>
+      <button class="secondary" onclick="closeStopModal()">{% translate "No, continue" %}</button>
       <button onclick="stop()">{% translate "Stop processing" %}</button>
     </footer>
   </article>
@@ -81,11 +81,11 @@
 
 {% block scripts %}
 <script>
-function showModal() {
+function showStopModal() {
     document.getElementById("confirmStop").setAttribute("open", "");
 }
 
-function closeModal() {
+function closeStopModal() {
     document.getElementById("confirmStop").removeAttribute("open", "");
 }
 
