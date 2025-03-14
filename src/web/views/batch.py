@@ -33,12 +33,19 @@ def batch(request, pk):
     """
     try:
         batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
+        user_is_authorized = (
+            request.user.is_authenticated and
+            (request.user.username == batch.user or request.user.is_superuser)
+        )
         is_autoconfirmed = None
         return render(
             request,
             "batch.html",
-            {"batch": batch, "current_owner": current_owner, "is_autoconfirmed": is_autoconfirmed},
+            {
+                "batch": batch,
+                "user_is_authorized": user_is_authorized,
+                "is_autoconfirmed": is_autoconfirmed,
+            },
         )
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
@@ -56,12 +63,17 @@ def batch_stop(request, pk):
     """
     try:
         batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
-        if current_owner:
-            batch.stop()
+        user_is_authorized = (
+            request.user.is_authenticated and
+            (request.user.username == batch.user or request.user.is_superuser)
+        )
+        assert user_is_authorized
+        batch.stop()
         return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+    except AssertionError:
+        return HttpResponse("403 Forbidden", status=403)
 
 
 @require_http_methods(
@@ -76,29 +88,40 @@ def batch_restart(request, pk):
     """
     try:
         batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
-        if current_owner:
-            batch.restart()
+        user_is_authorized = (
+            request.user.is_authenticated and
+            (request.user.username == batch.user or request.user.is_superuser)
+        )
+        assert user_is_authorized
+        batch.restart()
         return redirect(reverse("batch", args=[batch.pk]))
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+    except AssertionError:
+        return HttpResponse("403 Forbidden", status=403)
+
 
 @require_GET
 def batch_report(request, pk):
     try:
-        batch = Batch.objects.get(pk=pk)
-        current_owner = request.user.is_authenticated and request.user.username == batch.user
-        if current_owner and batch.is_done:
-            res = HttpResponse(
-                content_type="text/csv",
-                headers={"Content-Disposition": f'attachment; filename="batch-{pk}-report.csv"'},
-            )
-            batch.write_report(res)
-            return res
-        else:
-            return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+        batch = Batch.objects.get(pk=pk, status=Batch.STATUS_DONE)
+        user_is_authorized = (
+            request.user.is_authenticated and
+            (request.user.username == batch.user or request.user.is_superuser)
+        )
+        assert user_is_authorized
+        res = HttpResponse(
+            content_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="batch-{pk}-report.csv"'
+                },
+        )
+        batch.write_report(res)
+        return res
     except Batch.DoesNotExist:
         return render(request, "batch_not_found.html", {"pk": pk}, status=404)
+    except AssertionError:
+        return HttpResponse("403 Forbidden", status=403)
 
 
 @require_http_methods(
@@ -122,7 +145,9 @@ def batch_commands(request, pk):
     if only_errors:
         filters["status"] = BatchCommand.STATUS_ERROR
 
-    paginator = Paginator(BatchCommand.objects.filter(**filters).order_by("index"), PAGE_SIZE)
+    paginator = Paginator(
+        BatchCommand.objects.filter(**filters).order_by("index"), PAGE_SIZE
+    )
     page = paginator.page(page)
 
     if request.user.is_authenticated:
@@ -138,7 +163,16 @@ def batch_commands(request, pk):
             pass
 
     base_url = reverse("batch_commands", args=[pk])
-    return render(request, "batch_commands.html", {"page": page, "batch_pk": pk, "only_errors": only_errors, "base_url": base_url})
+    return render(
+        request,
+        "batch_commands.html",
+        {
+            "page": page,
+            "batch_pk": pk,
+            "only_errors": only_errors,
+            "base_url": base_url,
+        },
+    )
 
 
 @require_http_methods(
@@ -159,10 +193,18 @@ def batch_summary(request, pk):
     try:
         from django.db.models import Q, Count
 
-        error_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR))
-        initial_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL))
-        running_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING))
-        done_commands = Count("batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE))
+        error_commands = Count(
+            "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_ERROR)
+        )
+        initial_commands = Count(
+            "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_INITIAL)
+        )
+        running_commands = Count(
+            "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_RUNNING)
+        )
+        done_commands = Count(
+            "batchcommand", filter=Q(batchcommand__status=BatchCommand.STATUS_DONE)
+        )
         batch = (
             Batch.objects.annotate(error_commands=error_commands)
             .annotate(initial_commands=initial_commands)
@@ -171,7 +213,9 @@ def batch_summary(request, pk):
             .annotate(total_commands=Count("batchcommand"))
             .get(pk=pk)
         )
-        show_block_on_errors_notice = batch.is_preview_initial_or_running and batch.block_on_errors
+        show_block_on_errors_notice = (
+            batch.is_preview_initial_or_running and batch.block_on_errors
+        )
         finished_commands = batch.done_commands + batch.error_commands
 
         def percentage(val, max):
@@ -189,9 +233,15 @@ def batch_summary(request, pk):
                 "running_count": batch.running_commands,
                 "done_count": batch.done_commands,
                 "total_count": batch.total_commands,
-                "done_percentage": percentage(batch.done_commands, batch.total_commands),
-                "finish_percentage": percentage(finished_commands, batch.total_commands),
-                "done_to_finish_percentage": percentage(batch.done_commands, finished_commands),
+                "done_percentage": percentage(
+                    batch.done_commands, batch.total_commands
+                ),
+                "finish_percentage": percentage(
+                    finished_commands, batch.total_commands
+                ),
+                "done_to_finish_percentage": percentage(
+                    batch.done_commands, finished_commands
+                ),
                 "show_block_on_errors_notice": show_block_on_errors_notice,
             },
         )
