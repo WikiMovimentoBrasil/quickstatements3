@@ -314,6 +314,9 @@ class BaseParser(object):
         else:
             calendar_model = "http://www.wikidata.org/entity/Q1985727"  # Gregorian
 
+        if not match.group("sign"):
+            v = "+" + v
+
         # Remove trailing precision if present (e.g. /11)
         v_clean = re.sub(r"/\d+$", "", v)
 

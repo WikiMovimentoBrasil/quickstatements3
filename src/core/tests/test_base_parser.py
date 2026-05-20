@@ -389,6 +389,45 @@ class TestBaseParser(TestCase):
         }
         self.assertEqual(parser.parse_value("+1967-00-00T00:00:00Z/9/C999999"), ret)
 
+    def test_parse_value_time_without_plus_adds_plus(self):
+        parser = BaseParser()
+        ret = {
+            "type": "time",
+            "value": {
+                "time": "+1967-01-17T00:00:00Z",
+                "precision": 11,
+                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+            },
+        }
+        self.assertEqual(parser.parse_value("1967-01-17T00:00:00Z/11"), ret)
+        ret = {
+            "type": "time",
+            "value": {
+                "time": "+2026-01-01T00:00:00Z",
+                "precision": 9,
+                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+            },
+        }
+        self.assertEqual(parser.parse_value("2026-01-01T00:00:00Z/9"), ret)
+        ret = {
+            "type": "time",
+            "value": {
+                "time": "-1967-01-00T00:00:00Z",
+                "precision": 10,
+                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+            },
+        }
+        self.assertEqual(parser.parse_value("-1967-01-00T00:00:00Z/10"), ret)
+
+    def test_parse_value_time_other_signs_are_none(self):
+        parser = BaseParser()
+        self.assertIsNone(parser.parse_value("x1967-01-01T00:00:00Z/10"))
+        self.assertIsNone(parser.parse_value("_1967-01-01T00:00:00Z/10"))
+        self.assertIsNone(parser.parse_value(":1967-01-01T00:00:00Z/10"))
+        self.assertIsNone(parser.parse_value(";1967-01-01T00:00:00Z/10"))
+        self.assertIsNone(parser.parse_value("=1967-01-01T00:00:00Z/10"))
+        self.assertIsNone(parser.parse_value("s1967-01-01T00:00:00Z/10"))
+
     def test_parse_value_location_earth(self):
         parser = BaseParser()
         ret = {
