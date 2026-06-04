@@ -1,7 +1,8 @@
 {
 	"@metadata": {
 		"authors": [
-			"Spider 001757"
+			"Spider 001757",
+			"Wizzard"
 		]
 	},
 	"batch-py-status-stopped": "Zastavené",
@@ -24,6 +25,9 @@
 	"batchcommand-py-operation-create-property": "Vytvoriť vlastnosť",
 	"batchcommand-py-operation-set-statement": "Pridať výrok",
 	"batchcommand-py-operation-create-statement": "Vytvoriť výrok",
+	"batchcommand-py-operation-switch-statement-value": "Prepnúť hodnotu výrazu",
+	"batchcommand-py-operation-switch-statement-property": "Prepnúť vlastnosť výrazu",
+	"batchcommand-py-operation-switch-statement-property-and-value": "Prepnúť vlastnosť a hodnotu výrazu",
 	"batchcommand-py-operation-remove-statement-by-id": "Odstrániť výrok podľa ID",
 	"batchcommand-py-operation-remove-statement-by-value": "Odstraňte výrok podľa hodnoty",
 	"batchcommand-py-operation-remove-qualifier": "Odstrániť kvalifikátor",
