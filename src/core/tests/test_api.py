@@ -653,7 +653,7 @@ class TestBatchCommand(TestCase):
             cmd.api_body(self.api_client),
             {
                 "item": {},
-                "bot": False,
+                "bot": True,
                 "comment": comment,
             },
         )
