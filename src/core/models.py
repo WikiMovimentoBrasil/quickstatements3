@@ -1891,10 +1891,10 @@ class BatchCommand(models.Model):
         """
         Returns the final Wikibase API body.
 
-        Joins the api payload with bot marking = False and the edit summary.
+        Joins the api payload with bot marking = True and the edit summary.
         """
         body = self.api_payload(client)
-        body["bot"] = False
+        body["bot"] = True
         body["comment"] = self.edit_summary()
         return body
 
