@@ -427,6 +427,18 @@ class ProcessingTests(TestCase):
         self.assertEqual(commands[0].error, BatchCommand.Error.SITELINK_INVALID)
 
     @requests_mock.Mocker()
+    def test_set_label_data_policy_violation(self, mocker):
+        self.api_mocker.is_autoconfirmed(mocker)
+        self.api_mocker.item_empty(mocker, "Q1234")
+        self.api_mocker.patch_item_data_policy_violation(mocker, "Q1234")
+        batch = self.parse("""Q1234|Lpt|"label" """)
+        batch.run()
+        self.assertEqual(batch.status, Batch.STATUS_DONE)
+        commands = batch.commands()
+        self.assertEqual(commands[0].status, BatchCommand.STATUS_ERROR)
+        self.assertEqual(commands[0].error, BatchCommand.Error.DATA_POLICY_VIOLATION)
+
+    @requests_mock.Mocker()
     def test_remove_quantity_tolerance(self, mocker):
         unit_url = f"{self.api_mocker.wikibase.url}/entity/Q208592".replace(
             "https://", "http://"

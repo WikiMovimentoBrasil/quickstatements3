@@ -245,6 +245,16 @@ class ApiMocker:
             status_code=400,
         )
 
+    def patch_item_data_policy_violation(self, mocker, item_id):
+        mocker.patch(
+            self.wikibase_url(f"/entities/items/{item_id}"),
+            json={
+                "code": "data-policy-violation",
+                "message": "Edit violates data policy",
+            },
+            status_code=422,
+        )
+
     def sitelinks(self, mocker, item_id, sitelinks):
         mocker.get(
             self.wikibase_url(f"/entities/items/{item_id}"),

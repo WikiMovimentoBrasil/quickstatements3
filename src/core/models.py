@@ -971,6 +971,13 @@ class BatchCommand(models.Model):
             "sitelink_invalid",
             pgettext_lazy("batchcommand-py-error-sitelink-invalid", "The sitelink id is invalid"),
         )
+        DATA_POLICY_VIOLATION = (
+            "data_policy_violation",
+            pgettext_lazy(
+                "batchcommand-py-error-data-policy-violation",
+                "An item with the same label and description already exists",
+            ),
+        )
         COMBINING_COMMAND_FAILED = (
             "combining_failed",
             pgettext_lazy("batchcommand-py-error-combining-failed", "The next command failed"),
@@ -1482,6 +1489,8 @@ class BatchCommand(models.Model):
         except UserError as e:
             if e.response_message == "Invalid path parameter: 'site_id'":
                 self.error_with_value(self.Error.SITELINK_INVALID)
+            elif e.response_code == "data-policy-violation":
+                self.error_with_value(self.Error.DATA_POLICY_VIOLATION)
             else:
                 self.error_with_value(self.Error.API_USER_ERROR, e.message)
         except ServerError as e:
