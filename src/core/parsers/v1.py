@@ -94,17 +94,19 @@ class V1CommandParser(BaseParser):
         return data
 
     def parse_remove_reference(self, elements):
+        oprt = str(elements[0])
+        is_block = oprt == "REMOVE_REF_BLOCK"
         llen = len(elements)
         if llen != 6:
-            raise ParserException("REMOVE_REF command must be Qid|Pid|value|Sid|value")
+            raise ParserException(f"{oprt} command must be Qid|Pid|value|Sid|value")
         elements.pop(0)
         data = self.parse_statement(elements, elements[0].upper())
         data["action"] = "remove"
-        data["what"] = "reference"
+        data["what"] = "reference_block" if is_block else "reference"
         if len(data.get("references", [])) != 1:
-            raise ParserException("REMOVE_REF command must have 1 reference")
+            raise ParserException(f"{oprt} command must have 1 reference")
         if len(data.get("qualifiers", [])) != 0:
-            raise ParserException("REMOVE_REF command must have no qualifiers")
+            raise ParserException(f"{oprt} command must have no qualifiers")
         return data
 
     def parse_statement_by_id(self, elements):
@@ -354,7 +356,7 @@ class V1CommandParser(BaseParser):
         elif first_command == "REMOVE_QUAL":
             logger.debug(f"parsing remove qualifier: {elements}")
             data = self.parse_remove_qualifier(elements)
-        elif first_command == "REMOVE_REF":
+        elif first_command in ("REMOVE_REF", "REMOVE_REF_BLOCK"):
             logger.debug(f"parsing remove reference: {elements}")
             data = self.parse_remove_reference(elements)
         elif first_command == "SWITCH_VALUE":
@@ -447,6 +449,8 @@ class V1CommandParser(BaseParser):
                         bc.operation = bc.Operation.REMOVE_QUALIFIER
                     elif what == "reference":
                         bc.operation = bc.Operation.REMOVE_REFERENCE
+                    elif what == "reference_block":
+                        bc.operation = bc.Operation.REMOVE_REFERENCE_BLOCK
                 elif command["action"] == "create":
                     bc.action = BatchCommand.ACTION_CREATE
                     what_or_type = command.get("type", command.get("what"))

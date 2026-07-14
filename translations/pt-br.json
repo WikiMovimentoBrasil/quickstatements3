@@ -30,6 +30,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Remover declaração por valor",
 	"batchcommand-py-operation-remove-qualifier": "Remover qualificador",
 	"batchcommand-py-operation-remove-reference": "Remover referência",
+	"batchcommand-py-operation-remove-reference-block": "Remover bloco de referência",
 	"batchcommand-py-operation-set-sitelink": "Definir hiperligação de site",
 	"batchcommand-py-operation-set-label": "Definir rótulo",
 	"batchcommand-py-operation-set-description": "Definir descrição",

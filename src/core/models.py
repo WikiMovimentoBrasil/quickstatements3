@@ -881,6 +881,10 @@ class BatchCommand(models.Model):
             "remove_reference",
             pgettext_lazy("batchcommand-py-operation-remove-reference", "Remove reference"),
         )
+        REMOVE_REFERENCE_BLOCK = (
+            "remove_reference_block",
+            pgettext_lazy("batchcommand-py-operation-remove-reference-block", "Remove reference block"),
+        )
         #
         SET_SITELINK = (
             "set_sitelink",
@@ -1535,6 +1539,7 @@ class BatchCommand(models.Model):
             self.Operation.REMOVE_STATEMENT_BY_VALUE,
             self.Operation.REMOVE_QUALIFIER,
             self.Operation.REMOVE_REFERENCE,
+            self.Operation.REMOVE_REFERENCE_BLOCK,
             self.Operation.ADD_ALIAS,
             self.Operation.SET_LABEL,
             self.Operation.SET_DESCRIPTION,
@@ -1686,6 +1691,7 @@ class BatchCommand(models.Model):
         elif self.operation in (
             self.Operation.REMOVE_QUALIFIER,
             self.Operation.REMOVE_REFERENCE,
+            self.Operation.REMOVE_REFERENCE_BLOCK,
         ):
             self._remove_qualifier_or_reference(entity)
         elif self.operation == self.Operation.SET_SITELINK:
@@ -1747,7 +1753,7 @@ class BatchCommand(models.Model):
 
     def _remove_qualifier_or_reference(self, entity: dict):
         """
-        Removes a qualifier or a reference from the entity.
+        Removes a qualifier, a reference part or a reference block from the entity.
         """
         statements = self._get_statements(entity)
         found_qualifier = False
@@ -1768,9 +1774,9 @@ class BatchCommand(models.Model):
                         found_ref_part = True
                         break
                 if found_ref_part:
+                    if self.operation == self.Operation.REMOVE_REFERENCE_BLOCK:
+                        statement["references"].pop(i)
                     break
-            # any better way to do this? :P
-            # (without refactoring into a different function...)
             if found_ref_part:
                 break
         if not found_qualifier and len(self.qualifiers_for_api()) > 0:

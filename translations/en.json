@@ -26,6 +26,7 @@
     "batchcommand-py-operation-remove-statement-by-value": "Remove statement by value",
     "batchcommand-py-operation-remove-qualifier": "Remove qualifier",
     "batchcommand-py-operation-remove-reference": "Remove reference",
+    "batchcommand-py-operation-remove-reference-block": "Remove reference block",
     "batchcommand-py-operation-set-sitelink": "Set sitelink",
     "batchcommand-py-operation-set-label": "Set label",
     "batchcommand-py-operation-set-description": "Set description",
