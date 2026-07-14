@@ -31,6 +31,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Individual command operation type displayed in command list",
 	"batchcommand-py-operation-remove-qualifier": "Individual command operation type displayed in command list",
 	"batchcommand-py-operation-remove-reference": "Individual command operation type displayed in command list",
+	"batchcommand-py-operation-remove-reference-block": "Individual command operation type displayed in command list",
 	"batchcommand-py-operation-set-sitelink": "Individual command operation type displayed in command list",
 	"batchcommand-py-operation-set-label": "Individual command operation type displayed in command list",
 	"batchcommand-py-operation-set-description": "Individual command operation type displayed in command list",
