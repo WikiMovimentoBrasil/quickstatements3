@@ -31,6 +31,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Отстрани исказ по вредност",
 	"batchcommand-py-operation-remove-qualifier": "Отстрани определница",
 	"batchcommand-py-operation-remove-reference": "Отстрани навод",
+	"batchcommand-py-operation-remove-reference-block": "Отстрани блок на навод",
 	"batchcommand-py-operation-set-sitelink": "Задај викиврска",
 	"batchcommand-py-operation-set-label": "Задај натпис",
 	"batchcommand-py-operation-set-description": "Задај опис",

@@ -33,6 +33,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "값으로 서술 제거",
 	"batchcommand-py-operation-remove-qualifier": "한정어 제거",
 	"batchcommand-py-operation-remove-reference": "각주 제거",
+	"batchcommand-py-operation-remove-reference-block": "각주 블록 제거",
 	"batchcommand-py-operation-set-sitelink": "사이트링크 설정",
 	"batchcommand-py-operation-set-label": "레이블 설정",
 	"batchcommand-py-operation-set-description": "설명 설정",

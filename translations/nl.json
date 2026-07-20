@@ -32,6 +32,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Verklaring op waarde verwijderen",
 	"batchcommand-py-operation-remove-qualifier": "Kwalificatie verwijderen",
 	"batchcommand-py-operation-remove-reference": "Verwijzing verwijderen",
+	"batchcommand-py-operation-remove-reference-block": "Referentieblok verwijderen",
 	"batchcommand-py-operation-set-sitelink": "Sitekoppeling instellen",
 	"batchcommand-py-operation-set-label": "Label instellen",
 	"batchcommand-py-operation-set-description": "Beschrijving instellen",

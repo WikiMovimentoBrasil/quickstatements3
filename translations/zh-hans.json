@@ -35,6 +35,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "按值移除陈述",
 	"batchcommand-py-operation-remove-qualifier": "移除修饰符",
 	"batchcommand-py-operation-remove-reference": "移除参考文献",
+	"batchcommand-py-operation-remove-reference-block": "移除参考文献块",
 	"batchcommand-py-operation-set-sitelink": "设置项目网站链接",
 	"batchcommand-py-operation-set-label": "设置标签",
 	"batchcommand-py-operation-set-description": "设置描述",

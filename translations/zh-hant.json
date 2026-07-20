@@ -33,6 +33,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "根據陳述移除聲稱",
 	"batchcommand-py-operation-remove-qualifier": "移除限定符",
 	"batchcommand-py-operation-remove-reference": "移除參考文獻",
+	"batchcommand-py-operation-remove-reference-block": "移除參考區塊",
 	"batchcommand-py-operation-set-sitelink": "設定網路連結",
 	"batchcommand-py-operation-set-label": "設定標籤",
 	"batchcommand-py-operation-set-description": "設定描述",

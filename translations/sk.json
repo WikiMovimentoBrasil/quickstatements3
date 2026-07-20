@@ -32,6 +32,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Odstraňte výrok podľa hodnoty",
 	"batchcommand-py-operation-remove-qualifier": "Odstrániť kvalifikátor",
 	"batchcommand-py-operation-remove-reference": "Odstrániť referenciu",
+	"batchcommand-py-operation-remove-reference-block": "Odstrániť referenčný blok",
 	"batchcommand-py-operation-set-sitelink": "Nastaviť odkaz na stránku",
 	"batchcommand-py-operation-set-label": "Nastaviť štítok",
 	"batchcommand-py-operation-set-description": "Pridať popis",
