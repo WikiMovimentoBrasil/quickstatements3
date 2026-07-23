@@ -1,7 +1,8 @@
 {
 	"@metadata": {
 		"authors": [
-			"C960657"
+			"C960657",
+			"Penguin"
 		]
 	},
 	"batch-py-status-stopped": "Standset",
@@ -28,6 +29,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Fjern udsagn ud fra værdi",
 	"batchcommand-py-operation-remove-qualifier": "Fjern kvalifikator",
 	"batchcommand-py-operation-remove-reference": "Fjern reference",
+	"batchcommand-py-operation-remove-reference-block": "Fjern referenceblok",
 	"batchcommand-py-operation-set-sitelink": "Angiv webstedslink",
 	"batchcommand-py-operation-set-label": "Angiv etiket",
 	"batchcommand-py-operation-set-description": "Angiv beskrivelse",
@@ -180,7 +182,7 @@
 	"batch-commands-references": "Referencer",
 	"batch-command-somevalue": "(ukendt værdi)",
 	"batch-command-novalue": "(ingen værdi)",
-	"statistics-title-username": "Statistik for %(1)s",
+	"statistics-title-username": "Statistik for $1",
 	"statistics-title": "Statistik",
 	"statistics-all-time-numbers": "Levetidsstatistik",
 	"statistics-cumulative-batches": "Kumuleret antal jobs",
@@ -216,5 +218,6 @@
 	"batch-py-valid-command-not-found": "Ingen gyldige kommandoer fundet i det angivne input.",
 	"batch-button-rerun-uncombined": "Kør igen ukombineret",
 	"batch-button-rerun": "Kør igen",
-	"batch-button-download-report": "Download rapport"
+	"batch-button-download-report": "Download rapport",
+	"login-token-expired": "Din Wikimedia-godkendelse er udløbet. Dette er helt normalt, og det sker af sikkerhedsmæssige årsager. Log venligst ind igen."
 }
