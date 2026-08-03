@@ -33,6 +33,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Değere göre ifadeyi kaldır",
 	"batchcommand-py-operation-remove-qualifier": "Niteleyiciyi kaldır",
 	"batchcommand-py-operation-remove-reference": "Kaynağı kaldır",
+	"batchcommand-py-operation-remove-reference-block": "Referans bloğunu kaldır",
 	"batchcommand-py-operation-set-sitelink": "Site bağlantısını ayarla",
 	"batchcommand-py-operation-set-label": "Etiketi ayarla",
 	"batchcommand-py-operation-set-description": "Açıklamayı ayarla",

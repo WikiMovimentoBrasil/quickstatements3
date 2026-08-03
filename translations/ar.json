@@ -32,6 +32,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "إزالة البيان حسب القيمة",
 	"batchcommand-py-operation-remove-qualifier": "إزالة التصفية",
 	"batchcommand-py-operation-remove-reference": "إزالة المرجع",
+	"batchcommand-py-operation-remove-reference-block": "إزالة كتلة المرجع",
 	"batchcommand-py-operation-set-sitelink": "أضِف وصلة الموقع",
 	"batchcommand-py-operation-set-label": "أضِف تسمية",
 	"batchcommand-py-operation-set-description": "أضف وصفًا",
