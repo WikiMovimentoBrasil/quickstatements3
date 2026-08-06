@@ -1,6 +1,7 @@
 {
 	"@metadata": {
 		"authors": [
+			"Movses",
 			"Tohaomg"
 		]
 	},
@@ -28,8 +29,11 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Видалити твердження за значенням",
 	"batchcommand-py-operation-remove-qualifier": "Видалити кваліфікатор",
 	"batchcommand-py-operation-remove-reference": "Видалити джерело",
+	"batchcommand-py-operation-remove-reference-block": "Видалити блок джерел",
+	"batchcommand-py-operation-set-sitelink": "Задати посилання на сайт",
 	"batchcommand-py-operation-set-label": "Додати назву",
 	"batchcommand-py-operation-set-description": "Додати опис",
+	"batchcommand-py-operation-remove-sitelink": "Видалити посилання на сайт",
 	"batchcommand-py-operation-remove-label": "Видалити назву",
 	"batchcommand-py-operation-remove-description": "Видалити опис",
 	"batchcommand-py-operation-add-alias": "Додати іншу назву",
@@ -39,11 +43,15 @@
 	"batchcommand-py-error-no-statements-value": "Немає тверджень із заданим значенням",
 	"batchcommand-py-error-no-qualifiers": "Немає кваліфікаторів із заданим значенням",
 	"batchcommand-py-error-no-reference-parts": "Немає джерел із заданим значенням",
+	"batchcommand-py-error-sitelink-invalid": "Ідентифікатор посилання на сайт недійсний",
 	"batchcommand-py-error-combining-failed": "Наступна команда не вдалася",
 	"batchcommand-py-error-api-user-error": "API повернув помилку користувача",
 	"batchcommand-py-error-api-server-error": "API повернув помилку сервера",
 	"batch-revert-discuss": "Відкотити / Обговорити",
 	"batch-stop-execution": "Зупинити виконання",
+	"batch-loading-summary": "Завантаження зведення...",
+	"batch-loading-commands": "Завантаження команд...",
+	"batch-stop-batch": "Зупинити обробку пакету № $1",
 	"batch-are-you-sure-you-want-to-stop-the-current-batch-processing": "Ви впевнені що хочете зупинити виконання поточного пакету?",
 	"batch-no-continue": "Ні, продовжити",
 	"batch-stop-processing": "Зупинити виконання",
@@ -62,6 +70,8 @@
 	"batch-not-found-see-batch-details": "Дивитися деталі пакету",
 	"batch-summary-batch-status": "СТАН ПАКЕТУ",
 	"batch-summary-done-count": "Виконано $1 з $2",
+	"batch-summary-commands-summary": "ЗВЕДЕННЯ КОМАНД",
+	"batch-summary-total": "РАЗОМ",
 	"batch-summary-running": "ВИКОНУЄТЬСЯ",
 	"batch-summary-done": "ГОТОВО",
 	"batch-summary-errors": "ПОМИЛКА",
