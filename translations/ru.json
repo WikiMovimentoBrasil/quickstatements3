@@ -34,6 +34,7 @@
 	"batchcommand-py-operation-remove-statement-by-value": "Удаление утверждения по значению",
 	"batchcommand-py-operation-remove-qualifier": "Удаление квалификатора",
 	"batchcommand-py-operation-remove-reference": "Удаление источника",
+	"batchcommand-py-operation-remove-reference-block": "Удалить блок примечаний",
 	"batchcommand-py-operation-set-sitelink": "Установка ссылки на сайт",
 	"batchcommand-py-operation-set-label": "Установка метки",
 	"batchcommand-py-operation-set-description": "Добавление описания",
