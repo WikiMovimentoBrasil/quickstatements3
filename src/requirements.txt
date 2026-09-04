@@ -1,10 +1,10 @@
-Django==5.0.9
+Django==5.2.8
 requests==2.32.3
 requests-mock==1.10.0
-Authlib==1.3.1
+Authlib==1.6.9
 python-dotenv==1.0.1
 djangorestframework==3.15.2
-markdown==3.7      # Markdown support for the browsable API.
+markdown==3.8.1      # Markdown support for the browsable API.
 django-filter==24.3
 jsonpatch==1.33
 mysqlclient==2.2.7
@@ -12,3 +12,4 @@ factory_boy
 polib
 drf-spectacular
 drf-spectacular-sidecar
+
